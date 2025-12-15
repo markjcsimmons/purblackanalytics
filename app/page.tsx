@@ -128,8 +128,22 @@ export default function Dashboard() {
     const channelData: any = {};
     weekData.marketingChannels.forEach((item: any) => {
       if (!channelData[item.channel_name]) {
-        channelData[item.channel_name] = { channel: item.channel_name };
+        channelData[item.channel_name] = { channel: item.channel_name, Revenue: 0, Spend: 0 };
       }
+      
+      const metricLower = item.metric_name.toLowerCase();
+      
+      // Normalize revenue/sales to "Revenue" for charts
+      if (metricLower.includes('revenue') || metricLower.includes('sales') || metricLower.includes('attributed')) {
+        channelData[item.channel_name].Revenue = item.metric_value;
+      }
+      
+      // Normalize spend/cost to "Spend" for charts
+      if (metricLower.includes('spend') || metricLower.includes('cost')) {
+        channelData[item.channel_name].Spend = item.metric_value;
+      }
+      
+      // Keep original metric names too for other uses
       channelData[item.channel_name][item.metric_name] = item.metric_value;
     });
     
@@ -425,7 +439,8 @@ export default function Dashboard() {
                               acc[item.channel_name] = { revenue: 0, spend: 0, conversions: 0, clicks: 0 };
                             }
                             const metricLower = item.metric_name.toLowerCase();
-                            if (metricLower.includes('revenue') || metricLower.includes('total $')) {
+                            // Recognize revenue, sales, or attributed revenue
+                            if (metricLower.includes('revenue') || metricLower.includes('sales') || metricLower.includes('total $') || metricLower.includes('attributed')) {
                               acc[item.channel_name].revenue = item.metric_value;
                             }
                             if (metricLower.includes('spend') || metricLower.includes('cost')) {
