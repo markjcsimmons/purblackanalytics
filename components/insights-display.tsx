@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Lightbulb, TrendingUp, AlertTriangle, CheckCircle, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Insight {
   text: string;
@@ -26,6 +26,11 @@ export function InsightsDisplay({ weekId, existingInsights = [], onGenerate }: I
   const [error, setError] = useState('');
   const [additionalContext, setAdditionalContext] = useState('');
   const [showContextInput, setShowContextInput] = useState(false);
+
+  // Update insights when existingInsights prop changes
+  useEffect(() => {
+    setInsights(existingInsights);
+  }, [existingInsights]);
 
   const handleGenerateInsights = async () => {
     if (!weekId) {
