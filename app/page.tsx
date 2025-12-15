@@ -186,85 +186,218 @@ export default function Dashboard() {
           <TabsContent value="overview" className="space-y-8">
             {weekData && (
               <>
-                {/* AI Insights - Top Priority */}
-                <InsightsDisplay 
-                  weekId={selectedWeekId || undefined} 
-                  existingInsights={weekData.insights}
-                  onGenerate={() => fetchWeekData(selectedWeekId!)}
-                />
+                {/* HERO SECTION - Key Performance Indicators */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  {/* Revenue - Most Important */}
+                  <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-green-900">Total Revenue</CardTitle>
+                        <DollarSign className="h-5 w-5 text-green-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-4xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
+                        {formatCurrency(getMetricValue(weekData.overallMetrics, 'Revenue'))}
+                      </div>
+                      <p className="text-xs text-green-700 font-medium">
+                        {getMetricValue(weekData.overallMetrics, 'Orders')} orders
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                {/* Section 1: 🏪 STORE PERFORMANCE */}
-                <Card className="border-2 border-purple-100">
-                  <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100/50">
+                  {/* Conversion Rate */}
+                  <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-cyan-50">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-blue-900">Conversion Rate</CardTitle>
+                        <Percent className="h-5 w-5 text-blue-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
+                        {(getMetricValue(weekData.overallMetrics, 'Conversion Rate') || 0).toFixed(2)}%
+                      </div>
+                      <p className="text-xs text-blue-700 font-medium">
+                        of {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Sessions'))} sessions
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* AOV */}
+                  <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-purple-900">Avg Order Value</CardTitle>
+                        <ShoppingCart className="h-5 w-5 text-purple-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                        {formatCurrency(getMetricValue(weekData.overallMetrics, 'AOV'))}
+                      </div>
+                      <p className="text-xs text-purple-700 font-medium">
+                        per order
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Sessions */}
+                  <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-orange-900">Total Sessions</CardTitle>
+                        <Users className="h-5 w-5 text-orange-600" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-4xl font-black bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-2">
+                        {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Sessions'))}
+                      </div>
+                      <p className="text-xs text-orange-700 font-medium">
+                        website visitors
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* CONVERSION FUNNEL - Detailed Breakdown */}
+                <Card className="border-2 border-indigo-100">
+                  <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-purple-500 rounded-lg">
-                        <Store className="h-5 w-5 text-white" />
+                      <div className="p-2 bg-indigo-500 rounded-lg">
+                        <Target className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl">Store Performance</CardTitle>
-                        <CardDescription>Overall metrics for your ecommerce store</CardDescription>
+                        <CardTitle className="text-xl">Conversion Funnel</CardTitle>
+                        <CardDescription>Track visitor journey from session to purchase</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                      {/* Revenue */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <DollarSign className="h-4 w-4" />
-                          <span>Total Revenue</span>
+                      {/* Sessions */}
+                      <div className="relative">
+                        <div className="text-center p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border-2 border-slate-200">
+                          <div className="text-sm text-slate-600 mb-2">Sessions</div>
+                          <div className="text-3xl font-bold text-slate-900">
+                            {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Sessions'))}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-2">Starting point</div>
                         </div>
-                        <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                          {formatCurrency(getMetricValue(weekData.overallMetrics, 'Total Revenue') || 
-                                         getMetricValue(weekData.overallMetrics, 'Revenue'))}
-                        </div>
-                      </div>
-
-                      {/* Orders */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <ShoppingCart className="h-4 w-4" />
-                          <span>Total Orders</span>
-                        </div>
-                        <div className="text-3xl font-bold">
-                          {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Orders') || 
-                                       getMetricValue(weekData.overallMetrics, 'Orders'))}
+                        <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
+                          <ArrowUpRight className="h-6 w-6" />
                         </div>
                       </div>
 
-                      {/* AOV */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <DollarSign className="h-4 w-4" />
-                          <span>Average Order Value</span>
+                      {/* Add to Cart */}
+                      <div className="relative">
+                        <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-cyan-100 rounded-lg border-2 border-blue-200">
+                          <div className="text-sm text-blue-600 mb-2">Add to Cart</div>
+                          <div className="text-3xl font-bold text-blue-900">
+                            {formatNumber(getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                              getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                              getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100)}
+                          </div>
+                          <div className="text-xs font-semibold text-blue-700 mt-2">
+                            {(getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') || 0).toFixed(1)}% rate
+                          </div>
                         </div>
-                        <div className="text-3xl font-bold">
-                          {formatCurrency(getMetricValue(weekData.overallMetrics, 'AOV'))}
-                        </div>
-                      </div>
-
-                      {/* Conversion Rate */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Percent className="h-4 w-4" />
-                          <span>Conversion Rate</span>
-                        </div>
-                        <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                          {(getMetricValue(weekData.overallMetrics, 'Conversion Rate') || 0).toFixed(2)}%
+                        <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-blue-400">
+                          <ArrowUpRight className="h-6 w-6" />
                         </div>
                       </div>
 
-                      {/* Visitors */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Users className="h-4 w-4" />
-                          <span>Website Visitors</span>
+                      {/* Checkout */}
+                      <div className="relative">
+                        <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-100 rounded-lg border-2 border-purple-200">
+                          <div className="text-sm text-purple-600 mb-2">Checkout</div>
+                          <div className="text-3xl font-bold text-purple-900">
+                            {formatNumber(getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') || 0)}
+                          </div>
+                          <div className="text-xs font-semibold text-purple-700 mt-2">
+                            {((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
+                              (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 1)) * 100).toFixed(1)}% from cart
+                          </div>
                         </div>
-                        <div className="text-3xl font-bold">
-                          {formatNumber(getMetricValue(weekData.overallMetrics, 'Visitors') || 
-                                       getMetricValue(weekData.overallMetrics, 'Total Visitors'))}
+                        <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-purple-400">
+                          <ArrowUpRight className="h-6 w-6" />
                         </div>
                       </div>
+
+                      {/* Purchase */}
+                      <div className="relative">
+                        <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-100 rounded-lg border-2 border-green-300">
+                          <div className="text-sm text-green-600 mb-2">Purchase</div>
+                          <div className="text-3xl font-bold text-green-900">
+                            {formatNumber(getMetricValue(weekData.overallMetrics, 'Orders'))}
+                          </div>
+                          <div className="text-xs font-semibold text-green-700 mt-2">
+                            {((getMetricValue(weekData.funnelMetrics, 'Checkout → Purchase') || 0)).toFixed(1)}% checkout rate
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Cart Abandonment Callout */}
+                    <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-amber-100 rounded">
+                          <ShoppingCart className="h-4 w-4 text-amber-600" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-amber-900 text-sm mb-1">Cart Abandonment</div>
+                          <div className="text-sm text-amber-700">
+                            <span className="font-bold text-lg">
+                              {(100 - ((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
+                                (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 1)) * 100)).toFixed(1)}%
+                            </span>
+                            {' '}of users who added to cart didn't checkout
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* TOP SELLING PRODUCTS */}
+                <Card className="border-2 border-pink-100">
+                  <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-pink-500 rounded-lg">
+                        <Sparkles className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">Top Selling Products</CardTitle>
+                        <CardDescription>Best performing products this week</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {weekData.overallMetrics
+                        .filter((m: any) => m.metric_name.startsWith('/products/') && m.metric_name !== '/products/')
+                        .sort((a: any, b: any) => b.metric_value - a.metric_value)
+                        .slice(0, 6)
+                        .map((product: any, idx: number) => {
+                          const productName = product.metric_name
+                            .replace('/products/', '')
+                            .split('-')
+                            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                          return (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
+                                {idx + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-sm truncate">{productName}</div>
+                                <div className="text-xs text-muted-foreground">{product.metric_value} orders</div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      }
                     </div>
                   </CardContent>
                 </Card>
@@ -283,7 +416,92 @@ export default function Dashboard() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <div className="grid gap-6 md:grid-cols-2 mb-6">
+                    {/* Channel Summary Cards with Enhanced Affiliates */}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                      {weekData && weekData.marketingChannels && Array.isArray(weekData.marketingChannels) && 
+                        Object.entries(
+                          weekData.marketingChannels.reduce((acc: any, item: any) => {
+                            if (!acc[item.channel_name]) {
+                              acc[item.channel_name] = { revenue: 0, spend: 0, conversions: 0, clicks: 0 };
+                            }
+                            const metricLower = item.metric_name.toLowerCase();
+                            if (metricLower.includes('revenue') || metricLower.includes('total $')) {
+                              acc[item.channel_name].revenue = item.metric_value;
+                            }
+                            if (metricLower.includes('spend') || metricLower.includes('cost')) {
+                              acc[item.channel_name].spend = item.metric_value;
+                            }
+                            if (metricLower.includes('conversion')) {
+                              acc[item.channel_name].conversions = item.metric_value;
+                            }
+                            if (metricLower.includes('click')) {
+                              acc[item.channel_name].clicks = item.metric_value;
+                            }
+                            return acc;
+                          }, {})
+                        ).map(([channel, data]: [string, any]) => {
+                          const roi = data.spend > 0 ? ((data.revenue - data.spend) / data.spend * 100) : 0;
+                          const isAffiliate = channel.toLowerCase().includes('affiliate');
+                          return (
+                            <div 
+                              key={channel} 
+                              className={`p-4 border-2 rounded-lg ${
+                                isAffiliate 
+                                  ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-300' 
+                                  : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="font-bold text-sm">{channel}</div>
+                                {isAffiliate && (
+                                  <span className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-semibold">
+                                    Partnership
+                                  </span>
+                                )}
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                {data.revenue > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Revenue:</span>
+                                    <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
+                                  </div>
+                                )}
+                                {data.spend > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Spend:</span>
+                                    <span className="text-red-600">{formatCurrency(data.spend)}</span>
+                                  </div>
+                                )}
+                                {data.conversions > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Conversions:</span>
+                                    <span className="font-medium">{formatNumber(data.conversions)}</span>
+                                  </div>
+                                )}
+                                {data.clicks > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Clicks:</span>
+                                    <span className="font-medium">{formatNumber(data.clicks)}</span>
+                                  </div>
+                                )}
+                                {roi !== 0 && (
+                                  <div className="flex justify-between items-center pt-2 border-t">
+                                    <span className="text-muted-foreground font-semibold">ROI:</span>
+                                    <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                                      {roi.toFixed(0)}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      }
+                    </div>
+
+                    {/* Charts */}
+                    <div className="grid gap-6 md:grid-cols-2">
                       <MetricsChart
                         title="Revenue by Channel"
                         description="How much revenue each channel generated"
@@ -303,68 +521,19 @@ export default function Dashboard() {
                         color="#3b82f6"
                       />
                     </div>
-
-                    {/* Channel Summary Cards */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {weekData && weekData.marketingChannels && Array.isArray(weekData.marketingChannels) && 
-                        Object.entries(
-                          weekData.marketingChannels.reduce((acc: any, item: any) => {
-                            if (!acc[item.channel_name]) {
-                              acc[item.channel_name] = { revenue: 0, spend: 0, conversions: 0 };
-                            }
-                            if (item.metric_name.toLowerCase().includes('revenue')) {
-                              acc[item.channel_name].revenue = item.metric_value;
-                            }
-                            if (item.metric_name.toLowerCase().includes('spend')) {
-                              acc[item.channel_name].spend = item.metric_value;
-                            }
-                            if (item.metric_name.toLowerCase().includes('conversion')) {
-                              acc[item.channel_name].conversions = item.metric_value;
-                            }
-                            return acc;
-                          }, {})
-                        ).map(([channel, data]: [string, any]) => {
-                          const roi = data.spend > 0 ? ((data.revenue - data.spend) / data.spend * 100) : 0;
-                          return (
-                            <div key={channel} className="p-4 border rounded-lg bg-gradient-to-br from-white to-gray-50">
-                              <div className="font-semibold text-sm mb-3">{channel}</div>
-                              <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Revenue:</span>
-                                  <span className="font-bold">{formatCurrency(data.revenue)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Spend:</span>
-                                  <span>{formatCurrency(data.spend)}</span>
-                                </div>
-                                {roi !== 0 && (
-                                  <div className="flex justify-between items-center pt-1 border-t">
-                                    <span className="text-muted-foreground">ROI:</span>
-                                    <span className={`font-bold flex items-center gap-1 ${roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                      {roi > 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                                      {roi.toFixed(0)}%
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })
-                      }
-                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Section 3: 🎯 WEBSITE FUNNEL */}
-                <Card className="border-2 border-orange-100">
-                  <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100/50">
+                {/* Section 3: 🎯 DETAILED FUNNEL METRICS */}
+                <Card className="border-2 border-teal-100">
+                  <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-orange-500 rounded-lg">
-                        <Target className="h-5 w-5 text-white" />
+                      <div className="p-2 bg-teal-500 rounded-lg">
+                        <BarChart3 className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <CardTitle className="text-xl">Website Funnel</CardTitle>
-                        <CardDescription>Visitor journey and conversion stages</CardDescription>
+                        <CardTitle className="text-xl">Detailed Funnel Metrics</CardTitle>
+                        <CardDescription>Page-level insights and user behavior</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -380,15 +549,18 @@ export default function Dashboard() {
                             return acc;
                           }, {})
                         ).map(([stage, metrics]: [string, any]) => (
-                          <div key={stage} className="p-4 border rounded-lg bg-gradient-to-br from-white to-orange-50/30">
-                            <div className="font-semibold mb-3 text-orange-900">{stage}</div>
+                          <div key={stage} className="p-4 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
+                            <div className="font-bold mb-3 text-teal-900 flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-teal-500"></div>
+                              {stage}
+                            </div>
                             <div className="space-y-2">
                               {metrics.map((metric: any, idx: number) => (
                                 <div key={idx} className="flex justify-between items-start text-sm">
                                   <span className="text-muted-foreground text-xs flex-1">
                                     {metric.metric_name.replace(/^\*\s*/, '')}
                                   </span>
-                                  <span className="font-medium ml-2">
+                                  <span className="font-semibold ml-2 text-teal-900">
                                     {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
                                       ? metric.metric_value.toFixed(1)
                                       : formatNumber(metric.metric_value)}
@@ -408,6 +580,13 @@ export default function Dashboard() {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* AI INSIGHTS - After Visual Overview */}
+                <InsightsDisplay 
+                  weekId={selectedWeekId || undefined} 
+                  existingInsights={weekData.insights}
+                  onGenerate={() => fetchWeekData(selectedWeekId!)}
+                />
               </>
             )}
 
