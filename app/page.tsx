@@ -22,7 +22,13 @@ import {
   Users, 
   BarChart3,
   Calendar,
-  Sparkles
+  Sparkles,
+  Store,
+  Megaphone,
+  Target,
+  ArrowUpRight,
+  ArrowDownRight,
+  Percent
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -177,91 +183,231 @@ export default function Dashboard() {
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-8">
             {weekData && (
               <>
-                {/* Key Metrics Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {formatCurrency(getMetricValue(weekData.overallMetrics, 'Total Revenue') || 
-                                       getMetricValue(weekData.overallMetrics, 'Revenue'))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Orders</CardTitle>
-                      <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Orders') || 
-                                     getMetricValue(weekData.overallMetrics, 'Orders'))}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {(getMetricValue(weekData.overallMetrics, 'Conversion Rate') || 0).toFixed(2)}%
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Website Visitors</CardTitle>
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {formatNumber(getMetricValue(weekData.overallMetrics, 'Visitors') || 
-                                     getMetricValue(weekData.overallMetrics, 'Total Visitors'))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* AI Insights */}
+                {/* AI Insights - Top Priority */}
                 <InsightsDisplay 
                   weekId={selectedWeekId || undefined} 
                   existingInsights={weekData.insights}
                   onGenerate={() => fetchWeekData(selectedWeekId!)}
                 />
 
-                {/* Marketing Channels Overview */}
-                <div className="grid gap-6 md:grid-cols-2">
-                  <MetricsChart
-                    title="Channel Performance"
-                    description="Revenue by marketing channel"
-                    data={getChannelChartData()}
-                    dataKey="Revenue"
-                    xAxisKey="channel"
-                    type="bar"
-                    color="#8b5cf6"
-                  />
-                  <MetricsChart
-                    title="Channel Spend"
-                    description="Marketing spend by channel"
-                    data={getChannelChartData()}
-                    dataKey="Spend"
-                    xAxisKey="channel"
-                    type="bar"
-                    color="#3b82f6"
-                  />
-                </div>
+                {/* Section 1: 🏪 STORE PERFORMANCE */}
+                <Card className="border-2 border-purple-100">
+                  <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100/50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-500 rounded-lg">
+                        <Store className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">Store Performance</CardTitle>
+                        <CardDescription>Overall metrics for your ecommerce store</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                      {/* Revenue */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4" />
+                          <span>Total Revenue</span>
+                        </div>
+                        <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                          {formatCurrency(getMetricValue(weekData.overallMetrics, 'Total Revenue') || 
+                                         getMetricValue(weekData.overallMetrics, 'Revenue'))}
+                        </div>
+                      </div>
+
+                      {/* Orders */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <ShoppingCart className="h-4 w-4" />
+                          <span>Total Orders</span>
+                        </div>
+                        <div className="text-3xl font-bold">
+                          {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Orders') || 
+                                       getMetricValue(weekData.overallMetrics, 'Orders'))}
+                        </div>
+                      </div>
+
+                      {/* AOV */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <DollarSign className="h-4 w-4" />
+                          <span>Average Order Value</span>
+                        </div>
+                        <div className="text-3xl font-bold">
+                          {formatCurrency(getMetricValue(weekData.overallMetrics, 'AOV'))}
+                        </div>
+                      </div>
+
+                      {/* Conversion Rate */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Percent className="h-4 w-4" />
+                          <span>Conversion Rate</span>
+                        </div>
+                        <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                          {(getMetricValue(weekData.overallMetrics, 'Conversion Rate') || 0).toFixed(2)}%
+                        </div>
+                      </div>
+
+                      {/* Visitors */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          <span>Website Visitors</span>
+                        </div>
+                        <div className="text-3xl font-bold">
+                          {formatNumber(getMetricValue(weekData.overallMetrics, 'Visitors') || 
+                                       getMetricValue(weekData.overallMetrics, 'Total Visitors'))}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Section 2: 📢 MARKETING CHANNELS */}
+                <Card className="border-2 border-blue-100">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-500 rounded-lg">
+                        <Megaphone className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">Marketing Channels</CardTitle>
+                        <CardDescription>Performance across all marketing channels</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="grid gap-6 md:grid-cols-2 mb-6">
+                      <MetricsChart
+                        title="Revenue by Channel"
+                        description="How much revenue each channel generated"
+                        data={getChannelChartData()}
+                        dataKey="Revenue"
+                        xAxisKey="channel"
+                        type="bar"
+                        color="#8b5cf6"
+                      />
+                      <MetricsChart
+                        title="Spend by Channel"
+                        description="Marketing investment per channel"
+                        data={getChannelChartData()}
+                        dataKey="Spend"
+                        xAxisKey="channel"
+                        type="bar"
+                        color="#3b82f6"
+                      />
+                    </div>
+
+                    {/* Channel Summary Cards */}
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {weekData && weekData.marketingChannels && Array.isArray(weekData.marketingChannels) && 
+                        Object.entries(
+                          weekData.marketingChannels.reduce((acc: any, item: any) => {
+                            if (!acc[item.channel_name]) {
+                              acc[item.channel_name] = { revenue: 0, spend: 0, conversions: 0 };
+                            }
+                            if (item.metric_name.toLowerCase().includes('revenue')) {
+                              acc[item.channel_name].revenue = item.metric_value;
+                            }
+                            if (item.metric_name.toLowerCase().includes('spend')) {
+                              acc[item.channel_name].spend = item.metric_value;
+                            }
+                            if (item.metric_name.toLowerCase().includes('conversion')) {
+                              acc[item.channel_name].conversions = item.metric_value;
+                            }
+                            return acc;
+                          }, {})
+                        ).map(([channel, data]: [string, any]) => {
+                          const roi = data.spend > 0 ? ((data.revenue - data.spend) / data.spend * 100) : 0;
+                          return (
+                            <div key={channel} className="p-4 border rounded-lg bg-gradient-to-br from-white to-gray-50">
+                              <div className="font-semibold text-sm mb-3">{channel}</div>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Revenue:</span>
+                                  <span className="font-bold">{formatCurrency(data.revenue)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Spend:</span>
+                                  <span>{formatCurrency(data.spend)}</span>
+                                </div>
+                                {roi !== 0 && (
+                                  <div className="flex justify-between items-center pt-1 border-t">
+                                    <span className="text-muted-foreground">ROI:</span>
+                                    <span className={`font-bold flex items-center gap-1 ${roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {roi > 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                                      {roi.toFixed(0)}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      }
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Section 3: 🎯 WEBSITE FUNNEL */}
+                <Card className="border-2 border-orange-100">
+                  <CardHeader className="bg-gradient-to-r from-orange-50 to-orange-100/50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-500 rounded-lg">
+                        <Target className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">Website Funnel</CardTitle>
+                        <CardDescription>Visitor journey and conversion stages</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    {weekData && weekData.funnelMetrics && weekData.funnelMetrics.length > 0 ? (
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {Object.entries(
+                          weekData.funnelMetrics.reduce((acc: any, item: any) => {
+                            if (!acc[item.stage_name]) {
+                              acc[item.stage_name] = [];
+                            }
+                            acc[item.stage_name].push(item);
+                            return acc;
+                          }, {})
+                        ).map(([stage, metrics]: [string, any]) => (
+                          <div key={stage} className="p-4 border rounded-lg bg-gradient-to-br from-white to-orange-50/30">
+                            <div className="font-semibold mb-3 text-orange-900">{stage}</div>
+                            <div className="space-y-2">
+                              {metrics.map((metric: any, idx: number) => (
+                                <div key={idx} className="flex justify-between items-start text-sm">
+                                  <span className="text-muted-foreground text-xs flex-1">
+                                    {metric.metric_name.replace(/^\*\s*/, '')}
+                                  </span>
+                                  <span className="font-medium ml-2">
+                                    {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
+                                      ? metric.metric_value.toFixed(1)
+                                      : formatNumber(metric.metric_value)}
+                                    {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Target className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                        <p>No funnel data available</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </>
             )}
 
