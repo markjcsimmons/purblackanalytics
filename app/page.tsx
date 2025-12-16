@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { DataUpload } from '@/components/data-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
+import { DataEntryForm } from '@/components/data-entry-form';
 import { MetricsChart } from '@/components/metrics-chart';
 import { InsightsDisplay } from '@/components/insights-display';
 import { 
@@ -669,11 +670,16 @@ export default function Dashboard() {
           {/* Upload Tab */}
           <TabsContent value="upload" className="space-y-6">
             {/* Upload Method Selection */}
-            <Tabs defaultValue="csv" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="csv">CSV Upload</TabsTrigger>
-                <TabsTrigger value="docs">Google Docs</TabsTrigger>
+            <Tabs defaultValue="form" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="form">📝 Data Entry Form</TabsTrigger>
+                <TabsTrigger value="csv">📄 CSV Upload</TabsTrigger>
+                <TabsTrigger value="docs">📑 Google Docs</TabsTrigger>
               </TabsList>
+              
+              <TabsContent value="form" className="mt-6">
+                <DataEntryForm onSuccess={handleUploadSuccess} />
+              </TabsContent>
               
               <TabsContent value="csv" className="mt-6">
                 <DataUpload onUploadSuccess={handleUploadSuccess} />
