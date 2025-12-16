@@ -106,3 +106,5 @@ Funnel,Homepage,Visitors,4800
 
 **Ready?** Just run `npm run dev` and start tracking your marketing performance! 🚀
 
+
+

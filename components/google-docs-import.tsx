@@ -81,6 +81,34 @@ export function GoogleDocsImport({ onUploadSuccess }: { onUploadSuccess?: () => 
       }
 
       // Parse metric lines (various formats)
+      // Format 0: "Metric1 123, Metric2 456" (comma-separated metrics on one line)
+      if (line.includes(',') && /[A-Za-z]+\s+[\d,]+/.test(line)) {
+        const metricPairs = line.split(',').map(pair => pair.trim());
+        for (const pair of metricPairs) {
+          const match = pair.match(/^([A-Za-z\s]+?)\s+([\d,]+\.?\d*)$/);
+          if (match) {
+            const metricName = match[1].trim();
+            const value = parseFloat(match[2].replace(/,/g, ''));
+            if (!isNaN(value)) {
+              if (currentSection === 'overall') {
+                data.overallMetrics[metricName] = value;
+              } else if (currentSection === 'marketing' && currentChannel) {
+                if (!data.marketingChannels[currentChannel]) {
+                  data.marketingChannels[currentChannel] = {};
+                }
+                data.marketingChannels[currentChannel][metricName] = value;
+              } else if (currentSection === 'funnel') {
+                if (!data.funnelMetrics[currentChannel || 'Unknown Stage']) {
+                  data.funnelMetrics[currentChannel || 'Unknown Stage'] = {};
+                }
+                data.funnelMetrics[currentChannel || 'Unknown Stage'][metricName] = value;
+              }
+            }
+          }
+        }
+        continue;
+      }
+
       // Format 1: "Metric Name: $1,234" or "Metric Name: 1,234" or "Metric Name: 12.5%"
       const colonMatch = line.match(/^(.+?):\s*\$?([\d,]+\.?\d*)/);
       if (colonMatch) {

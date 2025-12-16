@@ -11,10 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DataUpload } from '@/components/data-upload';
-import { GoogleDocsImport } from '@/components/google-docs-import';
 import { DataEntryForm } from '@/components/data-entry-form';
-import { MetricsChart } from '@/components/metrics-chart';
 import { InsightsDisplay } from '@/components/insights-display';
 import { 
   TrendingUp, 
@@ -123,33 +120,6 @@ export default function Dashboard() {
     return new Intl.NumberFormat('en-US').format(value);
   };
 
-  const getChannelChartData = () => {
-    if (!weekData || !weekData.marketingChannels || !Array.isArray(weekData.marketingChannels)) return [];
-    
-    const channelData: any = {};
-    weekData.marketingChannels.forEach((item: any) => {
-      if (!channelData[item.channel_name]) {
-        channelData[item.channel_name] = { channel: item.channel_name, Revenue: 0, Spend: 0 };
-      }
-      
-      const metricLower = item.metric_name.toLowerCase();
-      
-      // Normalize revenue/sales to "Revenue" for charts
-      if (metricLower.includes('revenue') || metricLower.includes('sales') || metricLower.includes('attributed')) {
-        channelData[item.channel_name].Revenue = item.metric_value;
-      }
-      
-      // Normalize spend/cost to "Spend" for charts
-      if (metricLower.includes('spend') || metricLower.includes('cost')) {
-        channelData[item.channel_name].Spend = item.metric_value;
-      }
-      
-      // Keep original metric names too for other uses
-      channelData[item.channel_name][item.metric_name] = item.metric_value;
-    });
-    
-    return Object.values(channelData);
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -194,7 +164,7 @@ export default function Dashboard() {
           <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="channels">Channels</TabsTrigger>
-            <TabsTrigger value="upload">Upload Data</TabsTrigger>
+            <TabsTrigger value="add-data">Add Data</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -476,39 +446,21 @@ export default function Dashboard() {
                                 )}
                               </div>
                               <div className="space-y-2 text-sm">
-                                {data.revenue > 0 && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Revenue:</span>
-                                    <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
-                                  </div>
-                                )}
-                                {data.spend > 0 && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Spend:</span>
-                                    <span className="text-red-600">{formatCurrency(data.spend)}</span>
-                                  </div>
-                                )}
-                                {data.conversions > 0 && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Conversions:</span>
-                                    <span className="font-medium">{formatNumber(data.conversions)}</span>
-                                  </div>
-                                )}
-                                {data.clicks > 0 && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Clicks:</span>
-                                    <span className="font-medium">{formatNumber(data.clicks)}</span>
-                                  </div>
-                                )}
-                                {roi !== 0 && (
-                                  <div className="flex justify-between items-center pt-2 border-t">
-                                    <span className="text-muted-foreground font-semibold">ROI:</span>
-                                    <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                      {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                                      {roi.toFixed(0)}%
-                                    </span>
-                                  </div>
-                                )}
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Revenue:</span>
+                                  <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Spend:</span>
+                                  <span className="text-red-600">{formatCurrency(data.spend)}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t">
+                                  <span className="text-muted-foreground font-semibold">ROI:</span>
+                                  <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : roi < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                    {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : roi < 0 ? <ArrowDownRight className="h-4 w-4" /> : null}
+                                    {roi.toFixed(0)}%
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           );
@@ -516,27 +468,6 @@ export default function Dashboard() {
                       }
                     </div>
 
-                    {/* Charts */}
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <MetricsChart
-                        title="Revenue by Channel"
-                        description="How much revenue each channel generated"
-                        data={getChannelChartData()}
-                        dataKey="Revenue"
-                        xAxisKey="channel"
-                        type="bar"
-                        color="#8b5cf6"
-                      />
-                      <MetricsChart
-                        title="Spend by Channel"
-                        description="Marketing investment per channel"
-                        data={getChannelChartData()}
-                        dataKey="Spend"
-                        xAxisKey="channel"
-                        type="bar"
-                        color="#3b82f6"
-                      />
-                    </div>
                   </CardContent>
                 </Card>
 
@@ -615,8 +546,8 @@ export default function Dashboard() {
                     <p className="text-muted-foreground mb-4">
                       Upload your first week of data to get started
                     </p>
-                    <Button onClick={() => document.querySelector('[value="upload"]')?.dispatchEvent(new Event('click'))}>
-                      Upload Data
+                    <Button onClick={() => document.querySelector('[value="add-data"]')?.dispatchEvent(new Event('click'))}>
+                      Add Data
                     </Button>
                   </div>
                 </CardContent>
@@ -667,77 +598,9 @@ export default function Dashboard() {
             )}
           </TabsContent>
 
-          {/* Upload Tab */}
-          <TabsContent value="upload" className="space-y-6">
-            {/* Upload Method Selection */}
-            <Tabs defaultValue="form" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="form">📝 Data Entry Form</TabsTrigger>
-                <TabsTrigger value="csv">📄 CSV Upload</TabsTrigger>
-                <TabsTrigger value="docs">📑 Google Docs</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="form" className="mt-6">
-                <DataEntryForm onSuccess={handleUploadSuccess} />
-              </TabsContent>
-              
-              <TabsContent value="csv" className="mt-6">
-                <DataUpload onUploadSuccess={handleUploadSuccess} />
-              </TabsContent>
-              
-              <TabsContent value="docs" className="mt-6">
-                <GoogleDocsImport onUploadSuccess={handleUploadSuccess} />
-              </TabsContent>
-            </Tabs>
-            
-            {/* CSV Format Guide */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>CSV Format Guide</CardTitle>
-                <CardDescription>How to structure your data file</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Required Columns:</h4>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Your CSV must have these four columns: <code className="bg-gray-100 px-2 py-1 rounded">Category</code>, {' '}
-                    <code className="bg-gray-100 px-2 py-1 rounded">Subcategory</code>, {' '}
-                    <code className="bg-gray-100 px-2 py-1 rounded">Metric</code>, {' '}
-                    <code className="bg-gray-100 px-2 py-1 rounded">Value</code>
-                  </p>
-                </div>
-                
-                <div>
-                  <h4 className="font-semibold mb-2">Example Data:</h4>
-                  <pre className="bg-gray-100 p-4 rounded-md text-xs overflow-x-auto">
-{`Category,Subcategory,Metric,Value
-Overall,Store,Total Revenue,45000
-Overall,Store,Total Orders,120
-Overall,Store,Conversion Rate,2.5
-Overall,Store,Visitors,4800
-Marketing,Meta Ads,Spend,5000
-Marketing,Meta Ads,Revenue,15000
-Marketing,Meta Ads,ROAS,3.0
-Marketing,Google Ads,Spend,3000
-Marketing,Google Ads,Revenue,9000
-Marketing,Email & SMS,Revenue,8000
-Funnel,Homepage,Visitors,4800
-Funnel,Product Page,Visitors,2400
-Funnel,Cart,Visitors,600
-Funnel,Checkout,Visitors,150`}
-                  </pre>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2">Categories:</h4>
-                  <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                    <li><strong>Overall:</strong> Store-wide metrics (Revenue, Orders, Conversion Rate, etc.)</li>
-                    <li><strong>Marketing:</strong> Channel-specific metrics (Subcategory = Channel name)</li>
-                    <li><strong>Funnel:</strong> Website funnel stages (Subcategory = Stage name)</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Add Data Tab */}
+          <TabsContent value="add-data" className="space-y-6">
+            <DataEntryForm onSuccess={handleUploadSuccess} />
           </TabsContent>
         </Tabs>
       </div>

@@ -154,7 +154,15 @@ export function getWeekData(weekId: number) {
   const overallMetrics = database.prepare('SELECT * FROM overall_metrics WHERE week_id = ?').all(weekId);
   const marketingChannels = database.prepare('SELECT * FROM marketing_channels WHERE week_id = ?').all(weekId);
   const funnelMetrics = database.prepare('SELECT * FROM funnel_metrics WHERE week_id = ?').all(weekId);
-  const insights = database.prepare('SELECT * FROM insights WHERE week_id = ?').all(weekId);
+  const insightsRaw = database.prepare('SELECT * FROM insights WHERE week_id = ?').all(weekId) as any[];
+  
+  // Map database field names to component expected format
+  const insights = insightsRaw.map((insight: any) => ({
+    id: insight.id,
+    text: insight.insight_text,
+    type: insight.insight_type,
+    priority: insight.priority,
+  }));
 
   return {
     week,

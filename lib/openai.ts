@@ -49,13 +49,33 @@ export async function generateInsights(data: {
 
 Week: ${week.week_start_date} to ${week.week_end_date}
 
-${businessContext ? `IMPORTANT BUSINESS CONTEXT:
+${businessContext ? `🚨🚨🚨 CRITICAL: BUSINESS CONTEXT PROVIDED - THIS IS MANDATORY TO USE 🚨🚨🚨
+
+The following business context was explicitly provided and MUST be incorporated into your analysis:
+
 ${businessContext}
 
-⚠️ Use this context to interpret the metrics correctly. For example:
-- If there was a sale or promotion, higher metrics are expected/normal
-- If there were technical issues, lower metrics should be viewed in that light
-- Account for seasonal events, product launches, or other special circumstances
+⚠️⚠️⚠️ REQUIRED ACTIONS - YOU MUST FOLLOW THESE:
+1. MANDATORY: At least 3-4 of your insights MUST explicitly reference and incorporate this context
+2. When context mentions a sale/promotion, you MUST state something like: "Given the [specific event from context], the [metric change] is [expected/unexpected]..."
+3. When context mentions technical issues, you MUST state: "The [metric impact] aligns with the [technical issue from context] mentioned..."
+4. DO NOT provide generic insights that ignore the context - all insights should be filtered through the lens of this context
+5. If the context explains why metrics are high/low, you MUST acknowledge this rather than suggesting the metrics are problematic
+
+EXAMPLES OF PROPER CONTEXT USAGE:
+- Context: "Black Friday sale this week"
+  ✅ GOOD: "Given the Black Friday sale mentioned in context, the 40% revenue increase is expected and indicates strong promotional performance. The campaign successfully drove traffic and conversions."
+  ❌ BAD: "Revenue increased 40% this week. Consider optimizing conversion rates." (ignores context)
+
+- Context: "Site went down for 3 hours on Monday"
+  ✅ GOOD: "The 15% drop in conversions aligns with the site downtime on Monday mentioned in context. Given the 3-hour outage, this performance is actually stronger than expected."
+  ❌ BAD: "Conversion rates dropped 15%. Investigate checkout process issues." (ignores context)
+
+- Context: "Launched new product line on Wednesday"
+  ✅ GOOD: "With the new product line launch on Wednesday, the mid-week traffic spike of 35% is expected. Focus on converting this traffic through targeted retargeting campaigns."
+  ❌ BAD: "Traffic increased 35% mid-week. Maintain this momentum." (ignores context)
+
+NOW ANALYZE THE DATA BELOW, ENSURING YOU REFERENCE THE CONTEXT ABOVE IN MULTIPLE INSIGHTS:
 ` : ''}
 
 OVERALL STORE PERFORMANCE:
@@ -70,20 +90,22 @@ ${funnelFormatted}
 ${previousWeekData ? `PREVIOUS WEEK FOR COMPARISON:
 ${JSON.stringify(previousWeekData, null, 2)}` : ''}
 
-Please provide 5-8 specific, actionable insights. For each insight:
+Please provide 5-8 specific, actionable insights. ${businessContext ? '⚠️ REQUIRED: At least 3-4 insights MUST explicitly mention and incorporate the business context provided above. ' : ''}For each insight:
 1. Identify what's working well, what needs improvement, or what opportunities exist
-2. Be specific with numbers and percentages when relevant
-3. Provide concrete, actionable recommendations
+2. ${businessContext ? 'MANDATORY: If this insight relates to the business context provided above, you MUST explicitly reference it (e.g., "Given the [context detail], the [metric] indicates..."). ' : ''}Be specific with numbers and percentages when relevant
+3. Provide concrete, actionable recommendations that account for the business context
 4. Prioritize based on potential impact
 
-Format your response as a JSON array of objects with the following structure:
-[
-  {
-    "text": "Detailed insight with specific metrics and actionable recommendation",
-    "type": "opportunity" | "warning" | "success" | "recommendation",
-    "priority": "high" | "medium" | "low"
-  }
-]
+Format your response as a JSON object with an "insights" array. ${businessContext ? '🚨 REMINDER: Multiple insights must explicitly reference the business context provided earlier in this prompt.' : ''}
+{
+  "insights": [
+    {
+      "text": "Detailed insight with specific metrics and actionable recommendation",
+      "type": "opportunity" | "warning" | "success" | "recommendation",
+      "priority": "high" | "medium" | "low"
+    }
+  ]
+}
 
 Focus on:
 - ROI and efficiency across channels
@@ -91,15 +113,21 @@ Focus on:
 - Customer acquisition cost trends
 - Funnel drop-off points
 - Channel performance comparisons
-- Budget allocation recommendations`;
+- Budget allocation recommendations
+${businessContext ? '- How the business context affects performance interpretation' : ''}`;
 
   try {
+    // Log if context is being used for debugging
+    if (businessContext) {
+      console.log('Business context being used in insights generation:', businessContext.substring(0, 100) + '...');
+    }
+    
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: 'You are an expert ecommerce marketing analyst. Provide insights in JSON format only, no additional text.',
+          content: `You are an expert ecommerce marketing analyst. Provide insights in JSON format only, no additional text.${businessContext ? ' CRITICAL: Business context was provided - you MUST reference it explicitly in at least 3-4 insights. Do not provide generic insights that ignore the context.' : ''}`,
         },
         {
           role: 'user',
@@ -116,7 +144,22 @@ Focus on:
     const parsed = JSON.parse(content);
     
     // Handle different possible response formats
-    const insights = Array.isArray(parsed) ? parsed : parsed.insights || [];
+    // With json_object format, it should be an object with "insights" key
+    let insights = [];
+    if (Array.isArray(parsed)) {
+      insights = parsed;
+    } else if (parsed.insights && Array.isArray(parsed.insights)) {
+      insights = parsed.insights;
+    } else if (typeof parsed === 'object') {
+      // Try to find any array in the response
+      const keys = Object.keys(parsed);
+      for (const key of keys) {
+        if (Array.isArray(parsed[key])) {
+          insights = parsed[key];
+          break;
+        }
+      }
+    }
     
     return insights.map((insight: any) => ({
       text: insight.text,

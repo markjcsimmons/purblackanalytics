@@ -40,6 +40,7 @@ interface FormData {
   
   // Email & SMS
   emailRevenue: string;
+  emailSpend: string;
   emailOpenRate: string;
   emailCTR: string;
   emailSessions: string;
@@ -49,6 +50,7 @@ interface FormData {
   
   // Affiliates
   affiliatesRevenue: string;
+  affiliatesSpend: string;
   affiliatesClicks: string;
   affiliatesConversions: string;
   affiliatesSessions: string;
@@ -57,7 +59,10 @@ interface FormData {
   affiliatesPurchases: string;
   
   // SEO
+  seoImpressions: string;
+  seoClicks: string;
   seoSessions: string;
+  seoSpend: string;
   seoATC: string;
   seoCheckout: string;
   seoPurchases: string;
@@ -103,6 +108,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     googleAdsCheckout: '',
     googleAdsPurchases: '',
     emailRevenue: '',
+    emailSpend: '',
     emailOpenRate: '',
     emailCTR: '',
     emailSessions: '',
@@ -110,13 +116,17 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     emailCheckout: '',
     emailPurchases: '',
     affiliatesRevenue: '',
+    affiliatesSpend: '',
     affiliatesClicks: '',
     affiliatesConversions: '',
     affiliatesSessions: '',
     affiliatesATC: '',
     affiliatesCheckout: '',
     affiliatesPurchases: '',
+    seoImpressions: '',
+    seoClicks: '',
     seoSessions: '',
+    seoSpend: '',
     seoATC: '',
     seoCheckout: '',
     seoPurchases: '',
@@ -169,16 +179,25 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           { channel: 'Google Ads', metric: '* Conversions', value: parseFloat(formData.googleAdsConversions) || 0 },
           { channel: 'Google Ads', metric: '* Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
           // Email & SMS
-          { channel: 'Email & SMS', metric: '* Revenue attributed', value: parseFloat(formData.emailRevenue) || 0 },
+          { channel: 'Email & SMS', metric: '* Revenue', value: parseFloat(formData.emailRevenue) || 0 },
+          { channel: 'Email & SMS', metric: '* Spend', value: parseFloat(formData.emailSpend) || 0 },
           { channel: 'Email & SMS', metric: '* Email open rate', value: parseFloat(formData.emailOpenRate) || 0 },
           { channel: 'Email & SMS', metric: '* CTR', value: parseFloat(formData.emailCTR) || 0 },
           // Affiliates
           { channel: 'Affiliates', metric: '* Revenue', value: parseFloat(formData.affiliatesRevenue) || 0 },
+          { channel: 'Affiliates', metric: '* Spend', value: parseFloat(formData.affiliatesSpend) || 0 },
           { channel: 'Affiliates', metric: '* Clicks', value: parseFloat(formData.affiliatesClicks) || 0 },
           { channel: 'Affiliates', metric: '* Conversions', value: parseFloat(formData.affiliatesConversions) || 0 },
           // Social
           { channel: 'Social', metric: '* Revenue', value: parseFloat(formData.socialRevenue) || 0 },
           { channel: 'Social', metric: '* Spend', value: parseFloat(formData.socialSpend) || 0 },
+          // SEO
+          { channel: 'SEO', metric: '* Revenue', value: (parseFloat(formData.seoPurchases) || 0) * (parseFloat(formData.aov) || 0) },
+          { channel: 'SEO', metric: '* Spend', value: parseFloat(formData.seoSpend) || 0 },
+          { channel: 'SEO', metric: '* Impressions', value: parseFloat(formData.seoImpressions) || 0 },
+          { channel: 'SEO', metric: '* Clicks', value: parseFloat(formData.seoClicks) || 0 },
+          { channel: 'SEO', metric: '* Sessions', value: parseFloat(formData.seoSessions) || 0 },
+          { channel: 'SEO', metric: '* Conversions', value: parseFloat(formData.seoPurchases) || 0 },
         ].filter(item => item.value > 0),
         funnelMetrics: [
           // Google Ads Funnel
@@ -248,6 +267,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         googleAdsCheckout: '',
         googleAdsPurchases: '',
         emailRevenue: '',
+        emailSpend: '',
         emailOpenRate: '',
         emailCTR: '',
         emailSessions: '',
@@ -255,13 +275,17 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         emailCheckout: '',
         emailPurchases: '',
         affiliatesRevenue: '',
+        affiliatesSpend: '',
         affiliatesClicks: '',
         affiliatesConversions: '',
         affiliatesSessions: '',
         affiliatesATC: '',
         affiliatesCheckout: '',
         affiliatesPurchases: '',
+        seoImpressions: '',
+        seoClicks: '',
         seoSessions: '',
+        seoSpend: '',
         seoATC: '',
         seoCheckout: '',
         seoPurchases: '',
@@ -516,16 +540,27 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           {/* Email & SMS */}
           <div className="border-l-4 border-green-500 pl-4">
             <h3 className="font-semibold text-lg mb-4">Email & SMS</h3>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label htmlFor="emailRevenue">Revenue ($)</Label>
                 <Input
                   id="emailRevenue"
                   type="number"
                   step="0.01"
-                  placeholder="7214.60"
+                  placeholder="8000"
                   value={formData.emailRevenue}
                   onChange={(e) => handleChange('emailRevenue', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emailSpend">Spend ($)</Label>
+                <Input
+                  id="emailSpend"
+                  type="number"
+                  step="0.01"
+                  placeholder="0"
+                  value={formData.emailSpend}
+                  onChange={(e) => handleChange('emailSpend', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -601,7 +636,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           {/* Affiliates */}
           <div className="border-l-4 border-amber-500 pl-4">
             <h3 className="font-semibold text-lg mb-4">Affiliates</h3>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label htmlFor="affiliatesRevenue">Revenue ($)</Label>
                 <Input
@@ -611,6 +646,17 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                   placeholder="485.51"
                   value={formData.affiliatesRevenue}
                   onChange={(e) => handleChange('affiliatesRevenue', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="affiliatesSpend">Spend ($)</Label>
+                <Input
+                  id="affiliatesSpend"
+                  type="number"
+                  step="0.01"
+                  placeholder="0"
+                  value={formData.affiliatesSpend}
+                  onChange={(e) => handleChange('affiliatesSpend', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -685,6 +731,40 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           <div className="border-l-4 border-purple-500 pl-4">
             <h3 className="font-semibold text-lg mb-4">SEO (Organic)</h3>
             <div className="mt-4">
+              <p className="text-sm font-medium text-muted-foreground mb-3">Channel Metrics</p>
+              <div className="grid gap-4 md:grid-cols-3 mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="seoSpend">Spend ($)</Label>
+                  <Input
+                    id="seoSpend"
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
+                    value={formData.seoSpend}
+                    onChange={(e) => handleChange('seoSpend', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="seoImpressions">Impressions</Label>
+                  <Input
+                    id="seoImpressions"
+                    type="number"
+                    placeholder="6063"
+                    value={formData.seoImpressions}
+                    onChange={(e) => handleChange('seoImpressions', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="seoClicks">Clicks</Label>
+                  <Input
+                    id="seoClicks"
+                    type="number"
+                    placeholder="418"
+                    value={formData.seoClicks}
+                    onChange={(e) => handleChange('seoClicks', e.target.value)}
+                  />
+                </div>
+              </div>
               <p className="text-sm font-medium text-muted-foreground mb-3">Funnel Metrics</p>
               <div className="grid gap-4 md:grid-cols-4">
                 <div className="space-y-2">
@@ -908,4 +988,5 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     </form>
   );
 }
+
 

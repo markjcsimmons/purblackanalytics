@@ -25,6 +25,7 @@ export async function GET(
       );
     }
 
+    // getWeekData already transforms insights to the correct format
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching week data:', error);

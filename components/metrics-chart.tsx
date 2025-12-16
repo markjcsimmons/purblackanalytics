@@ -11,6 +11,7 @@ interface MetricsChartProps {
   xAxisKey: string;
   type?: 'bar' | 'line';
   color?: string;
+  yAxisLabel?: string;
 }
 
 export function MetricsChart({
@@ -20,7 +21,8 @@ export function MetricsChart({
   dataKey,
   xAxisKey,
   type = 'bar',
-  color = '#8884d8'
+  color = '#8884d8',
+  yAxisLabel
 }: MetricsChartProps) {
   if (!data || data.length === 0) {
     return (
@@ -47,19 +49,41 @@ export function MetricsChart({
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           {type === 'bar' ? (
-            <BarChart data={data}>
+            <BarChart data={data} margin={{ left: yAxisLabel ? 80 : 10, right: 10, top: 10, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={xAxisKey} />
-              <YAxis />
+              <XAxis 
+                dataKey={xAxisKey}
+                interval={0}
+              />
+              <YAxis 
+                width={yAxisLabel ? 80 : 50}
+                label={yAxisLabel ? { 
+                  value: yAxisLabel, 
+                  angle: -90, 
+                  position: 'left',
+                  style: { textAnchor: 'middle' }
+                } : undefined} 
+              />
               <Tooltip />
               <Legend />
               <Bar dataKey={dataKey} fill={color} />
             </BarChart>
           ) : (
-            <LineChart data={data}>
+            <LineChart data={data} margin={{ left: yAxisLabel ? 80 : 10, right: 10, top: 10, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={xAxisKey} />
-              <YAxis />
+              <XAxis 
+                dataKey={xAxisKey}
+                interval={0}
+              />
+              <YAxis 
+                width={yAxisLabel ? 80 : 50}
+                label={yAxisLabel ? { 
+                  value: yAxisLabel, 
+                  angle: -90, 
+                  position: 'left',
+                  style: { textAnchor: 'middle' }
+                } : undefined} 
+              />
               <Tooltip />
               <Legend />
               <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} />
@@ -70,4 +94,6 @@ export function MetricsChart({
     </Card>
   );
 }
+
+
 
