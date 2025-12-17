@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getWeekData, getWeeks, saveInsights } from '@/lib/db';
 import { generateInsights } from '@/lib/openai';
 
+// Force dynamic rendering - don't try to pre-render this route
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const { weekId, additionalContext } = await request.json();
