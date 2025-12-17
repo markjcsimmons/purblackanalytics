@@ -2,12 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Skip API routes during build to avoid database connection issues
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
-  },
+  // Disable static optimization for API routes
+  output: undefined, // Use default output mode
 };
 
 export default nextConfig;

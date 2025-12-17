@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { saveWeekData, type WeekData } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(request: NextRequest) {
   try {
     const data: WeekData = await request.json();

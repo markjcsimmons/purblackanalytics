@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { compare } from 'bcryptjs';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 const HASHED_PASSWORD = '$2a$10$r8qZ8K9L4J5N7M6P8Q9R0S1T2U3V4W5X6Y7Z8A9B0C1D2E3F4G5H6I7J8K'; // Pre-hashed version of Mark32246!
 
 // For simplicity, we'll use a direct comparison since we're using a single password
