@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWeekData } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -19,6 +18,8 @@ export async function GET(
       );
     }
 
+    // Dynamically import database functions to avoid build-time execution
+    const { getWeekData } = await import('@/lib/db');
     const data = getWeekData(weekId);
     
     if (!data.week) {

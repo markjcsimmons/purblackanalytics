@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getWeekData, getWeeks, saveInsights } from '@/lib/db';
 import { generateInsights } from '@/lib/openai';
 
 // Force dynamic rendering - don't try to pre-render this route
@@ -16,6 +15,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Dynamically import database functions to avoid build-time execution
+    const { getWeekData, getWeeks, saveInsights } = await import('@/lib/db');
 
     // Get current week data
     const weekData = getWeekData(weekId);

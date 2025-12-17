@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { saveWeekData, type WeekData } from '@/lib/db';
+import type { WeekData } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -16,6 +16,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Dynamically import database functions to avoid build-time execution
+    const { saveWeekData } = await import('@/lib/db');
     const weekId = saveWeekData(data);
 
     return NextResponse.json({ 

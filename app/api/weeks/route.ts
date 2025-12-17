@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getWeeks, getAllData } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET() {
   try {
+    // Dynamically import database functions to avoid build-time execution
+    const { getWeeks } = await import('@/lib/db');
     const weeks = getWeeks();
     return NextResponse.json({ weeks });
   } catch (error) {

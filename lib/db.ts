@@ -1,20 +1,36 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+// Lazy import to prevent build-time execution
+import type Database from 'better-sqlite3';
+
+let DatabaseModule: typeof Database | null = null;
+let db: Database.Database | null = null;
+
+function getDatabaseModule() {
+  if (!DatabaseModule) {
+    DatabaseModule = require('better-sqlite3');
+  }
+  return DatabaseModule;
+}
 
 // On Render, the persistent disk is mounted at /opt/render/project/src/data
 // process.cwd() will be /opt/render/project/src, so data/analytics.db will be on the disk
-const dbPath = path.join(process.cwd(), 'data', 'analytics.db');
-let db: Database.Database | null = null;
+function getDbPath() {
+  const path = require('path');
+  return path.join(process.cwd(), 'data', 'analytics.db');
+}
 
 export function getDb() {
   if (!db) {
-    // Create data directory if it doesn't exist
+    const Database = getDatabaseModule();
+    const path = require('path');
     const fs = require('fs');
+    
+    // Create data directory if it doesn't exist
     const dataDir = path.join(process.cwd(), 'data');
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
     
+    const dbPath = getDbPath();
     db = new Database(dbPath);
     initializeDatabase(db);
   }
