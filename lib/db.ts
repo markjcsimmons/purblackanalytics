@@ -21,6 +21,9 @@ function getDbPath() {
 export function getDb() {
   if (!db) {
     const Database = getDatabaseModule();
+    if (!Database) {
+      throw new Error('Database module not available');
+    }
     const path = require('path');
     const fs = require('fs');
     
