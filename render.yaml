@@ -3,12 +3,13 @@ services:
     name: puranalytics
     env: node
     plan: starter  # Required for persistent disks! Free tier doesn't support disks.
-    nodeVersion: 20  # Specify Node.js version for better-sqlite3 compatibility
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "20"
       - key: SITE_PASSWORD
         value: Mark32246!
       - key: OPENAI_API_KEY
