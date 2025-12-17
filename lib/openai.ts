@@ -156,7 +156,8 @@ ${businessContext ? '- How the business context affects performance interpretati
       console.log('Business context being used in insights generation:', businessContext.substring(0, 100) + '...');
     }
     
-    const response = await openai.chat.completions.create({
+    const client = getOpenAIClient();
+    const response = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
