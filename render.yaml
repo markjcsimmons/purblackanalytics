@@ -3,7 +3,7 @@ services:
     name: puranalytics
     env: node
     plan: starter  # Required for persistent disks! Free tier doesn't support disks.
-    buildCommand: npm install && npm run build
+    buildCommand: npm config set build-from-source false && npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
