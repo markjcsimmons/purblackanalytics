@@ -1,4 +1,4 @@
-# Quick Setup Guide for Purblack Analytics
+# Quick Setup Guide for Pürblack Analytics
 
 Follow these steps to get your analytics dashboard up and running in 5 minutes.
 

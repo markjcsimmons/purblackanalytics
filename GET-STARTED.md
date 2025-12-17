@@ -1,4 +1,4 @@
-# 🚀 Get Started with Purblack Analytics
+# 🚀 Get Started with Pürblack Analytics
 
 Your analytics dashboard is **ready to use!** The development server is already running at:
 

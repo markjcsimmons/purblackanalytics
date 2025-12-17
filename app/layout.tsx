@@ -5,8 +5,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Purblack Analytics - Marketing Intelligence Dashboard",
-  description: "AI-powered analytics dashboard for Purblack.com ecommerce and marketing data",
+  title: "Pürblack Analytics - Marketing Intelligence Dashboard",
+  description: "AI-powered analytics dashboard for Pürblack.com ecommerce and marketing data",
 };
 
 export default function RootLayout({

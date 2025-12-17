@@ -26,7 +26,8 @@ import {
   Target,
   ArrowUpRight,
   ArrowDownRight,
-  Percent
+  Percent,
+  LogOut
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -129,32 +130,51 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                Purblack Analytics
+                Pürblack Analytics
               </h1>
               <p className="text-sm text-muted-foreground">
                 Marketing Intelligence Dashboard
               </p>
             </div>
-            {weeks.length > 0 && (
-              <div className="flex items-center gap-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <Select
-                  value={selectedWeekId?.toString()}
-                  onValueChange={(value) => setSelectedWeekId(parseInt(value))}
-                >
-                  <SelectTrigger className="w-[250px]">
-                    <SelectValue placeholder="Select a week" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {weeks.map((week) => (
-                      <SelectItem key={week.id} value={week.id.toString()}>
-                        {format(new Date(week.week_start_date), 'MMM d')} - {format(new Date(week.week_end_date), 'MMM d, yyyy')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {weeks.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex flex-col">
+                    <Select
+                      value={selectedWeekId?.toString()}
+                      onValueChange={(value) => setSelectedWeekId(parseInt(value))}
+                    >
+                      <SelectTrigger className="w-[250px]">
+                        <SelectValue placeholder="Select a week" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {weeks.map((week) => (
+                          <SelectItem key={week.id} value={week.id.toString()}>
+                            {format(new Date(week.week_start_date), 'MMM d')} - {format(new Date(week.week_end_date), 'MMM d, yyyy')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {weeks.length > 1 && (
+                      <p className="text-xs text-muted-foreground mt-1">Viewing {weeks.length} week{weeks.length > 1 ? 's' : ''} of data</p>
+                    )}
+                  </div>
+                </div>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                  window.location.href = '/login';
+                }}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>

@@ -45,7 +45,7 @@ export async function generateInsights(data: {
     .map(([stage, metrics]: [string, any]) => `${stage}:\n  ${metrics.join('\n  ')}`)
     .join('\n\n');
 
-  const prompt = `You are an expert ecommerce marketing analyst for Purblack.com, a premium health supplement brand. Analyze the following weekly marketing data and provide actionable insights and recommendations.
+  const prompt = `You are an expert ecommerce marketing analyst for Pürblack.com, a premium health supplement brand. Analyze the following weekly marketing data and provide actionable insights and recommendations.
 
 Week: ${week.week_start_date} to ${week.week_end_date}
 
@@ -87,8 +87,30 @@ ${channelsFormatted}
 WEBSITE FUNNEL:
 ${funnelFormatted}
 
-${previousWeekData ? `PREVIOUS WEEK FOR COMPARISON:
-${JSON.stringify(previousWeekData, null, 2)}` : ''}
+${previousWeekData ? `📊 PREVIOUS WEEK DATA FOR COMPARISON:
+This data will help you identify trends and changes. Compare metrics between the current week and this previous week to highlight improvements, declines, or patterns.
+
+Previous Week: ${previousWeekData.week?.week_start_date} to ${previousWeekData.week?.week_end_date}
+${previousWeekData.week?.notes ? `Previous Week Notes: ${previousWeekData.week.notes}` : ''}
+
+Previous Week Metrics:
+${previousWeekData.overallMetrics?.map((m: any) => `${m.metric_name}: ${m.metric_value}`).join('\n') || 'No metrics available'}
+
+Previous Week Channels:
+${Object.entries(
+  (previousWeekData.marketingChannels || []).reduce((acc: any, item: any) => {
+    if (!acc[item.channel_name]) acc[item.channel_name] = [];
+    acc[item.channel_name].push(`${item.metric_name}: ${item.metric_value}`);
+    return acc;
+  }, {})
+).map(([channel, metrics]: [string, any]) => `${channel}: ${metrics.join(', ')}`).join('\n') || 'No channel data available'}
+
+⚠️ IMPORTANT: Use this previous week data to:
+- Compare current week performance vs previous week
+- Identify trends (improving, declining, stable)
+- Calculate percentage changes where relevant
+- Highlight significant changes that warrant attention
+` : ''}
 
 Please provide 5-8 specific, actionable insights. ${businessContext ? '⚠️ REQUIRED: At least 3-4 insights MUST explicitly mention and incorporate the business context provided above. ' : ''}For each insight:
 1. Identify what's working well, what needs improvement, or what opportunities exist
@@ -173,7 +195,7 @@ ${businessContext ? '- How the business context affects performance interpretati
 }
 
 export async function generateWeeklySummary(allWeeksData: any[]): Promise<string> {
-  const prompt = `You are an expert ecommerce marketing analyst for Purblack.com. Review the following historical weekly data and provide a comprehensive executive summary highlighting:
+  const prompt = `You are an expert ecommerce marketing analyst for Pürblack.com. Review the following historical weekly data and provide a comprehensive executive summary highlighting:
 
 1. Overall trends across all weeks
 2. Best and worst performing periods

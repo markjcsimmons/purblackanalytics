@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     const response = await fetch(exportUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; PurblackAnalytics/1.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; PürblackAnalytics/1.0)',
       },
     });
 

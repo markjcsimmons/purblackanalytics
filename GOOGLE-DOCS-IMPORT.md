@@ -18,7 +18,7 @@ Open your weekly marketing report in Google Docs (like the one at https://docs.g
 
 ### Step 3: Paste into Dashboard
 
-1. Go to your Purblack Analytics dashboard
+1. Go to your Pürblack Analytics dashboard
 2. Click **"Upload Data"** tab
 3. Click **"Google Docs"** tab
 4. Paste (`Cmd+V` or `Ctrl+V`) into the large text area

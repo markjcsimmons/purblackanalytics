@@ -17,18 +17,25 @@ export async function POST(request: NextRequest) {
     const weekData = getWeekData(weekId);
     
     // Get previous week for comparison (optional)
+    // Weeks are ordered by week_start_date DESC (most recent first)
+    // Previous week would be the one with an earlier date (higher index in the array)
     const weeks = getWeeks();
     const currentWeekIndex = weeks.findIndex((w: any) => w.id === weekId);
     let previousWeekData = null;
     
-    if (currentWeekIndex < weeks.length - 1) {
-      previousWeekData = getWeekData((weeks[currentWeekIndex + 1] as any).id);
+    // Get the previous week (earlier date) - it's at a higher index since weeks are sorted DESC
+    if (currentWeekIndex >= 0 && currentWeekIndex < weeks.length - 1) {
+      const previousWeek = weeks[currentWeekIndex + 1] as any;
+      previousWeekData = getWeekData(previousWeek.id);
     }
 
     // Combine week notes and additional context
     let contextParts: string[] = [];
-    if (weekData.week?.notes) {
-      contextParts.push(`Week notes: ${weekData.week.notes}`);
+    if (weekData.week && typeof weekData.week === 'object' && 'notes' in weekData.week) {
+      const weekNotes = (weekData.week as any).notes;
+      if (weekNotes) {
+        contextParts.push(`Week notes: ${weekNotes}`);
+      }
     }
     if (additionalContext) {
       contextParts.push(`Additional context: ${additionalContext}`);

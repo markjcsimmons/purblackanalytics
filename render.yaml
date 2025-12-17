@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: puranalytics
+    env: node
+    plan: starter  # Required for persistent disks! Free tier doesn't support disks.
+    nodeVersion: 20  # Specify Node.js version for better-sqlite3 compatibility
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SITE_PASSWORD
+        value: Mark32246!
+      - key: OPENAI_API_KEY
+        sync: false  # Set this manually in Render dashboard
+    disk:
+      name: sqlite-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

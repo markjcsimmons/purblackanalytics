@@ -321,11 +321,16 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             <Calendar className="h-5 w-5 text-slate-600" />
             <div>
               <CardTitle>Week Information</CardTitle>
-              <CardDescription>Select the date range for this data</CardDescription>
+              <CardDescription>Enter the date range for this week's data. You can add historical weeks by selecting past dates.</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-6">
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-900">
+              <strong>💡 Adding Historical Data:</strong> You can enter dates for any week (current or past). Historical weeks will appear in the week selector on the Overview page and will be used for context when generating insights.
+            </p>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="weekStartDate">Week Start Date *</Label>
@@ -336,6 +341,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 onChange={(e) => handleChange('weekStartDate', e.target.value)}
                 required
               />
+              <p className="text-xs text-muted-foreground">Select the start date for this week (can be in the past)</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="weekEndDate">Week End Date *</Label>
@@ -346,6 +352,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 onChange={(e) => handleChange('weekEndDate', e.target.value)}
                 required
               />
+              <p className="text-xs text-muted-foreground">Select the end date for this week (can be in the past)</p>
             </div>
           </div>
           <div className="space-y-2 mt-4">

@@ -1,6 +1,6 @@
-# Purblack Analytics Dashboard
+# Pürblack Analytics Dashboard
 
-A modern, AI-powered analytics dashboard for Purblack.com's ecommerce and marketing data. Built with Next.js, featuring automated insights powered by OpenAI.
+A modern, AI-powered analytics dashboard for Pürblack.com's ecommerce and marketing data. Built with Next.js, featuring automated insights powered by OpenAI.
 
 ## Features
 
@@ -195,4 +195,4 @@ For issues or questions, please open an issue on GitHub or contact the developme
 
 ## License
 
-Proprietary - © 2024 Purblack.com
+Proprietary - © 2024 Pürblack.com

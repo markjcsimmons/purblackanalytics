@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 
+// On Render, the persistent disk is mounted at /opt/render/project/src/data
+// process.cwd() will be /opt/render/project/src, so data/analytics.db will be on the disk
 const dbPath = path.join(process.cwd(), 'data', 'analytics.db');
 let db: Database.Database | null = null;
 
