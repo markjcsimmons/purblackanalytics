@@ -13,7 +13,8 @@ function getOpenAIClient(): OpenAI {
       apiKey: apiKey,
     });
   }
-  return openai;
+  // TypeScript doesn't understand that openai is not null after the check
+  return openai as OpenAI;
 }
 
 export interface Insight {

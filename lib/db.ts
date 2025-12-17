@@ -34,7 +34,8 @@ export function getDb() {
     }
     
     const dbPath = getDbPath();
-    db = new Database(dbPath);
+    // TypeScript doesn't understand that Database is not null after the check
+    db = new (Database as typeof Database)(dbPath);
     initializeDatabase(db);
   }
   return db;
