@@ -220,7 +220,8 @@ ${JSON.stringify(allWeeksData, null, 2)}
 Provide a concise, executive-level summary (3-4 paragraphs).`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const client = getOpenAIClient();
+    const response = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
