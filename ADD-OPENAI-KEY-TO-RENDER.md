@@ -2,10 +2,7 @@
 
 ## Your API Key
 
-Your OpenAI API key from `.env.local` is:
-```
-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
-```
+Your OpenAI API key is in your `.env.local` file. Check that file for the actual key value.
 
 ## Steps to Add to Render
 
@@ -31,8 +28,7 @@ sk-proj-qBtW-gh8BTy8suoP5fHRo71wbsx2XWChtuDqNCy648n7mObM_5gLCf9ZCVMIh0HDlnoxsU3l
 3. **Fill in the Form:**
    - **Key**: `OPENAI_API_KEY`
      - Type exactly: `OPENAI_API_KEY` (all caps, underscores)
-   - **Value**: `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`
-     - Copy the entire key (starts with `sk-proj-`)
+   - **Value**: (Copy your API key from `.env.local` file - starts with `sk-proj-`)
 
 4. **Click "Save Changes"**
    - Render will automatically redeploy your service

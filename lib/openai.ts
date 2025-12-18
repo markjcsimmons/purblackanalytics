@@ -5,10 +5,10 @@ let openai: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
   if (!openai) {
-    // Check for both possible environment variable names
-    const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY;
+    // Check for all possible environment variable name variations
+    const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY or OPEN_AI_KEY environment variable is required');
+      throw new Error('OPENAI_API_KEY, OPEN_AI_KEY, or OPEN_API_KEY environment variable is required');
     }
     openai = new OpenAI({
       apiKey: apiKey,
