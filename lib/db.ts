@@ -49,6 +49,7 @@ function initializeDatabase(database: Database.Database) {
       week_start_date TEXT NOT NULL UNIQUE,
       week_end_date TEXT NOT NULL,
       notes TEXT,
+      romans_recommendations TEXT,
       uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
@@ -109,6 +110,7 @@ export interface WeekData {
   weekStartDate: string;
   weekEndDate: string;
   notes?: string;
+  romansRecommendations?: string;
   overallMetrics: { [key: string]: number };
   marketingChannels: { [channel: string]: { [metric: string]: number } };
   funnelMetrics: { [stage: string]: { [metric: string]: number } };
@@ -119,10 +121,10 @@ export function saveWeekData(data: WeekData) {
   
   // Start transaction
   const insertWeek = database.prepare(
-    'INSERT OR REPLACE INTO weeks (week_start_date, week_end_date, notes) VALUES (?, ?, ?)'
+    'INSERT OR REPLACE INTO weeks (week_start_date, week_end_date, notes, romans_recommendations) VALUES (?, ?, ?, ?)'
   );
   
-  const info = insertWeek.run(data.weekStartDate, data.weekEndDate, data.notes || null);
+  const info = insertWeek.run(data.weekStartDate, data.weekEndDate, data.notes || null, data.romansRecommendations || null);
   const weekId = info.lastInsertRowid;
 
   // Delete existing metrics for this week

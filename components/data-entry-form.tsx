@@ -20,6 +20,7 @@ interface FormData {
   weekStartDate: string;
   weekEndDate: string;
   notes: string;
+  romansRecommendations: string;
   
   // Overall Store Metrics
   revenue: string;
@@ -59,6 +60,7 @@ interface FormData {
   affiliatesPurchases: string;
   
   // SEO
+  seoRevenue: string;
   seoImpressions: string;
   seoClicks: string;
   seoSessions: string;
@@ -94,6 +96,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     weekStartDate: '',
     weekEndDate: '',
     notes: '',
+    romansRecommendations: '',
     revenue: '',
     orders: '',
     aov: '',
@@ -123,6 +126,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     affiliatesATC: '',
     affiliatesCheckout: '',
     affiliatesPurchases: '',
+    seoRevenue: '',
     seoImpressions: '',
     seoClicks: '',
     seoSessions: '',
@@ -164,6 +168,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         weekStartDate: formData.weekStartDate,
         weekEndDate: formData.weekEndDate,
         notes: formData.notes,
+        romansRecommendations: formData.romansRecommendations,
         overallMetrics: [
           { metric: '* Revenue', value: parseFloat(formData.revenue) || 0 },
           { metric: '* Orders', value: parseFloat(formData.orders) || 0 },
@@ -192,7 +197,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           { channel: 'Social', metric: '* Revenue', value: parseFloat(formData.socialRevenue) || 0 },
           { channel: 'Social', metric: '* Spend', value: parseFloat(formData.socialSpend) || 0 },
           // SEO
-          { channel: 'SEO', metric: '* Revenue', value: (parseFloat(formData.seoPurchases) || 0) * (parseFloat(formData.aov) || 0) },
+          { channel: 'SEO', metric: '* Revenue', value: parseFloat(formData.seoRevenue) || 0 },
           { channel: 'SEO', metric: '* Spend', value: parseFloat(formData.seoSpend) || 0 },
           { channel: 'SEO', metric: '* Impressions', value: parseFloat(formData.seoImpressions) || 0 },
           { channel: 'SEO', metric: '* Clicks', value: parseFloat(formData.seoClicks) || 0 },
@@ -253,6 +258,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         weekStartDate: '',
         weekEndDate: '',
         notes: '',
+        romansRecommendations: '',
         revenue: '',
         orders: '',
         aov: '',
@@ -282,6 +288,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         affiliatesATC: '',
         affiliatesCheckout: '',
         affiliatesPurchases: '',
+        seoRevenue: '',
         seoImpressions: '',
         seoClicks: '',
         seoSessions: '',
@@ -364,6 +371,21 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
               onChange={(e) => handleChange('notes', e.target.value)}
               rows={3}
             />
+          </div>
+          <div className="space-y-2 mt-4">
+            <Label htmlFor="romansRecommendations" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-600" />
+              Roman's Recommendations
+            </Label>
+            <Textarea
+              id="romansRecommendations"
+              placeholder="Enter Roman's insights and recommendations for this week..."
+              value={formData.romansRecommendations}
+              onChange={(e) => handleChange('romansRecommendations', e.target.value)}
+              rows={4}
+              className="border-amber-200 focus:border-amber-400"
+            />
+            <p className="text-xs text-muted-foreground">These recommendations will be prominently displayed on the Overview page</p>
           </div>
         </CardContent>
       </Card>
@@ -739,7 +761,18 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             <h3 className="font-semibold text-lg mb-4">SEO (Organic)</h3>
             <div className="mt-4">
               <p className="text-sm font-medium text-muted-foreground mb-3">Channel Metrics</p>
-              <div className="grid gap-4 md:grid-cols-3 mb-4">
+              <div className="grid gap-4 md:grid-cols-4 mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="seoRevenue">Revenue ($)</Label>
+                  <Input
+                    id="seoRevenue"
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
+                    value={formData.seoRevenue}
+                    onChange={(e) => handleChange('seoRevenue', e.target.value)}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="seoSpend">Spend ($)</Label>
                   <Input

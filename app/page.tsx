@@ -266,6 +266,30 @@ export default function Dashboard() {
                   </Card>
                 </div>
 
+                {/* ROMAN'S RECOMMENDATIONS */}
+                {weekData.week?.romans_recommendations && (
+                  <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50">
+                    <CardHeader className="bg-gradient-to-r from-amber-100 to-yellow-100">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-500 rounded-lg">
+                          <Sparkles className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-xl text-amber-900">Roman's Recommendations</CardTitle>
+                          <CardDescription className="text-amber-700">Expert insights and actionable recommendations</CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                      <div className="prose prose-amber max-w-none">
+                        <p className="text-gray-800 text-base leading-relaxed whitespace-pre-wrap">
+                          {weekData.week.romans_recommendations}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* CONVERSION FUNNEL - Detailed Breakdown */}
                 <Card className="border-2 border-indigo-100">
                   <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
