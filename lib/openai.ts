@@ -31,8 +31,9 @@ export async function generateInsights(data: {
   funnelMetrics: any[];
   previousWeekData?: any;
   businessContext?: string;
+  recommendationRules?: string[];
 }): Promise<Insight[]> {
-  const { week, overallMetrics, marketingChannels, funnelMetrics, previousWeekData, businessContext } = data;
+  const { week, overallMetrics, marketingChannels, funnelMetrics, previousWeekData, businessContext, recommendationRules } = data;
 
   // Format data for the prompt
   const overallMetricsText = overallMetrics
@@ -88,6 +89,21 @@ EXAMPLES OF PROPER CONTEXT USAGE:
 - Context: "Launched new product line on Wednesday"
   ✅ GOOD: "With the new product line launch on Wednesday, the mid-week traffic spike of 35% is expected. Focus on converting this traffic through targeted retargeting campaigns."
   ❌ BAD: "Traffic increased 35% mid-week. Maintain this momentum." (ignores context)
+
+${recommendationRules && recommendationRules.length > 0 ? `
+🚨 MANDATORY RULES - YOU MUST FOLLOW THESE AT ALL TIMES:
+
+The following rules MUST be applied to all recommendations you generate:
+
+${recommendationRules.map((rule: string, i: number) => `${i + 1}. ${rule}`).join('\n')}
+
+⚠️ CRITICAL: 
+- DO NOT generate recommendations that violate these rules
+- If a rule says "Don't recommend X", then DO NOT suggest X under any circumstances
+- These rules override default suggestions
+- Think carefully before each recommendation to ensure it doesn't conflict with any rule above
+
+` : ''}
 
 NOW ANALYZE THE DATA BELOW, ENSURING YOU REFERENCE THE CONTEXT ABOVE IN MULTIPLE INSIGHTS:
 ` : ''}

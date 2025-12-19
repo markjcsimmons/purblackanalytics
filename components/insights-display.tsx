@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Lightbulb, TrendingUp, AlertTriangle, CheckCircle, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { Lightbulb, TrendingUp, AlertTriangle, CheckCircle, Sparkles, ChevronDown, ChevronUp, X, Plus, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface Insight {
@@ -26,11 +26,68 @@ export function InsightsDisplay({ weekId, existingInsights = [], onGenerate }: I
   const [error, setError] = useState('');
   const [additionalContext, setAdditionalContext] = useState('');
   const [showContextInput, setShowContextInput] = useState(false);
+  const [rules, setRules] = useState<Array<{ id: number; rule_text: string }>>([]);
+  const [newRule, setNewRule] = useState('');
+  const [showRulesInput, setShowRulesInput] = useState(false);
+  const [isAddingRule, setIsAddingRule] = useState(false);
 
   // Update insights when existingInsights prop changes
   useEffect(() => {
     setInsights(existingInsights);
   }, [existingInsights]);
+
+  // Fetch rules on component mount
+  useEffect(() => {
+    fetchRules();
+  }, []);
+
+  const fetchRules = async () => {
+    try {
+      const response = await fetch('/api/rules');
+      const data = await response.json();
+      setRules(data.rules || []);
+    } catch (err) {
+      console.error('Failed to fetch rules:', err);
+    }
+  };
+
+  const handleAddRule = async () => {
+    if (!newRule.trim()) return;
+
+    setIsAddingRule(true);
+    try {
+      const response = await fetch('/api/rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ruleText: newRule.trim() }),
+      });
+
+      if (!response.ok) throw new Error('Failed to add rule');
+
+      setNewRule('');
+      await fetchRules();
+    } catch (err) {
+      console.error('Failed to add rule:', err);
+      setError('Failed to add rule');
+    } finally {
+      setIsAddingRule(false);
+    }
+  };
+
+  const handleDeleteRule = async (ruleId: number) => {
+    try {
+      const response = await fetch(`/api/rules?id=${ruleId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete rule');
+
+      await fetchRules();
+    } catch (err) {
+      console.error('Failed to delete rule:', err);
+      setError('Failed to delete rule');
+    }
+  };
 
   const handleGenerateInsights = async () => {
     if (!weekId) {
@@ -159,6 +216,79 @@ Examples:
             </p>
           </div>
         )}
+
+        {/* Rules Section */}
+        <div className="mt-4 border-t pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-orange-600" />
+              <h4 className="font-semibold text-sm">Recommendation Rules</h4>
+              {rules.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {rules.length} active
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowRulesInput(!showRulesInput)}
+              className="text-xs"
+            >
+              {showRulesInput ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {showRulesInput ? 'Hide' : 'Manage'} Rules
+            </Button>
+          </div>
+
+          {/* Display existing rules */}
+          {rules.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {rules.map((rule) => (
+                <div
+                  key={rule.id}
+                  className="flex items-start gap-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm"
+                >
+                  <Shield className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                  <span className="flex-1">{rule.rule_text}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteRule(rule.id)}
+                    className="h-6 w-6 p-0 hover:bg-red-100"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showRulesInput && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                🛡️ Rules are permanently saved and applied to all future insights. They override AI&apos;s default suggestions.
+              </p>
+              <div className="flex gap-2">
+                <Textarea
+                  value={newRule}
+                  onChange={(e) => setNewRule(e.target.value)}
+                  placeholder="E.g., 'Don't make recommendations for changing the cart' or 'Never suggest increasing ad spend on Google Ads'"
+                  rows={2}
+                  className="resize-none text-sm flex-1"
+                />
+                <Button
+                  onClick={handleAddRule}
+                  disabled={!newRule.trim() || isAddingRule}
+                  size="sm"
+                  className="self-start"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {error && (

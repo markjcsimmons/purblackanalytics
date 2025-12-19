@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateInsights } from '@/lib/openai';
+import { getRecommendationRules } from '@/lib/db';
 
 // Force dynamic rendering - don't try to pre-render this route
 export const dynamic = 'force-dynamic';
@@ -48,11 +49,16 @@ export async function POST(request: NextRequest) {
     }
     const combinedContext = contextParts.length > 0 ? contextParts.join('\n\n') : undefined;
 
+    // Fetch recommendation rules
+    const rulesData = getRecommendationRules();
+    const rules = rulesData.map((r: any) => r.rule_text);
+
     // Generate insights using OpenAI
     const insights = await generateInsights({
       ...weekData,
       previousWeekData,
       businessContext: combinedContext,
+      recommendationRules: rules,
     });
 
     // Save insights to database

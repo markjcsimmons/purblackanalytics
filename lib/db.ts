@@ -104,6 +104,15 @@ function initializeDatabase(database: Database.Database) {
       FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
     )
   `);
+
+  // Create recommendation_rules table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS recommendation_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rule_text TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
 }
 
 export interface WeekData {
@@ -220,5 +229,25 @@ export function getAllData() {
     ...week,
     ...getWeekData(week.id)
   }));
+}
+
+// Recommendation Rules CRUD operations
+export function getRecommendationRules() {
+  const database = getDb();
+  return database.prepare('SELECT * FROM recommendation_rules ORDER BY created_at DESC').all();
+}
+
+export function addRecommendationRule(ruleText: string) {
+  const database = getDb();
+  const insertRule = database.prepare(
+    'INSERT INTO recommendation_rules (rule_text) VALUES (?)'
+  );
+  const result = insertRule.run(ruleText);
+  return result.lastInsertRowid;
+}
+
+export function deleteRecommendationRule(ruleId: number) {
+  const database = getDb();
+  database.prepare('DELETE FROM recommendation_rules WHERE id = ?').run(ruleId);
 }
 
