@@ -195,9 +195,28 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       // Parse CSV file
       Papa.parse(file, {
         header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim(),
+        transform: (value) => {
+          // Remove quotes and trim
+          if (typeof value === 'string') {
+            return value.trim().replace(/^["']|["']$/g, '');
+          }
+          return value;
+        },
         complete: async (results) => {
           try {
+            console.log('CSV parsed, rows:', results.data.length);
+            console.log('First row:', results.data[0]);
+            
             const parsedData = parseCSVData(results.data);
+            console.log('Parsed data structure:', {
+              hasWeekStart: !!parsedData.weekStartDate,
+              hasWeekEnd: !!parsedData.weekEndDate,
+              overallMetricsCount: parsedData.overallMetrics?.length || 0,
+              marketingChannelsCount: parsedData.marketingChannels?.length || 0,
+              funnelMetricsCount: parsedData.funnelMetrics?.length || 0,
+            });
 
             // Use dates from CSV if available, otherwise use form fields
             const finalWeekStartDate = parsedData.weekStartDate || weekStartDate;
@@ -211,25 +230,31 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
 
             // Convert arrays to object format expected by API
             const overallMetricsObj: { [key: string]: number } = {};
-            parsedData.overallMetrics.forEach((m: any) => {
-              overallMetricsObj[m.metric] = m.value;
-            });
+            if (Array.isArray(parsedData.overallMetrics)) {
+              parsedData.overallMetrics.forEach((m: any) => {
+                overallMetricsObj[m.metric] = m.value;
+              });
+            }
 
             const marketingChannelsObj: { [channel: string]: { [metric: string]: number } } = {};
-            parsedData.marketingChannels.forEach((m: any) => {
-              if (!marketingChannelsObj[m.channel]) {
-                marketingChannelsObj[m.channel] = {};
-              }
-              marketingChannelsObj[m.channel][m.metric] = m.value;
-            });
+            if (Array.isArray(parsedData.marketingChannels)) {
+              parsedData.marketingChannels.forEach((m: any) => {
+                if (!marketingChannelsObj[m.channel]) {
+                  marketingChannelsObj[m.channel] = {};
+                }
+                marketingChannelsObj[m.channel][m.metric] = m.value;
+              });
+            }
 
             const funnelMetricsObj: { [stage: string]: { [metric: string]: number } } = {};
-            parsedData.funnelMetrics.forEach((m: any) => {
-              if (!funnelMetricsObj[m.stage]) {
-                funnelMetricsObj[m.stage] = {};
-              }
-              funnelMetricsObj[m.stage][m.metric] = m.value;
-            });
+            if (Array.isArray(parsedData.funnelMetrics)) {
+              parsedData.funnelMetrics.forEach((m: any) => {
+                if (!funnelMetricsObj[m.stage]) {
+                  funnelMetricsObj[m.stage] = {};
+                }
+                funnelMetricsObj[m.stage][m.metric] = m.value;
+              });
+            }
 
             const uploadData = {
               weekStartDate: finalWeekStartDate,
@@ -241,6 +266,14 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
               funnelMetrics: funnelMetricsObj,
             };
 
+            console.log('Upload data prepared:', {
+              weekStartDate: uploadData.weekStartDate,
+              weekEndDate: uploadData.weekEndDate,
+              overallMetricsKeys: Object.keys(uploadData.overallMetrics),
+              marketingChannelsKeys: Object.keys(uploadData.marketingChannels),
+              funnelMetricsKeys: Object.keys(uploadData.funnelMetrics),
+            });
+
             const response = await fetch('/api/upload', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -248,7 +281,14 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
             });
 
             if (!response.ok) {
-              const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+              const errorText = await response.text();
+              let errorData;
+              try {
+                errorData = JSON.parse(errorText);
+              } catch {
+                errorData = { error: errorText || `HTTP ${response.status}` };
+              }
+              console.error('API error response:', errorData);
               throw new Error(errorData.error || `Upload failed with status ${response.status}`);
             }
 
@@ -269,10 +309,10 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
               onUploadSuccess();
             }
           } catch (error: any) {
-            console.error('Upload error:', error);
+            console.error('Upload error details:', error);
             setStatus({ 
               type: 'error', 
-              message: error.message || 'Failed to upload data. Please check your file format.' 
+              message: error.message || 'Failed to upload data. Please check your file format. Check browser console for details.' 
             });
           } finally {
             setIsUploading(false);
