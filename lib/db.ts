@@ -55,11 +55,17 @@ function initializeDatabase(database: Database.Database) {
 
   // Add romans_recommendations column if it doesn't exist (migration for existing databases)
   try {
-    database.exec(`ALTER TABLE weeks ADD COLUMN romans_recommendations TEXT`);
+    // Check if column exists by trying to select it
+    database.prepare('SELECT romans_recommendations FROM weeks LIMIT 1').get();
   } catch (error: any) {
-    // Column already exists, ignore error
-    if (!error.message.includes('duplicate column name')) {
-      console.warn('Could not add romans_recommendations column:', error.message);
+    // Column doesn't exist, add it
+    if (error.message && error.message.includes('no such column')) {
+      try {
+        database.exec(`ALTER TABLE weeks ADD COLUMN romans_recommendations TEXT`);
+        console.log('Added romans_recommendations column to weeks table');
+      } catch (alterError: any) {
+        console.error('Failed to add romans_recommendations column:', alterError.message);
+      }
     }
   }
 
