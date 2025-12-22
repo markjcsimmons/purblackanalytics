@@ -49,10 +49,19 @@ function initializeDatabase(database: Database.Database) {
       week_start_date TEXT NOT NULL UNIQUE,
       week_end_date TEXT NOT NULL,
       notes TEXT,
-      romans_recommendations TEXT,
       uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // Add romans_recommendations column if it doesn't exist (migration for existing databases)
+  try {
+    database.exec(`ALTER TABLE weeks ADD COLUMN romans_recommendations TEXT`);
+  } catch (error: any) {
+    // Column already exists, ignore error
+    if (!error.message.includes('duplicate column name')) {
+      console.warn('Could not add romans_recommendations column:', error.message);
+    }
+  }
 
   // Create overall_metrics table
   database.exec(`
