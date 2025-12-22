@@ -209,14 +209,36 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
               throw new Error('Week dates are required. Please provide them in the CSV file or use the date fields above.');
             }
 
+            // Convert arrays to object format expected by API
+            const overallMetricsObj: { [key: string]: number } = {};
+            parsedData.overallMetrics.forEach((m: any) => {
+              overallMetricsObj[m.metric] = m.value;
+            });
+
+            const marketingChannelsObj: { [channel: string]: { [metric: string]: number } } = {};
+            parsedData.marketingChannels.forEach((m: any) => {
+              if (!marketingChannelsObj[m.channel]) {
+                marketingChannelsObj[m.channel] = {};
+              }
+              marketingChannelsObj[m.channel][m.metric] = m.value;
+            });
+
+            const funnelMetricsObj: { [stage: string]: { [metric: string]: number } } = {};
+            parsedData.funnelMetrics.forEach((m: any) => {
+              if (!funnelMetricsObj[m.stage]) {
+                funnelMetricsObj[m.stage] = {};
+              }
+              funnelMetricsObj[m.stage][m.metric] = m.value;
+            });
+
             const uploadData = {
               weekStartDate: finalWeekStartDate,
               weekEndDate: finalWeekEndDate,
               notes: finalNotes,
               romansRecommendations: finalRomansRecommendations,
-              overallMetrics: parsedData.overallMetrics,
-              marketingChannels: parsedData.marketingChannels,
-              funnelMetrics: parsedData.funnelMetrics,
+              overallMetrics: overallMetricsObj,
+              marketingChannels: marketingChannelsObj,
+              funnelMetrics: funnelMetricsObj,
             };
 
             const response = await fetch('/api/upload', {
@@ -226,7 +248,8 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
             });
 
             if (!response.ok) {
-              throw new Error('Upload failed');
+              const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+              throw new Error(errorData.error || `Upload failed with status ${response.status}`);
             }
 
             const result = await response.json();
@@ -245,10 +268,11 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
             if (onUploadSuccess) {
               onUploadSuccess();
             }
-          } catch (error) {
+          } catch (error: any) {
+            console.error('Upload error:', error);
             setStatus({ 
               type: 'error', 
-              message: 'Failed to upload data. Please check your file format.' 
+              message: error.message || 'Failed to upload data. Please check your file format.' 
             });
           } finally {
             setIsUploading(false);
