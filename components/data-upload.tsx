@@ -31,52 +31,158 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
   };
 
   const parseCSVData = (csvData: any[]): any => {
-    // Expected CSV format: Category, Subcategory, Metric, Value
-    // Example:
-    // Overall,Revenue,Total Revenue,50000
-    // Overall,Orders,Total Orders,120
-    // Marketing,Meta Ads,Spend,5000
-    // Marketing,Meta Ads,Revenue,15000
-    // Funnel,Homepage,Visitors,10000
+    // Support two CSV formats:
+    // 1. Flat format with direct column names (new format)
+    // 2. Category/Subcategory/Metric/Value format (legacy format)
+    
+    if (csvData.length === 0) {
+      throw new Error('CSV file is empty');
+    }
 
-    const data: any = {
-      overallMetrics: {},
-      marketingChannels: {},
-      funnelMetrics: {},
-    };
+    const firstRow = csvData[0];
+    const hasFlatFormat = 'week_start' in firstRow || 'total_revenue' in firstRow;
 
-    csvData.forEach((row: any) => {
-      const category = row.Category?.trim();
-      const subcategory = row.Subcategory?.trim();
-      const metric = row.Metric?.trim();
-      const value = parseFloat(row.Value);
+    if (hasFlatFormat) {
+      // New flat format - one row per week
+      const row = csvData[0]; // Use first row
+      
+      const data: any = {
+        weekStartDate: row.week_start || '',
+        weekEndDate: row.week_end || '',
+        notes: row.week_note || '',
+        romansRecommendations: row.roman_recommendations || '',
+        overallMetrics: [],
+        marketingChannels: [],
+        funnelMetrics: [],
+      };
 
-      if (!category || !metric || isNaN(value)) return;
+      // Helper to parse value
+      const parseValue = (value: any): number => {
+        if (value === null || value === undefined || value === '') return 0;
+        const numValue = typeof value === 'string' ? parseFloat(value) : value;
+        return isNaN(numValue) ? 0 : numValue;
+      };
 
-      if (category === 'Overall') {
-        data.overallMetrics[metric] = value;
-      } else if (category === 'Marketing') {
-        if (!data.marketingChannels[subcategory]) {
-          data.marketingChannels[subcategory] = {};
+      // Helper to add overall metric
+      const addOverallMetric = (metric: string, value: any) => {
+        const numValue = parseValue(value);
+        if (numValue > 0) {
+          data.overallMetrics.push({ metric, value: numValue });
         }
-        data.marketingChannels[subcategory][metric] = value;
-      } else if (category === 'Funnel') {
-        if (!data.funnelMetrics[subcategory]) {
-          data.funnelMetrics[subcategory] = {};
-        }
-        data.funnelMetrics[subcategory][metric] = value;
-      }
-    });
+      };
 
-    return data;
+      // Helper to add channel metric
+      const addChannelMetric = (channel: string, metric: string, value: any) => {
+        const numValue = parseValue(value);
+        if (numValue > 0) {
+          data.marketingChannels.push({ channel, metric, value: numValue });
+        }
+      };
+
+      // Helper to add funnel metric
+      const addFunnelMetric = (stage: string, metric: string, value: any) => {
+        const numValue = parseValue(value);
+        if (numValue > 0) {
+          data.funnelMetrics.push({ stage, metric, value: numValue });
+        }
+      };
+
+      // Overall Store Metrics
+      addOverallMetric('* Revenue', row.total_revenue);
+      addOverallMetric('* Orders', row.total_orders);
+      addOverallMetric('* AOV', row.avg_order_value);
+      addOverallMetric('* Conversion Rate', row.conversion_rate);
+      addOverallMetric('* Total Sessions', row.total_sessions);
+
+      // Google Ads
+      addChannelMetric('Google Ads', '* Sales', row.google_ads_revenue);
+      addChannelMetric('Google Ads', '* Spend', row.google_ads_spend);
+      addChannelMetric('Google Ads', '* Clicks', row.google_ads_clicks);
+      addChannelMetric('Google Ads', '* Conversions', row.google_ads_conversions);
+      addChannelMetric('Google Ads', '* Sessions', row.google_ads_sessions);
+      addFunnelMetric('Google Ads', 'Add to Cart', row.google_ads_add_to_cart);
+      addFunnelMetric('Google Ads', 'Checkout', row.google_ads_checkout);
+      addFunnelMetric('Google Ads', 'Purchases', row.google_ads_purchase);
+
+      // Email & SMS
+      addChannelMetric('Email & SMS', '* Revenue', row.email_sms_revenue);
+      addChannelMetric('Email & SMS', '* Spend', row.email_sms_spend);
+      addChannelMetric('Email & SMS', '* Clicks', row.email_sms_clicks);
+      addChannelMetric('Email & SMS', '* Conversions', row.email_sms_conversions);
+      addChannelMetric('Email & SMS', '* Sessions', row.email_sms_sessions);
+      addFunnelMetric('Email & SMS', 'Add to Cart', row.email_sms_add_to_cart);
+      addFunnelMetric('Email & SMS', 'Checkout', row.email_sms_checkout);
+      addFunnelMetric('Email & SMS', 'Purchases', row.email_sms_purchase);
+
+      // Affiliates
+      addChannelMetric('Affiliates', '* Revenue', row.affiliates_revenue);
+      addChannelMetric('Affiliates', '* Spend', row.affiliates_spend);
+      addChannelMetric('Affiliates', '* Clicks', row.affiliates_clicks);
+      addChannelMetric('Affiliates', '* Conversions', row.affiliates_coversions || row.affiliates_conversions);
+      addChannelMetric('Affiliates', '* Sessions', row.affiliates_sessions);
+      addFunnelMetric('Affiliates', 'Add to Cart', row.affiliates_add_to_cart);
+      addFunnelMetric('Affiliates', 'Checkout', row.affiliates_checkout);
+      addFunnelMetric('Affiliates', 'Purchases', row.affiliates_purchase);
+
+      // SEO
+      addChannelMetric('SEO', '* Revenue', row.seo_revenue);
+      addChannelMetric('SEO', '* Spend', row.seo_spend);
+      addChannelMetric('SEO', '* Impressions', row.seo_impressions);
+      addChannelMetric('SEO', '* Clicks', row.seo_funnel_clicks);
+      addChannelMetric('SEO', '* Sessions', row.seo_sessions);
+      addChannelMetric('SEO', '* Conversions', row.seo_purchase);
+      addFunnelMetric('SEO', 'Add to Cart', row.seo_add_to_cart);
+      addFunnelMetric('SEO', 'Checkout', row.seo_checkout);
+      addFunnelMetric('SEO', 'Purchases', row.seo_purchase);
+
+      // Social
+      addChannelMetric('Social', '* Revenue', row.social_revenue);
+      addChannelMetric('Social', '* Spend', row.social_spend);
+      addChannelMetric('Social', '* Sessions', row.social_sessions);
+      addFunnelMetric('Social', 'Add to Cart', row.social_add_to_cart);
+      addFunnelMetric('Social', 'Checkout', row.social_checkout);
+      addFunnelMetric('Social', 'Purchases', row.social_purchase);
+
+      // Product Page
+      addFunnelMetric('Product Page', '* Add-to-cart rate', row.product_page_add_to_cart_rate);
+      addFunnelMetric('Product Page', '* Time on page', row.product_page_time_on_page);
+      addFunnelMetric('Product Page', '* Scroll depth', row.product_page_scroll_depth);
+
+      // Cart
+      addFunnelMetric('Cart', '* Shipping issues', row.cart_shipping_issues);
+      addFunnelMetric('Cart', '* Abandonment rate', row.cart_abandonment_rate);
+
+      return data;
+    } else {
+      // Legacy Category/Subcategory/Metric/Value format
+      const data: any = {
+        overallMetrics: [],
+        marketingChannels: [],
+        funnelMetrics: [],
+      };
+
+      csvData.forEach((row: any) => {
+        const category = row.Category?.trim();
+        const subcategory = row.Subcategory?.trim();
+        const metric = row.Metric?.trim();
+        const value = parseFloat(row.Value);
+
+        if (!category || !metric || isNaN(value)) return;
+
+        if (category === 'Overall') {
+          data.overallMetrics.push({ metric: `* ${metric}`, value });
+        } else if (category === 'Marketing') {
+          data.marketingChannels.push({ channel: subcategory, metric: `* ${metric}`, value });
+        } else if (category === 'Funnel') {
+          data.funnelMetrics.push({ stage: subcategory, metric, value });
+        }
+      });
+
+      return data;
+    }
   };
 
   const handleUpload = async () => {
-    if (!weekStartDate || !weekEndDate) {
-      setStatus({ type: 'error', message: 'Please select both start and end dates' });
-      return;
-    }
-
     if (!file) {
       setStatus({ type: 'error', message: 'Please select a CSV file' });
       return;
@@ -93,11 +199,24 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
           try {
             const parsedData = parseCSVData(results.data);
 
+            // Use dates from CSV if available, otherwise use form fields
+            const finalWeekStartDate = parsedData.weekStartDate || weekStartDate;
+            const finalWeekEndDate = parsedData.weekEndDate || weekEndDate;
+            const finalNotes = parsedData.notes || notes.trim() || undefined;
+            const finalRomansRecommendations = parsedData.romansRecommendations || undefined;
+
+            if (!finalWeekStartDate || !finalWeekEndDate) {
+              throw new Error('Week dates are required. Please provide them in the CSV file or use the date fields above.');
+            }
+
             const uploadData = {
-              weekStartDate,
-              weekEndDate,
-              notes: notes.trim() || undefined,
-              ...parsedData,
+              weekStartDate: finalWeekStartDate,
+              weekEndDate: finalWeekEndDate,
+              notes: finalNotes,
+              romansRecommendations: finalRomansRecommendations,
+              overallMetrics: parsedData.overallMetrics,
+              marketingChannels: parsedData.marketingChannels,
+              funnelMetrics: parsedData.funnelMetrics,
             };
 
             const response = await fetch('/api/upload', {
@@ -158,9 +277,15 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <p className="text-sm text-blue-900">
+            <strong>💡 CSV Format:</strong> Your CSV can include <code>week_start</code>, <code>week_end</code>, <code>week_note</code>, and <code>roman_recommendations</code> columns. If these are in your CSV, the fields below are optional.
+          </p>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="start-date">Week Start Date</Label>
+            <Label htmlFor="start-date">Week Start Date (Optional if in CSV)</Label>
             <Input
               id="start-date"
               type="date"
@@ -169,7 +294,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="end-date">Week End Date</Label>
+            <Label htmlFor="end-date">Week End Date (Optional if in CSV)</Label>
             <Input
               id="end-date"
               type="date"
@@ -180,7 +305,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="week-notes">Week Context / Notes (Optional)</Label>
+          <Label htmlFor="week-notes">Week Context / Notes (Optional if in CSV)</Label>
           <Textarea
             id="week-notes"
             value={notes}
@@ -190,7 +315,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
             className="resize-none"
           />
           <p className="text-xs text-muted-foreground">
-            Provide context to help AI generate more accurate insights (e.g., promotions, events, site changes)
+            Provide context to help AI generate more accurate insights (e.g., promotions, events, site changes). Can also be included as <code>week_note</code> column in CSV.
           </p>
         </div>
 
@@ -212,7 +337,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
             )}
           </div>
           <p className="text-xs text-muted-foreground">
-            CSV should have columns: Category, Subcategory, Metric, Value
+            CSV format: Flat columns (week_start, week_end, total_revenue, google_ads_revenue, etc.) or legacy format (Category, Subcategory, Metric, Value)
           </p>
         </div>
 
@@ -234,7 +359,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
 
         <Button
           onClick={handleUpload}
-          disabled={isUploading || !file || !weekStartDate || !weekEndDate}
+          disabled={isUploading || !file}
           className="w-full"
         >
           {isUploading ? 'Uploading...' : 'Upload Data'}
