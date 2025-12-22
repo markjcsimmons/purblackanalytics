@@ -152,7 +152,8 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       addFunnelMetric('Cart', '* Shipping issues', row.cart_shipping_issues);
       addFunnelMetric('Cart', '* Abandonment rate', row.cart_abandonment_rate);
 
-      return data;
+        return data;
+      });
     } else {
       // Legacy Category/Subcategory/Metric/Value format
       const data: any = {
@@ -204,12 +205,12 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
           }
           return value;
         },
-        complete: async (results) => {
+        complete: async (parseResults) => {
           try {
-            console.log('CSV parsed, rows:', results.data.length);
-            console.log('First row:', results.data[0]);
+            console.log('CSV parsed, rows:', parseResults.data.length);
+            console.log('First row:', parseResults.data[0]);
             
-            const parsedData = parseCSVData(results.data);
+            const parsedData = parseCSVData(parseResults.data);
             console.log('Parsed data:', Array.isArray(parsedData) ? `${parsedData.length} weeks found` : 'Single week format');
 
             // Check if parsedData is an array (multiple weeks) or single object
