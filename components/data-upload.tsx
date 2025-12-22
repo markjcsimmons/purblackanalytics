@@ -43,51 +43,51 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     const hasFlatFormat = 'week_start' in firstRow || 'total_revenue' in firstRow;
 
     if (hasFlatFormat) {
-      // New flat format - one row per week
-      const row = csvData[0]; // Use first row
-      
-      const data: any = {
-        weekStartDate: row.week_start || '',
-        weekEndDate: row.week_end || '',
-        notes: row.week_note || '',
-        romansRecommendations: row.roman_recommendations || '',
-        overallMetrics: [],
-        marketingChannels: [],
-        funnelMetrics: [],
-      };
+      // New flat format - multiple rows, each row is a week
+      // Process all rows and return array of week data
+      return csvData.map((row: any) => {
+        const data: any = {
+          weekStartDate: row.week_start || '',
+          weekEndDate: row.week_end || '',
+          notes: row.week_note || '',
+          romansRecommendations: row.roman_recommendations || '',
+          overallMetrics: [],
+          marketingChannels: [],
+          funnelMetrics: [],
+        };
 
-      // Helper to parse value
-      const parseValue = (value: any): number => {
-        if (value === null || value === undefined || value === '') return 0;
-        const numValue = typeof value === 'string' ? parseFloat(value) : value;
-        return isNaN(numValue) ? 0 : numValue;
-      };
+        // Helper to parse value
+        const parseValue = (value: any): number => {
+          if (value === null || value === undefined || value === '') return 0;
+          const numValue = typeof value === 'string' ? parseFloat(value) : value;
+          return isNaN(numValue) ? 0 : numValue;
+        };
 
-      // Helper to add overall metric
-      const addOverallMetric = (metric: string, value: any) => {
-        const numValue = parseValue(value);
-        if (numValue > 0) {
-          data.overallMetrics.push({ metric, value: numValue });
-        }
-      };
+        // Helper to add overall metric
+        const addOverallMetric = (metric: string, value: any) => {
+          const numValue = parseValue(value);
+          if (numValue > 0) {
+            data.overallMetrics.push({ metric, value: numValue });
+          }
+        };
 
-      // Helper to add channel metric
-      const addChannelMetric = (channel: string, metric: string, value: any) => {
-        const numValue = parseValue(value);
-        if (numValue > 0) {
-          data.marketingChannels.push({ channel, metric, value: numValue });
-        }
-      };
+        // Helper to add channel metric
+        const addChannelMetric = (channel: string, metric: string, value: any) => {
+          const numValue = parseValue(value);
+          if (numValue > 0) {
+            data.marketingChannels.push({ channel, metric, value: numValue });
+          }
+        };
 
-      // Helper to add funnel metric
-      const addFunnelMetric = (stage: string, metric: string, value: any) => {
-        const numValue = parseValue(value);
-        if (numValue > 0) {
-          data.funnelMetrics.push({ stage, metric, value: numValue });
-        }
-      };
+        // Helper to add funnel metric
+        const addFunnelMetric = (stage: string, metric: string, value: any) => {
+          const numValue = parseValue(value);
+          if (numValue > 0) {
+            data.funnelMetrics.push({ stage, metric, value: numValue });
+          }
+        };
 
-      // Overall Store Metrics
+        // Overall Store Metrics
       addOverallMetric('* Revenue', row.total_revenue);
       addOverallMetric('* Orders', row.total_orders);
       addOverallMetric('* AOV', row.avg_order_value);
@@ -210,92 +210,92 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
             console.log('First row:', results.data[0]);
             
             const parsedData = parseCSVData(results.data);
-            console.log('Parsed data structure:', {
-              hasWeekStart: !!parsedData.weekStartDate,
-              hasWeekEnd: !!parsedData.weekEndDate,
-              overallMetricsCount: parsedData.overallMetrics?.length || 0,
-              marketingChannelsCount: parsedData.marketingChannels?.length || 0,
-              funnelMetricsCount: parsedData.funnelMetrics?.length || 0,
-            });
+            console.log('Parsed data:', Array.isArray(parsedData) ? `${parsedData.length} weeks found` : 'Single week format');
 
-            // Use dates from CSV if available, otherwise use form fields
-            const finalWeekStartDate = parsedData.weekStartDate || weekStartDate;
-            const finalWeekEndDate = parsedData.weekEndDate || weekEndDate;
-            const finalNotes = parsedData.notes || notes.trim() || undefined;
-            const finalRomansRecommendations = parsedData.romansRecommendations || undefined;
-
-            if (!finalWeekStartDate || !finalWeekEndDate) {
-              throw new Error('Week dates are required. Please provide them in the CSV file or use the date fields above.');
+            // Check if parsedData is an array (multiple weeks) or single object
+            const weeksData = Array.isArray(parsedData) ? parsedData : [parsedData];
+            
+            if (weeksData.length === 0) {
+              throw new Error('No valid week data found in CSV file');
             }
 
-            // Convert arrays to object format expected by API
-            const overallMetricsObj: { [key: string]: number } = {};
-            if (Array.isArray(parsedData.overallMetrics)) {
-              parsedData.overallMetrics.forEach((m: any) => {
-                overallMetricsObj[m.metric] = m.value;
-              });
-            }
+            // Upload each week
+            const uploadPromises = weeksData.map(async (weekData: any) => {
+              // Use dates from CSV if available, otherwise use form fields
+              const finalWeekStartDate = weekData.weekStartDate || weekStartDate;
+              const finalWeekEndDate = weekData.weekEndDate || weekEndDate;
+              const finalNotes = weekData.notes || notes.trim() || undefined;
+              const finalRomansRecommendations = weekData.romansRecommendations || undefined;
 
-            const marketingChannelsObj: { [channel: string]: { [metric: string]: number } } = {};
-            if (Array.isArray(parsedData.marketingChannels)) {
-              parsedData.marketingChannels.forEach((m: any) => {
-                if (!marketingChannelsObj[m.channel]) {
-                  marketingChannelsObj[m.channel] = {};
-                }
-                marketingChannelsObj[m.channel][m.metric] = m.value;
-              });
-            }
-
-            const funnelMetricsObj: { [stage: string]: { [metric: string]: number } } = {};
-            if (Array.isArray(parsedData.funnelMetrics)) {
-              parsedData.funnelMetrics.forEach((m: any) => {
-                if (!funnelMetricsObj[m.stage]) {
-                  funnelMetricsObj[m.stage] = {};
-                }
-                funnelMetricsObj[m.stage][m.metric] = m.value;
-              });
-            }
-
-            const uploadData = {
-              weekStartDate: finalWeekStartDate,
-              weekEndDate: finalWeekEndDate,
-              notes: finalNotes,
-              romansRecommendations: finalRomansRecommendations,
-              overallMetrics: overallMetricsObj,
-              marketingChannels: marketingChannelsObj,
-              funnelMetrics: funnelMetricsObj,
-            };
-
-            console.log('Upload data prepared:', {
-              weekStartDate: uploadData.weekStartDate,
-              weekEndDate: uploadData.weekEndDate,
-              overallMetricsKeys: Object.keys(uploadData.overallMetrics),
-              marketingChannelsKeys: Object.keys(uploadData.marketingChannels),
-              funnelMetricsKeys: Object.keys(uploadData.funnelMetrics),
-            });
-
-            const response = await fetch('/api/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(uploadData),
-            });
-
-            if (!response.ok) {
-              const errorText = await response.text();
-              let errorData;
-              try {
-                errorData = JSON.parse(errorText);
-              } catch {
-                errorData = { error: errorText || `HTTP ${response.status}` };
+              if (!finalWeekStartDate || !finalWeekEndDate) {
+                throw new Error(`Week dates are required for week ${finalWeekStartDate || 'unknown'}. Please provide them in the CSV file or use the date fields above.`);
               }
-              console.error('API error response:', errorData);
-              throw new Error(errorData.error || `Upload failed with status ${response.status}`);
-            }
 
-            const result = await response.json();
+              // Convert arrays to object format expected by API
+              const overallMetricsObj: { [key: string]: number } = {};
+              if (Array.isArray(weekData.overallMetrics)) {
+                weekData.overallMetrics.forEach((m: any) => {
+                  overallMetricsObj[m.metric] = m.value;
+                });
+              }
+
+              const marketingChannelsObj: { [channel: string]: { [metric: string]: number } } = {};
+              if (Array.isArray(weekData.marketingChannels)) {
+                weekData.marketingChannels.forEach((m: any) => {
+                  if (!marketingChannelsObj[m.channel]) {
+                    marketingChannelsObj[m.channel] = {};
+                  }
+                  marketingChannelsObj[m.channel][m.metric] = m.value;
+                });
+              }
+
+              const funnelMetricsObj: { [stage: string]: { [metric: string]: number } } = {};
+              if (Array.isArray(weekData.funnelMetrics)) {
+                weekData.funnelMetrics.forEach((m: any) => {
+                  if (!funnelMetricsObj[m.stage]) {
+                    funnelMetricsObj[m.stage] = {};
+                  }
+                  funnelMetricsObj[m.stage][m.metric] = m.value;
+                });
+              }
+
+              const uploadData = {
+                weekStartDate: finalWeekStartDate,
+                weekEndDate: finalWeekEndDate,
+                notes: finalNotes,
+                romansRecommendations: finalRomansRecommendations,
+                overallMetrics: overallMetricsObj,
+                marketingChannels: marketingChannelsObj,
+                funnelMetrics: funnelMetricsObj,
+              };
+
+              const response = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(uploadData),
+              });
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                let errorData;
+                try {
+                  errorData = JSON.parse(errorText);
+                } catch {
+                  errorData = { error: errorText || `HTTP ${response.status}` };
+                }
+                throw new Error(`Week ${finalWeekStartDate} to ${finalWeekEndDate}: ${errorData.error || `Upload failed with status ${response.status}`}`);
+              }
+
+              return await response.json();
+            });
+
+            // Wait for all uploads to complete
+            const results = await Promise.all(uploadPromises);
+            
+            const successCount = results.length;
             setStatus({ 
               type: 'success', 
-              message: `Data uploaded successfully! Week ID: ${result.weekId}` 
+              message: `Successfully uploaded ${successCount} week${successCount > 1 ? 's' : ''}! Week IDs: ${results.map(r => r.weekId).join(', ')}` 
             });
             
             // Reset form
