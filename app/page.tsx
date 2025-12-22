@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/select';
 import { DataEntryForm } from '@/components/data-entry-form';
 import { DataUpload } from '@/components/data-upload';
-import { GoogleDocsImport } from '@/components/google-docs-import';
 import { InsightsDisplay } from '@/components/insights-display';
 import { 
   TrendingUp, 
@@ -647,10 +646,9 @@ export default function Dashboard() {
           {/* Add Data Tab */}
           <TabsContent value="add-data" className="space-y-6">
             <Tabs defaultValue="form" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
+              <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
                 <TabsTrigger value="form">Manual Entry</TabsTrigger>
                 <TabsTrigger value="csv">CSV Upload</TabsTrigger>
-                <TabsTrigger value="google-docs">Google Docs</TabsTrigger>
               </TabsList>
               
               <TabsContent value="form" className="space-y-4">
@@ -659,10 +657,6 @@ export default function Dashboard() {
               
               <TabsContent value="csv" className="space-y-4">
                 <DataUpload onUploadSuccess={handleUploadSuccess} />
-              </TabsContent>
-              
-              <TabsContent value="google-docs" className="space-y-4">
-                <GoogleDocsImport onUploadSuccess={handleUploadSuccess} />
               </TabsContent>
             </Tabs>
           </TabsContent>
