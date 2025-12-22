@@ -1,19 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Store, 
   Megaphone, 
   Target, 
   Sparkles,
   Save,
-  Calendar
+  Calendar,
+  Edit,
+  Plus
 } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface FormData {
   // Week Info
@@ -91,6 +101,9 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [weeks, setWeeks] = useState<any[]>([]);
+  const [selectedWeekId, setSelectedWeekId] = useState<string>('new');
+  const [isLoadingWeekData, setIsLoadingWeekData] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     weekStartDate: '',
@@ -149,6 +162,196 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Fetch weeks on component mount
+  useEffect(() => {
+    const fetchWeeks = async () => {
+      try {
+        const response = await fetch('/api/weeks');
+        const data = await response.json();
+        setWeeks(data.weeks || []);
+      } catch (error) {
+        console.error('Error fetching weeks:', error);
+      }
+    };
+    fetchWeeks();
+  }, []);
+
+  // Load week data when a week is selected
+  useEffect(() => {
+    if (selectedWeekId && selectedWeekId !== 'new') {
+      loadWeekData(parseInt(selectedWeekId));
+    } else {
+      // Reset form for new week
+      resetForm();
+    }
+  }, [selectedWeekId]);
+
+  const loadWeekData = async (weekId: number) => {
+    setIsLoadingWeekData(true);
+    setError('');
+    setSuccess('');
+    
+    try {
+      const response = await fetch(`/api/weeks/${weekId}`);
+      if (!response.ok) throw new Error('Failed to load week data');
+      
+      const data = await response.json();
+      const week = data.week;
+      const overallMetrics = data.overallMetrics || [];
+      const marketingChannels = data.marketingChannels || [];
+      const funnelMetrics = data.funnelMetrics || [];
+
+      // Helper function to get metric value
+      const getMetricValue = (metrics: any[], name: string): string => {
+        const metric = metrics.find((m: any) => 
+          m.metric_name === name || 
+          m.metric_name === `* ${name}` ||
+          m.metric_name.toLowerCase().includes(name.toLowerCase())
+        );
+        return metric ? metric.metric_value.toString() : '';
+      };
+
+      // Helper function to get channel metric value
+      const getChannelMetric = (channel: string, metricName: string): string => {
+        const metric = marketingChannels.find((m: any) => 
+          m.channel_name === channel && 
+          (m.metric_name === metricName || 
+           m.metric_name === `* ${metricName}` ||
+           m.metric_name.toLowerCase().includes(metricName.toLowerCase()))
+        );
+        return metric ? metric.metric_value.toString() : '';
+      };
+
+      // Helper function to get funnel metric value
+      const getFunnelMetric = (stage: string, metricName: string): string => {
+        const metric = funnelMetrics.find((m: any) => 
+          m.stage_name === stage && 
+          m.metric_name === metricName
+        );
+        return metric ? metric.metric_value.toString() : '';
+      };
+
+      // Populate form with loaded data
+      setFormData({
+        weekStartDate: week.week_start_date || '',
+        weekEndDate: week.week_end_date || '',
+        notes: week.notes || '',
+        romansRecommendations: week.romans_recommendations || '',
+        revenue: getMetricValue(overallMetrics, 'Revenue'),
+        orders: getMetricValue(overallMetrics, 'Orders'),
+        aov: getMetricValue(overallMetrics, 'AOV'),
+        conversionRate: getMetricValue(overallMetrics, 'Conversion Rate'),
+        sessions: getMetricValue(overallMetrics, 'Total Sessions'),
+        googleAdsRevenue: getChannelMetric('Google Ads', 'Sales') || getChannelMetric('Google Ads', 'Revenue'),
+        googleAdsSpend: getChannelMetric('Google Ads', 'Spend'),
+        googleAdsClicks: getChannelMetric('Google Ads', 'Clicks'),
+        googleAdsConversions: getChannelMetric('Google Ads', 'Conversions'),
+        googleAdsSessions: getChannelMetric('Google Ads', 'Sessions'),
+        googleAdsATC: getFunnelMetric('Google Ads', 'Add to Cart'),
+        googleAdsCheckout: getFunnelMetric('Google Ads', 'Checkout'),
+        googleAdsPurchases: getFunnelMetric('Google Ads', 'Purchases'),
+        emailRevenue: getChannelMetric('Email & SMS', 'Revenue'),
+        emailSpend: getChannelMetric('Email & SMS', 'Spend'),
+        emailOpenRate: getChannelMetric('Email & SMS', 'Email open rate'),
+        emailCTR: getChannelMetric('Email & SMS', 'CTR'),
+        emailSessions: getChannelMetric('Email & SMS', 'Sessions'),
+        emailATC: getFunnelMetric('Email & SMS', 'Add to Cart'),
+        emailCheckout: getFunnelMetric('Email & SMS', 'Checkout'),
+        emailPurchases: getFunnelMetric('Email & SMS', 'Purchases'),
+        affiliatesRevenue: getChannelMetric('Affiliates', 'Revenue'),
+        affiliatesSpend: getChannelMetric('Affiliates', 'Spend'),
+        affiliatesClicks: getChannelMetric('Affiliates', 'Clicks'),
+        affiliatesConversions: getChannelMetric('Affiliates', 'Conversions'),
+        affiliatesSessions: getChannelMetric('Affiliates', 'Sessions'),
+        affiliatesATC: getFunnelMetric('Affiliates', 'Add to Cart'),
+        affiliatesCheckout: getFunnelMetric('Affiliates', 'Checkout'),
+        affiliatesPurchases: getFunnelMetric('Affiliates', 'Purchases'),
+        seoRevenue: getChannelMetric('SEO', 'Revenue'),
+        seoImpressions: getChannelMetric('SEO', 'Impressions'),
+        seoClicks: getChannelMetric('SEO', 'Clicks'),
+        seoSessions: getChannelMetric('SEO', 'Sessions'),
+        seoSpend: getChannelMetric('SEO', 'Spend'),
+        seoATC: getFunnelMetric('SEO', 'Add to Cart'),
+        seoCheckout: getFunnelMetric('SEO', 'Checkout'),
+        seoPurchases: getFunnelMetric('SEO', 'Purchases'),
+        socialRevenue: getChannelMetric('Social', 'Revenue'),
+        socialSpend: getChannelMetric('Social', 'Spend'),
+        socialSessions: getChannelMetric('Social', 'Sessions'),
+        socialATC: getFunnelMetric('Social', 'Add to Cart'),
+        socialCheckout: getFunnelMetric('Social', 'Checkout'),
+        socialPurchases: getFunnelMetric('Social', 'Purchases'),
+        productPageATCRate: getFunnelMetric('Product Page', '* Add-to-cart rate'),
+        productPageTimeOnPage: getFunnelMetric('Product Page', '* Time on page'),
+        productPageScrollDepth: getFunnelMetric('Product Page', '* Scroll depth'),
+        cartShippingIssues: getFunnelMetric('Cart', '* Shipping issues'),
+        cartAbandonment: getFunnelMetric('Cart', '* Abandonment rate'),
+      });
+    } catch (err: any) {
+      setError(err.message || 'Failed to load week data');
+    } finally {
+      setIsLoadingWeekData(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      weekStartDate: '',
+      weekEndDate: '',
+      notes: '',
+      romansRecommendations: '',
+      revenue: '',
+      orders: '',
+      aov: '',
+      conversionRate: '',
+      sessions: '',
+      googleAdsRevenue: '',
+      googleAdsSpend: '',
+      googleAdsClicks: '',
+      googleAdsConversions: '',
+      googleAdsSessions: '',
+      googleAdsATC: '',
+      googleAdsCheckout: '',
+      googleAdsPurchases: '',
+      emailRevenue: '',
+      emailSpend: '',
+      emailOpenRate: '',
+      emailCTR: '',
+      emailSessions: '',
+      emailATC: '',
+      emailCheckout: '',
+      emailPurchases: '',
+      affiliatesRevenue: '',
+      affiliatesSpend: '',
+      affiliatesClicks: '',
+      affiliatesConversions: '',
+      affiliatesSessions: '',
+      affiliatesATC: '',
+      affiliatesCheckout: '',
+      affiliatesPurchases: '',
+      seoRevenue: '',
+      seoImpressions: '',
+      seoClicks: '',
+      seoSessions: '',
+      seoSpend: '',
+      seoATC: '',
+      seoCheckout: '',
+      seoPurchases: '',
+      socialRevenue: '',
+      socialSpend: '',
+      socialSessions: '',
+      socialATC: '',
+      socialCheckout: '',
+      socialPurchases: '',
+      productPageATCRate: '',
+      productPageTimeOnPage: '',
+      productPageScrollDepth: '',
+      cartShippingIssues: '',
+      cartAbandonment: '',
+    });
+    setError('');
+    setSuccess('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -251,63 +454,15 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         throw new Error(data.error || 'Upload failed');
       }
 
-      setSuccess('Data saved successfully! 🎉');
+      const isEditMode = selectedWeekId !== 'new';
+      setSuccess(isEditMode ? 'Week data updated successfully! ✏️' : 'Data saved successfully! 🎉');
       
-      // Reset form
-      setFormData({
-        weekStartDate: '',
-        weekEndDate: '',
-        notes: '',
-        romansRecommendations: '',
-        revenue: '',
-        orders: '',
-        aov: '',
-        conversionRate: '',
-        sessions: '',
-        googleAdsRevenue: '',
-        googleAdsSpend: '',
-        googleAdsClicks: '',
-        googleAdsConversions: '',
-        googleAdsSessions: '',
-        googleAdsATC: '',
-        googleAdsCheckout: '',
-        googleAdsPurchases: '',
-        emailRevenue: '',
-        emailSpend: '',
-        emailOpenRate: '',
-        emailCTR: '',
-        emailSessions: '',
-        emailATC: '',
-        emailCheckout: '',
-        emailPurchases: '',
-        affiliatesRevenue: '',
-        affiliatesSpend: '',
-        affiliatesClicks: '',
-        affiliatesConversions: '',
-        affiliatesSessions: '',
-        affiliatesATC: '',
-        affiliatesCheckout: '',
-        affiliatesPurchases: '',
-        seoRevenue: '',
-        seoImpressions: '',
-        seoClicks: '',
-        seoSessions: '',
-        seoSpend: '',
-        seoATC: '',
-        seoCheckout: '',
-        seoPurchases: '',
-        socialRevenue: '',
-        socialSpend: '',
-        socialSessions: '',
-        socialATC: '',
-        socialCheckout: '',
-        socialPurchases: '',
-        productPageATCRate: '',
-        productPageTimeOnPage: '',
-        productPageScrollDepth: '',
-        cartShippingIssues: '',
-        cartAbandonment: '',
-      });
+      // Refresh weeks list and reset to "new" mode after save
+      const weeksResponse = await fetch('/api/weeks');
+      const weeksData = await weeksResponse.json();
+      setWeeks(weeksData.weeks || []);
+      setSelectedWeekId('new');
+      resetForm();
 
       if (onSuccess) {
         onSuccess();
@@ -319,8 +474,78 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     }
   };
 
+  const isEditMode = selectedWeekId !== 'new';
+  const selectedWeek = weeks.find(w => w.id.toString() === selectedWeekId);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Week Selector */}
+      <Card className="border-2 border-blue-200">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isEditMode ? (
+                <Edit className="h-5 w-5 text-blue-600" />
+              ) : (
+                <Plus className="h-5 w-5 text-blue-600" />
+              )}
+              <div>
+                <CardTitle className="text-lg">
+                  {isEditMode ? 'Edit Existing Week' : 'Add New Week'}
+                </CardTitle>
+                <CardDescription>
+                  {isEditMode 
+                    ? `Editing: ${selectedWeek ? format(new Date(selectedWeek.week_start_date), 'MMM d') + ' - ' + format(new Date(selectedWeek.week_end_date), 'MMM d, yyyy') : ''}`
+                    : 'Select a week to edit, or add a new week below'
+                  }
+                </CardDescription>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="space-y-2">
+            <Label htmlFor="weekSelector">Select Week</Label>
+            <Select
+              value={selectedWeekId}
+              onValueChange={(value) => {
+                setSelectedWeekId(value);
+                setSuccess('');
+                setError('');
+              }}
+              disabled={isLoadingWeekData}
+            >
+              <SelectTrigger id="weekSelector" className="w-full">
+                <SelectValue placeholder="Select a week to edit or add new" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span>➕ Add New Week</span>
+                  </div>
+                </SelectItem>
+                {weeks.map((week) => (
+                  <SelectItem key={week.id} value={week.id.toString()}>
+                    {format(new Date(week.week_start_date), 'MMM d')} - {format(new Date(week.week_end_date), 'MMM d, yyyy')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isLoadingWeekData && (
+              <p className="text-xs text-muted-foreground">Loading week data...</p>
+            )}
+            {isEditMode && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-900">
+                  <strong>✏️ Edit Mode:</strong> All fields below are pre-filled with existing data. Make your changes and click "Save Data" to update.
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Week Info */}
       <Card>
         <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100">
@@ -347,8 +572,15 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 value={formData.weekStartDate}
                 onChange={(e) => handleChange('weekStartDate', e.target.value)}
                 required
+                disabled={isEditMode}
+                className={isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}
               />
-              <p className="text-xs text-muted-foreground">Select the start date for this week (can be in the past)</p>
+              <p className="text-xs text-muted-foreground">
+                {isEditMode 
+                  ? 'Dates cannot be changed when editing (week identifier)'
+                  : 'Select the start date for this week (can be in the past)'
+                }
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="weekEndDate">Week End Date *</Label>
@@ -358,8 +590,15 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 value={formData.weekEndDate}
                 onChange={(e) => handleChange('weekEndDate', e.target.value)}
                 required
+                disabled={isEditMode}
+                className={isEditMode ? 'bg-gray-100 cursor-not-allowed' : ''}
               />
-              <p className="text-xs text-muted-foreground">Select the end date for this week (can be in the past)</p>
+              <p className="text-xs text-muted-foreground">
+                {isEditMode 
+                  ? 'Dates cannot be changed when editing (week identifier)'
+                  : 'Select the end date for this week (can be in the past)'
+                }
+              </p>
             </div>
           </div>
           <div className="space-y-2 mt-4">
@@ -1017,12 +1256,17 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         </div>
         <Button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isLoadingWeekData}
           size="lg"
           className="min-w-[200px]"
         >
           <Save className="h-4 w-4 mr-2" />
-          {isSubmitting ? 'Saving...' : 'Save Week Data'}
+          {isSubmitting 
+            ? 'Saving...' 
+            : isEditMode 
+              ? 'Update Week Data' 
+              : 'Save Week Data'
+          }
         </Button>
       </div>
     </form>
