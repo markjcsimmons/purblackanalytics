@@ -611,9 +611,9 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
               rows={3}
             />
           </div>
-          <div className="space-y-2 mt-4">
-            <Label htmlFor="romansRecommendations" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-600" />
+          <div className="space-y-2 mt-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
+            <Label htmlFor="romansRecommendations" className="flex items-center gap-2 text-amber-900 font-semibold">
+              <Sparkles className="h-5 w-5 text-amber-600" />
               Roman's Recommendations
             </Label>
             <Textarea
@@ -621,10 +621,13 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
               placeholder="Enter Roman's insights and recommendations for this week..."
               value={formData.romansRecommendations}
               onChange={(e) => handleChange('romansRecommendations', e.target.value)}
-              rows={4}
-              className="border-amber-200 focus:border-amber-400"
+              rows={5}
+              className="border-amber-300 focus:border-amber-500 bg-white"
             />
-            <p className="text-xs text-muted-foreground">These recommendations will be prominently displayed on the Overview page</p>
+            <div className="flex items-start gap-2 text-xs text-amber-800">
+              <Sparkles className="h-3 w-3 mt-0.5 text-amber-600" />
+              <p>These recommendations will be prominently displayed on the Overview page in a special amber-colored card.</p>
+            </div>
           </div>
         </CardContent>
       </Card>
