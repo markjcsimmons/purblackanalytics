@@ -7,9 +7,24 @@ function getOpenAIClient(): OpenAI {
   if (!openai) {
     // Check for all possible environment variable name variations
     const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
+    
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY, OPEN_AI_KEY, or OPEN_API_KEY environment variable is required');
+      // Debug: Check what env vars are available (without exposing values)
+      const envVars = Object.keys(process.env).filter(key => 
+        key.toUpperCase().includes('OPEN') || key.toUpperCase().includes('API')
+      );
+      console.error('OpenAI API key not found. Available env vars with "OPEN" or "API":', envVars);
+      console.error('Checked for: OPENAI_API_KEY, OPEN_AI_KEY, OPEN_API_KEY');
+      throw new Error('OPENAI_API_KEY, OPEN_AI_KEY, or OPEN_API_KEY environment variable is required. Please check your Render environment variables and restart the service.');
     }
+    
+    // Validate API key format (should start with sk-)
+    if (!apiKey.startsWith('sk-')) {
+      console.error('OpenAI API key format appears invalid (should start with "sk-")');
+      throw new Error('Invalid OpenAI API key format. Key should start with "sk-". Please check the key value in Render.');
+    }
+    
+    console.log('OpenAI client initialized successfully');
     openai = new OpenAI({
       apiKey: apiKey,
     });
