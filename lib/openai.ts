@@ -234,9 +234,22 @@ ${businessContext ? '- How the business context affects performance interpretati
       type: insight.type || 'recommendation',
       priority: insight.priority || 'medium',
     }));
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating insights:', error);
-    throw new Error('Failed to generate insights. Please check your OpenAI API key.');
+    
+    // Provide more specific error messages
+    if (error.message && error.message.includes('API key')) {
+      throw new Error('OpenAI API key issue: ' + error.message + '. Please verify the key is set correctly in Render and restart the service.');
+    }
+    if (error.status === 401) {
+      throw new Error('OpenAI API authentication failed. The API key may be invalid or expired. Please check your OPENAI_API_KEY in Render.');
+    }
+    if (error.status === 429) {
+      throw new Error('OpenAI API rate limit exceeded. Please try again in a moment.');
+    }
+    
+    throw new Error('Failed to generate insights: ' + (error.message || 'Unknown error') + '. Check server logs for details.');
+  }
   }
 }
 
