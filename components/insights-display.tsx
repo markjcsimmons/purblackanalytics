@@ -109,17 +109,30 @@ export function InsightsDisplay({ weekId, existingInsights = [], onGenerate }: I
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate insights');
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || `HTTP ${response.status}` };
+        }
+        console.error('Insights API error:', errorData);
+        throw new Error(errorData.error || `Failed to generate insights (${response.status})`);
       }
 
       const data = await response.json();
+      if (!data.insights || !Array.isArray(data.insights)) {
+        throw new Error('Invalid response format from insights API');
+      }
+      
       setInsights(data.insights);
       
       if (onGenerate) {
         onGenerate();
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to generate insights');
+      console.error('Insights generation error:', err);
+      setError(err.message || 'Failed to generate insights. Check browser console for details.');
     } finally {
       setIsGenerating(false);
     }

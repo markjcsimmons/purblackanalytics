@@ -366,81 +366,109 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         throw new Error('Week dates are required');
       }
 
-      // Build data structure matching your database schema
+      // Build data structure as arrays first, then convert to objects
+      const overallMetricsArray = [
+        { metric: '* Revenue', value: parseFloat(formData.revenue) || 0 },
+        { metric: '* Orders', value: parseFloat(formData.orders) || 0 },
+        { metric: '* AOV', value: parseFloat(formData.aov) || 0 },
+        { metric: '* Conversion Rate', value: parseFloat(formData.conversionRate) || 0 },
+        { metric: '* Total Sessions', value: parseFloat(formData.sessions) || 0 },
+      ].filter(item => item.value > 0);
+
+      const marketingChannelsArray = [
+        // Google Ads
+        { channel: 'Google Ads', metric: '* Sales', value: parseFloat(formData.googleAdsRevenue) || 0 },
+        { channel: 'Google Ads', metric: '* Spend', value: parseFloat(formData.googleAdsSpend) || 0 },
+        { channel: 'Google Ads', metric: '* Clicks', value: parseFloat(formData.googleAdsClicks) || 0 },
+        { channel: 'Google Ads', metric: '* Conversions', value: parseFloat(formData.googleAdsConversions) || 0 },
+        { channel: 'Google Ads', metric: '* Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
+        // Email & SMS
+        { channel: 'Email & SMS', metric: '* Revenue', value: parseFloat(formData.emailRevenue) || 0 },
+        { channel: 'Email & SMS', metric: '* Spend', value: parseFloat(formData.emailSpend) || 0 },
+        { channel: 'Email & SMS', metric: '* Email open rate', value: parseFloat(formData.emailOpenRate) || 0 },
+        { channel: 'Email & SMS', metric: '* CTR', value: parseFloat(formData.emailCTR) || 0 },
+        // Affiliates
+        { channel: 'Affiliates', metric: '* Revenue', value: parseFloat(formData.affiliatesRevenue) || 0 },
+        { channel: 'Affiliates', metric: '* Spend', value: parseFloat(formData.affiliatesSpend) || 0 },
+        { channel: 'Affiliates', metric: '* Clicks', value: parseFloat(formData.affiliatesClicks) || 0 },
+        { channel: 'Affiliates', metric: '* Conversions', value: parseFloat(formData.affiliatesConversions) || 0 },
+        // Social
+        { channel: 'Social', metric: '* Revenue', value: parseFloat(formData.socialRevenue) || 0 },
+        { channel: 'Social', metric: '* Spend', value: parseFloat(formData.socialSpend) || 0 },
+        // SEO
+        { channel: 'SEO', metric: '* Revenue', value: parseFloat(formData.seoRevenue) || 0 },
+        { channel: 'SEO', metric: '* Spend', value: parseFloat(formData.seoSpend) || 0 },
+        { channel: 'SEO', metric: '* Impressions', value: parseFloat(formData.seoImpressions) || 0 },
+        { channel: 'SEO', metric: '* Clicks', value: parseFloat(formData.seoClicks) || 0 },
+        { channel: 'SEO', metric: '* Sessions', value: parseFloat(formData.seoSessions) || 0 },
+        { channel: 'SEO', metric: '* Conversions', value: parseFloat(formData.seoPurchases) || 0 },
+      ].filter(item => item.value > 0);
+
+      const funnelMetricsArray = [
+        // Google Ads Funnel
+        { stage: 'Google Ads', metric: 'Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
+        { stage: 'Google Ads', metric: 'Add to Cart', value: parseFloat(formData.googleAdsATC) || 0 },
+        { stage: 'Google Ads', metric: 'Checkout', value: parseFloat(formData.googleAdsCheckout) || 0 },
+        { stage: 'Google Ads', metric: 'Purchases', value: parseFloat(formData.googleAdsPurchases) || 0 },
+        // Email Funnel
+        { stage: 'Email & SMS', metric: 'Sessions', value: parseFloat(formData.emailSessions) || 0 },
+        { stage: 'Email & SMS', metric: 'Add to Cart', value: parseFloat(formData.emailATC) || 0 },
+        { stage: 'Email & SMS', metric: 'Checkout', value: parseFloat(formData.emailCheckout) || 0 },
+        { stage: 'Email & SMS', metric: 'Purchases', value: parseFloat(formData.emailPurchases) || 0 },
+        // Affiliates Funnel
+        { stage: 'Affiliates', metric: 'Sessions', value: parseFloat(formData.affiliatesSessions) || 0 },
+        { stage: 'Affiliates', metric: 'Add to Cart', value: parseFloat(formData.affiliatesATC) || 0 },
+        { stage: 'Affiliates', metric: 'Checkout', value: parseFloat(formData.affiliatesCheckout) || 0 },
+        { stage: 'Affiliates', metric: 'Purchases', value: parseFloat(formData.affiliatesPurchases) || 0 },
+        // SEO Funnel
+        { stage: 'SEO', metric: 'Sessions', value: parseFloat(formData.seoSessions) || 0 },
+        { stage: 'SEO', metric: 'Add to Cart', value: parseFloat(formData.seoATC) || 0 },
+        { stage: 'SEO', metric: 'Checkout', value: parseFloat(formData.seoCheckout) || 0 },
+        { stage: 'SEO', metric: 'Purchases', value: parseFloat(formData.seoPurchases) || 0 },
+        // Social Funnel
+        { stage: 'Social', metric: 'Sessions', value: parseFloat(formData.socialSessions) || 0 },
+        { stage: 'Social', metric: 'Add to Cart', value: parseFloat(formData.socialATC) || 0 },
+        { stage: 'Social', metric: 'Checkout', value: parseFloat(formData.socialCheckout) || 0 },
+        { stage: 'Social', metric: 'Purchases', value: parseFloat(formData.socialPurchases) || 0 },
+        // Product Page
+        { stage: 'Product Page', metric: '* Add-to-cart rate', value: parseFloat(formData.productPageATCRate) || 0 },
+        { stage: 'Product Page', metric: '* Time on page', value: parseFloat(formData.productPageTimeOnPage) || 0 },
+        { stage: 'Product Page', metric: '* Scroll depth', value: parseFloat(formData.productPageScrollDepth) || 0 },
+        // Cart
+        { stage: 'Cart', metric: '* Shipping issues', value: parseFloat(formData.cartShippingIssues) || 0 },
+        { stage: 'Cart', metric: '* Abandonment rate', value: parseFloat(formData.cartAbandonment) || 0 },
+      ].filter(item => item.value > 0);
+
+      // Convert arrays to object format expected by API
+      const overallMetricsObj: { [key: string]: number } = {};
+      overallMetricsArray.forEach((m: any) => {
+        overallMetricsObj[m.metric] = m.value;
+      });
+
+      const marketingChannelsObj: { [channel: string]: { [metric: string]: number } } = {};
+      marketingChannelsArray.forEach((m: any) => {
+        if (!marketingChannelsObj[m.channel]) {
+          marketingChannelsObj[m.channel] = {};
+        }
+        marketingChannelsObj[m.channel][m.metric] = m.value;
+      });
+
+      const funnelMetricsObj: { [stage: string]: { [metric: string]: number } } = {};
+      funnelMetricsArray.forEach((m: any) => {
+        if (!funnelMetricsObj[m.stage]) {
+          funnelMetricsObj[m.stage] = {};
+        }
+        funnelMetricsObj[m.stage][m.metric] = m.value;
+      });
+
       const uploadData = {
         weekStartDate: formData.weekStartDate,
         weekEndDate: formData.weekEndDate,
         notes: formData.notes,
         romansRecommendations: formData.romansRecommendations,
-        overallMetrics: [
-          { metric: '* Revenue', value: parseFloat(formData.revenue) || 0 },
-          { metric: '* Orders', value: parseFloat(formData.orders) || 0 },
-          { metric: '* AOV', value: parseFloat(formData.aov) || 0 },
-          { metric: '* Conversion Rate', value: parseFloat(formData.conversionRate) || 0 },
-          { metric: '* Total Sessions', value: parseFloat(formData.sessions) || 0 },
-        ],
-        marketingChannels: [
-          // Google Ads
-          { channel: 'Google Ads', metric: '* Sales', value: parseFloat(formData.googleAdsRevenue) || 0 },
-          { channel: 'Google Ads', metric: '* Spend', value: parseFloat(formData.googleAdsSpend) || 0 },
-          { channel: 'Google Ads', metric: '* Clicks', value: parseFloat(formData.googleAdsClicks) || 0 },
-          { channel: 'Google Ads', metric: '* Conversions', value: parseFloat(formData.googleAdsConversions) || 0 },
-          { channel: 'Google Ads', metric: '* Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
-          // Email & SMS
-          { channel: 'Email & SMS', metric: '* Revenue', value: parseFloat(formData.emailRevenue) || 0 },
-          { channel: 'Email & SMS', metric: '* Spend', value: parseFloat(formData.emailSpend) || 0 },
-          { channel: 'Email & SMS', metric: '* Email open rate', value: parseFloat(formData.emailOpenRate) || 0 },
-          { channel: 'Email & SMS', metric: '* CTR', value: parseFloat(formData.emailCTR) || 0 },
-          // Affiliates
-          { channel: 'Affiliates', metric: '* Revenue', value: parseFloat(formData.affiliatesRevenue) || 0 },
-          { channel: 'Affiliates', metric: '* Spend', value: parseFloat(formData.affiliatesSpend) || 0 },
-          { channel: 'Affiliates', metric: '* Clicks', value: parseFloat(formData.affiliatesClicks) || 0 },
-          { channel: 'Affiliates', metric: '* Conversions', value: parseFloat(formData.affiliatesConversions) || 0 },
-          // Social
-          { channel: 'Social', metric: '* Revenue', value: parseFloat(formData.socialRevenue) || 0 },
-          { channel: 'Social', metric: '* Spend', value: parseFloat(formData.socialSpend) || 0 },
-          // SEO
-          { channel: 'SEO', metric: '* Revenue', value: parseFloat(formData.seoRevenue) || 0 },
-          { channel: 'SEO', metric: '* Spend', value: parseFloat(formData.seoSpend) || 0 },
-          { channel: 'SEO', metric: '* Impressions', value: parseFloat(formData.seoImpressions) || 0 },
-          { channel: 'SEO', metric: '* Clicks', value: parseFloat(formData.seoClicks) || 0 },
-          { channel: 'SEO', metric: '* Sessions', value: parseFloat(formData.seoSessions) || 0 },
-          { channel: 'SEO', metric: '* Conversions', value: parseFloat(formData.seoPurchases) || 0 },
-        ].filter(item => item.value > 0),
-        funnelMetrics: [
-          // Google Ads Funnel
-          { stage: 'Google Ads', metric: 'Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
-          { stage: 'Google Ads', metric: 'Add to Cart', value: parseFloat(formData.googleAdsATC) || 0 },
-          { stage: 'Google Ads', metric: 'Checkout', value: parseFloat(formData.googleAdsCheckout) || 0 },
-          { stage: 'Google Ads', metric: 'Purchases', value: parseFloat(formData.googleAdsPurchases) || 0 },
-          // Email Funnel
-          { stage: 'Email & SMS', metric: 'Sessions', value: parseFloat(formData.emailSessions) || 0 },
-          { stage: 'Email & SMS', metric: 'Add to Cart', value: parseFloat(formData.emailATC) || 0 },
-          { stage: 'Email & SMS', metric: 'Checkout', value: parseFloat(formData.emailCheckout) || 0 },
-          { stage: 'Email & SMS', metric: 'Purchases', value: parseFloat(formData.emailPurchases) || 0 },
-          // Affiliates Funnel
-          { stage: 'Affiliates', metric: 'Sessions', value: parseFloat(formData.affiliatesSessions) || 0 },
-          { stage: 'Affiliates', metric: 'Add to Cart', value: parseFloat(formData.affiliatesATC) || 0 },
-          { stage: 'Affiliates', metric: 'Checkout', value: parseFloat(formData.affiliatesCheckout) || 0 },
-          { stage: 'Affiliates', metric: 'Purchases', value: parseFloat(formData.affiliatesPurchases) || 0 },
-          // SEO Funnel
-          { stage: 'SEO', metric: 'Sessions', value: parseFloat(formData.seoSessions) || 0 },
-          { stage: 'SEO', metric: 'Add to Cart', value: parseFloat(formData.seoATC) || 0 },
-          { stage: 'SEO', metric: 'Checkout', value: parseFloat(formData.seoCheckout) || 0 },
-          { stage: 'SEO', metric: 'Purchases', value: parseFloat(formData.seoPurchases) || 0 },
-          // Social Funnel
-          { stage: 'Social', metric: 'Sessions', value: parseFloat(formData.socialSessions) || 0 },
-          { stage: 'Social', metric: 'Add to Cart', value: parseFloat(formData.socialATC) || 0 },
-          { stage: 'Social', metric: 'Checkout', value: parseFloat(formData.socialCheckout) || 0 },
-          { stage: 'Social', metric: 'Purchases', value: parseFloat(formData.socialPurchases) || 0 },
-          // Product Page
-          { stage: 'Product Page', metric: '* Add-to-cart rate', value: parseFloat(formData.productPageATCRate) || 0 },
-          { stage: 'Product Page', metric: '* Time on page', value: parseFloat(formData.productPageTimeOnPage) || 0 },
-          { stage: 'Product Page', metric: '* Scroll depth', value: parseFloat(formData.productPageScrollDepth) || 0 },
-          // Cart
-          { stage: 'Cart', metric: '* Shipping issues', value: parseFloat(formData.cartShippingIssues) || 0 },
-          { stage: 'Cart', metric: '* Abandonment rate', value: parseFloat(formData.cartAbandonment) || 0 },
-        ].filter(item => item.value > 0),
+        overallMetrics: overallMetricsObj,
+        marketingChannels: marketingChannelsObj,
+        funnelMetrics: funnelMetricsObj,
       };
 
       const response = await fetch('/api/upload', {
