@@ -376,14 +376,14 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    {/* Cart Abandonment Callout */}
+                    {/* Checkout Abandonment Callout */}
                     <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-amber-100 rounded">
                           <ShoppingCart className="h-4 w-4 text-amber-600" />
                         </div>
                         <div className="flex-1">
-                          <div className="font-semibold text-amber-900 text-sm mb-1">Cart Abandonment</div>
+                          <div className="font-semibold text-amber-900 text-sm mb-1">Checkout Abandonment</div>
                           <div className="text-sm text-amber-700">
                             <span className="font-bold text-lg">
                               {(100 - ((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
@@ -554,10 +554,17 @@ export default function Dashboard() {
                               {stage}
                             </div>
                             <div className="space-y-2">
-                              {metrics.map((metric: any, idx: number) => (
+                              {metrics.map((metric: any, idx: number) => {
+                                // Format metric name for display
+                                let displayName = metric.metric_name.replace(/^\*\s*/, '');
+                                // Transform specific metric names
+                                if (displayName === 'Add-to-cart rate') {
+                                  displayName = 'Add to Cart Rate';
+                                }
+                                return (
                                 <div key={idx} className="flex justify-between items-start text-sm">
                                   <span className="text-muted-foreground text-xs flex-1">
-                                    {metric.metric_name.replace(/^\*\s*/, '')}
+                                    {displayName}
                                   </span>
                                   <span className="font-semibold ml-2 text-teal-900">
                                     {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
@@ -566,7 +573,8 @@ export default function Dashboard() {
                                     {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''}
                                   </span>
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           </div>
                         ))}

@@ -1235,7 +1235,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="cartAbandonment">Cart Abandonment Rate (%)</Label>
+                  <Label htmlFor="cartAbandonment">Checkout Abandonment Rate (%)</Label>
                   <Input
                     id="cartAbandonment"
                     type="number"
