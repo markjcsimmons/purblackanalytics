@@ -250,7 +250,6 @@ ${businessContext ? '- How the business context affects performance interpretati
     
     throw new Error('Failed to generate insights: ' + (error.message || 'Unknown error') + '. Check server logs for details.');
   }
-  }
 }
 
 export async function generateWeeklySummary(allWeeksData: any[]): Promise<string> {
