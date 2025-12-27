@@ -23,14 +23,19 @@ export async function POST(request: NextRequest) {
     // Get current week data
     const weekData = getWeekData(weekId);
     
-    // Get previous week for comparison (optional)
+    // Get ALL historical weeks for pattern and seasonality analysis
     // Weeks are ordered by week_start_date DESC (most recent first)
-    // Previous week would be the one with an earlier date (higher index in the array)
     const weeks = getWeeks();
     const currentWeekIndex = weeks.findIndex((w: any) => w.id === weekId);
-    let previousWeekData = null;
     
-    // Get the previous week (earlier date) - it's at a higher index since weeks are sorted DESC
+    // Get all weeks except the current one for historical analysis
+    // This allows the AI to identify patterns, trends, and seasonality
+    const historicalWeeks = weeks
+      .filter((w: any, index: number) => index !== currentWeekIndex)
+      .map((w: any) => getWeekData(w.id));
+    
+    // Also keep previousWeekData for backward compatibility and quick comparison
+    let previousWeekData = null;
     if (currentWeekIndex >= 0 && currentWeekIndex < weeks.length - 1) {
       const previousWeek = weeks[currentWeekIndex + 1] as any;
       previousWeekData = getWeekData(previousWeek.id);
@@ -53,10 +58,11 @@ export async function POST(request: NextRequest) {
     const rulesData = getRecommendationRules();
     const rules = rulesData.map((r: any) => r.rule_text);
 
-    // Generate insights using OpenAI
+    // Generate insights using OpenAI with full historical context
     const insights = await generateInsights({
       ...weekData,
       previousWeekData,
+      historicalData: historicalWeeks,
       businessContext: combinedContext,
       recommendationRules: rules,
     });

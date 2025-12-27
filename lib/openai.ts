@@ -45,10 +45,11 @@ export async function generateInsights(data: {
   marketingChannels: any[];
   funnelMetrics: any[];
   previousWeekData?: any;
+  historicalData?: any[];
   businessContext?: string;
   recommendationRules?: string[];
 }): Promise<Insight[]> {
-  const { week, overallMetrics, marketingChannels, funnelMetrics, previousWeekData, businessContext, recommendationRules } = data;
+  const { week, overallMetrics, marketingChannels, funnelMetrics, previousWeekData, historicalData, businessContext, recommendationRules } = data;
 
   // Format data for the prompt
   const overallMetricsText = overallMetrics
@@ -75,7 +76,97 @@ export async function generateInsights(data: {
     .map(([stage, metrics]: [string, any]) => `${stage}:\n  ${metrics.join('\n  ')}`)
     .join('\n\n');
 
-  const prompt = `You are an expert ecommerce marketing analyst for Pürblack.com, a premium health supplement brand. Analyze the following weekly marketing data and provide actionable insights and recommendations.
+  
+  // Format historical data for pattern and seasonality analysis
+  const formatHistoricalData = (weeks: any[]) => {
+    if (!weeks || weeks.length === 0) return '';
+    
+    // Group by month/season for seasonality analysis
+    const byMonth: { [key: string]: any[] } = {};
+    const byQuarter: { [key: string]: any[] } = {};
+    
+    weeks.forEach((weekData: any) => {
+      if (!weekData.week) return;
+      const weekStart = new Date(weekData.week.week_start_date);
+      const month = weekStart.toLocaleString('default', { month: 'long', year: 'numeric' });
+      const quarter = `Q${Math.floor(weekStart.getMonth() / 3) + 1} ${weekStart.getFullYear()}`;
+      
+      if (!byMonth[month]) byMonth[month] = [];
+      if (!byQuarter[quarter]) byQuarter[quarter] = [];
+      
+      byMonth[month].push(weekData);
+      byQuarter[quarter].push(weekData);
+    });
+    
+    // Extract key metrics for trend analysis
+    const keyMetrics = ['Total Revenue', 'Total Orders', 'Conversion Rate', 'Average Order Value'];
+    const trends: { [metric: string]: { values: number[], dates: string[] } } = {};
+    
+    keyMetrics.forEach(metric => {
+      trends[metric] = { values: [], dates: [] };
+      weeks.forEach((weekData: any) => {
+        if (weekData.overallMetrics) {
+          const metricData = weekData.overallMetrics.find((m: any) => 
+            m.metric_name === metric || m.metric_name.includes(metric)
+          );
+          if (metricData) {
+            const value = parseFloat(metricData.metric_value.toString().replace(/[^0-9.-]/g, ''));
+            if (!isNaN(value)) {
+              trends[metric].values.push(value);
+              trends[metric].dates.push(weekData.week.week_start_date);
+            }
+          }
+        }
+      });
+    });
+    
+    // Format output
+    let output = `HISTORICAL DATA ANALYSIS (${weeks.length} weeks of data):\n\n`;
+    
+    // Time-based patterns
+    output += `📅 TIME-BASED PATTERNS:\n`;
+    output += `- Data spans ${Object.keys(byMonth).length} months\n`;
+    output += `- Data spans ${Object.keys(byQuarter).length} quarters\n\n`;
+    
+    // Trend analysis
+    output += `📈 KEY METRIC TRENDS (last ${Math.min(weeks.length, 12)} weeks):\n`;
+    Object.entries(trends).forEach(([metric, data]) => {
+      if (data.values.length > 0) {
+        const recent = data.values.slice(-4);
+        const older = data.values.slice(-8, -4);
+        if (recent.length > 0 && older.length > 0) {
+          const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+          const olderAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : recentAvg;
+          const change = ((recentAvg - olderAvg) / olderAvg * 100).toFixed(1);
+          const direction = parseFloat(change) > 0 ? '↑' : '↓';
+          output += `- ${metric}: ${direction} ${Math.abs(parseFloat(change))}% (recent 4 weeks vs previous 4 weeks)\n`;
+        }
+      }
+    });
+    
+    output += `\n📊 SAMPLE HISTORICAL WEEKS (showing key metrics):\n`;
+    // Show last 8 weeks as sample
+    weeks.slice(0, 8).forEach((weekData: any, idx: number) => {
+      if (weekData.week) {
+        output += `\nWeek ${idx + 1}: ${weekData.week.week_start_date} to ${weekData.week.week_end_date}\n`;
+        if (weekData.overallMetrics) {
+          const revenue = weekData.overallMetrics.find((m: any) => m.metric_name.includes('Revenue') || m.metric_name.includes('Sales'));
+          const orders = weekData.overallMetrics.find((m: any) => m.metric_name.includes('Order') && !m.metric_name.includes('Value'));
+          const conversion = weekData.overallMetrics.find((m: any) => m.metric_name.includes('Conversion'));
+          if (revenue) output += `  Revenue: ${revenue.metric_value}\n`;
+          if (orders) output += `  Orders: ${orders.metric_value}\n`;
+          if (conversion) output += `  Conversion: ${conversion.metric_value}\n`;
+        }
+      }
+    });
+    
+    return output;
+  };
+  
+  const historicalAnalysisText = historicalData && historicalData.length > 0 
+    ? formatHistoricalData(historicalData) 
+    : '';
+const prompt = `You are an expert ecommerce marketing analyst for Pürblack.com, a premium health supplement brand. Analyze the following weekly marketing data and provide actionable insights and recommendations.
 
 Week: ${week.week_start_date} to ${week.week_end_date}
 
@@ -155,6 +246,48 @@ ${Object.entries(
 - Identify trends (improving, declining, stable)
 - Calculate percentage changes where relevant
 - Highlight significant changes that warrant attention
+
+${historicalAnalysisText ? `🔍🔍🔍 DEEP HISTORICAL PATTERN & SEASONALITY ANALYSIS (${historicalData?.length || 0} weeks of data) 🔍🔍🔍
+
+${historicalAnalysisText}
+
+⚠️⚠️⚠️ CRITICAL ANALYSIS REQUIREMENTS - YOU MUST USE THIS HISTORICAL DATA:
+
+1. **PATTERN IDENTIFICATION**: Look for recurring patterns across weeks, months, and quarters. Identify:
+   - Seasonal trends (e.g., higher sales in certain months)
+   - Weekly patterns (e.g., certain days/weeks consistently perform better)
+   - Growth trends (improving, declining, or stable over time)
+   - Cyclical patterns (repeating patterns over time)
+
+2. **SEASONALITY ANALYSIS**: Compare current week performance to:
+   - Same period last year (if available)
+   - Same month in previous years
+   - Typical performance for this time period
+   - Identify if current performance is above/below seasonal norms
+
+3. **TREND ANALYSIS**: Analyze:
+   - Long-term trends (over 3+ months)
+   - Short-term trends (last 4-8 weeks)
+   - Acceleration or deceleration of trends
+   - Whether current week is part of a larger trend or an anomaly
+
+4. **CONTEXTUAL COMPARISONS**: Instead of just comparing to last week, compare to:
+   - Average of last 4 weeks
+   - Average of last 8 weeks
+   - Average of same month in previous periods
+   - Best performing weeks in the dataset
+   - Worst performing weeks in the dataset
+
+5. **INSIGHT GENERATION**: Your insights MUST:
+   - Reference historical patterns when explaining current performance
+   - Identify if current metrics are typical or unusual for this time period
+   - Consider seasonality when making recommendations
+   - Use trend data to predict future performance
+   - Distinguish between short-term fluctuations and long-term changes
+
+⚠️ DO NOT just compare to the previous week. Use the full historical context to provide deeper, more informed insights.
+
+` : ''}
 ` : ''}
 
 Please provide 5-8 specific, actionable insights. ${businessContext ? '⚠️ REQUIRED: At least 3-4 insights MUST explicitly mention and incorporate the business context provided above. ' : ''}For each insight:
@@ -175,13 +308,16 @@ Format your response as a JSON object with an "insights" array. ${businessContex
 }
 
 Focus on:
-- ROI and efficiency across channels
-- Conversion rate optimization
-- Customer acquisition cost trends
-- Funnel drop-off points
-- Channel performance comparisons
-- Budget allocation recommendations
-${businessContext ? '- How the business context affects performance interpretation' : ''}`;
+- ROI and efficiency across channels (compare to historical averages, not just last week)
+- Conversion rate optimization (identify if current rates are above/below seasonal norms)
+- Customer acquisition cost trends (analyze long-term trends, not just week-over-week)
+- Funnel drop-off points (compare to historical patterns to identify anomalies)
+- Channel performance comparisons (benchmark against historical channel performance)
+- Budget allocation recommendations (based on historical ROI patterns, not just recent performance)
+- Seasonal patterns and cyclical trends (identify if current performance aligns with historical patterns)
+- Long-term trajectory vs short-term fluctuations (distinguish between trends and anomalies)
+${businessContext ? '- How the business context affects performance interpretation' : ''}
+${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: Reference specific historical periods when explaining current performance' : ''}`;
 
   try {
     // Log if context is being used for debugging
