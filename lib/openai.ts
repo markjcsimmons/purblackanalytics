@@ -78,85 +78,348 @@ export async function generateInsights(data: {
 
   
   // Format historical data for pattern and seasonality analysis
-  const formatHistoricalData = (weeks: any[]) => {
+    const formatHistoricalData = (weeks: any[]) => {
     if (!weeks || weeks.length === 0) return '';
     
-    // Group by month/season for seasonality analysis
+    // Helper function to extract numeric value from metric
+    const getNumericValue = (value: any): number => {
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        const cleaned = value.replace(/[^0-9.-]/g, '');
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : num;
+      }
+      return 0;
+    };
+    
+    // Helper function to calculate statistics
+    const calculateStats = (values: number[]) => {
+      if (values.length === 0) return null;
+      const sorted = [...values].sort((a, b) => a - b);
+      const sum = values.reduce((a, b) => a + b, 0);
+      return {
+        min: sorted[0],
+        max: sorted[sorted.length - 1],
+        avg: sum / values.length,
+        median: sorted.length % 2 === 0 
+          ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+          : sorted[Math.floor(sorted.length / 2)],
+        count: values.length
+      };
+    };
+    
+    // Group by month/quarter/year for seasonality analysis
     const byMonth: { [key: string]: any[] } = {};
     const byQuarter: { [key: string]: any[] } = {};
+    const byYear: { [key: string]: any[] } = {};
+    const byMonthName: { [key: string]: any[] } = {}; // For YoY comparison (e.g., all Januaries)
     
     weeks.forEach((weekData: any) => {
       if (!weekData.week) return;
       const weekStart = new Date(weekData.week.week_start_date);
       const month = weekStart.toLocaleString('default', { month: 'long', year: 'numeric' });
+      const monthName = weekStart.toLocaleString('default', { month: 'long' }); // Just month name
       const quarter = `Q${Math.floor(weekStart.getMonth() / 3) + 1} ${weekStart.getFullYear()}`;
+      const year = weekStart.getFullYear().toString();
       
       if (!byMonth[month]) byMonth[month] = [];
       if (!byQuarter[quarter]) byQuarter[quarter] = [];
+      if (!byYear[year]) byYear[year] = [];
+      if (!byMonthName[monthName]) byMonthName[monthName] = [];
       
       byMonth[month].push(weekData);
       byQuarter[quarter].push(weekData);
+      byYear[year].push(weekData);
+      byMonthName[monthName].push(weekData);
     });
     
-    // Extract key metrics for trend analysis
-    const keyMetrics = ['Total Revenue', 'Total Orders', 'Conversion Rate', 'Average Order Value'];
-    const trends: { [metric: string]: { values: number[], dates: string[] } } = {};
+    // Extract ALL metrics for comprehensive analysis
+    const allMetrics: { [key: string]: { values: number[], dates: string[], weekData: any[] } } = {};
     
-    keyMetrics.forEach(metric => {
-      trends[metric] = { values: [], dates: [] };
-      weeks.forEach((weekData: any) => {
-        if (weekData.overallMetrics) {
-          const metricData = weekData.overallMetrics.find((m: any) => 
-            m.metric_name === metric || m.metric_name.includes(metric)
-          );
-          if (metricData) {
-            const value = parseFloat(metricData.metric_value.toString().replace(/[^0-9.-]/g, ''));
-            if (!isNaN(value)) {
-              trends[metric].values.push(value);
-              trends[metric].dates.push(weekData.week.week_start_date);
-            }
+    // Process overall metrics
+    weeks.forEach((weekData: any) => {
+      if (weekData.overallMetrics) {
+        weekData.overallMetrics.forEach((m: any) => {
+          const metricName = m.metric_name;
+          if (!allMetrics[metricName]) {
+            allMetrics[metricName] = { values: [], dates: [], weekData: [] };
           }
-        }
-      });
+          const value = getNumericValue(m.metric_value);
+          if (value > 0 || metricName.includes('Rate') || metricName.includes('%')) {
+            allMetrics[metricName].values.push(value);
+            allMetrics[metricName].dates.push(weekData.week.week_start_date);
+            allMetrics[metricName].weekData.push(weekData);
+          }
+        });
+      }
     });
     
-    // Format output
-    let output = `HISTORICAL DATA ANALYSIS (${weeks.length} weeks of data):\n\n`;
+    // Process channel metrics
+    const channelMetrics: { [channel: string]: { [metric: string]: number[] } } = {};
+    weeks.forEach((weekData: any) => {
+      if (weekData.marketingChannels) {
+        weekData.marketingChannels.forEach((m: any) => {
+          const channel = m.channel_name;
+          const metric = m.metric_name;
+          if (!channelMetrics[channel]) channelMetrics[channel] = {};
+          if (!channelMetrics[channel][metric]) channelMetrics[channel][metric] = [];
+          const value = getNumericValue(m.metric_value);
+          if (value > 0) {
+            channelMetrics[channel][metric].push(value);
+          }
+        });
+      }
+    });
     
-    // Time-based patterns
-    output += `📅 TIME-BASED PATTERNS:\n`;
-    output += `- Data spans ${Object.keys(byMonth).length} months\n`;
-    output += `- Data spans ${Object.keys(byQuarter).length} quarters\n\n`;
+    // Format comprehensive output
+    let output = `🔍 COMPREHENSIVE HISTORICAL ANALYSIS (${weeks.length} weeks spanning ${Object.keys(byYear).length} years):
+
+`;
     
-    // Trend analysis
-    output += `📈 KEY METRIC TRENDS (last ${Math.min(weeks.length, 12)} weeks):\n`;
-    Object.entries(trends).forEach(([metric, data]) => {
-      if (data.values.length > 0) {
-        const recent = data.values.slice(-4);
-        const older = data.values.slice(-8, -4);
-        if (recent.length > 0 && older.length > 0) {
-          const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
-          const olderAvg = older.length > 0 ? older.reduce((a, b) => a + b, 0) / older.length : recentAvg;
-          const change = ((recentAvg - olderAvg) / olderAvg * 100).toFixed(1);
-          const direction = parseFloat(change) > 0 ? '↑' : '↓';
-          output += `- ${metric}: ${direction} ${Math.abs(parseFloat(change))}% (recent 4 weeks vs previous 4 weeks)\n`;
+    // 1. TIME-BASED PATTERNS
+    output += `📅 TIME-BASED PATTERNS:
+`;
+    output += `- Total weeks analyzed: ${weeks.length}
+`;
+    output += `- Data spans ${Object.keys(byMonth).length} unique months
+`;
+    output += `- Data spans ${Object.keys(byQuarter).length} quarters
+`;
+    output += `- Data spans ${Object.keys(byYear).length} years: ${Object.keys(byYear).sort().join(', ')}
+
+`;
+    
+    // 2. STATISTICAL SUMMARIES FOR KEY METRICS
+    output += `📊 STATISTICAL SUMMARIES (across all ${weeks.length} weeks):
+
+`;
+    const keyMetrics = ['Total Revenue', 'Revenue', 'Total Orders', 'Orders', 'Conversion Rate', 'Average Order Value', 'AOV'];
+    keyMetrics.forEach(metricKey => {
+      const matchingMetrics = Object.keys(allMetrics).filter(m => 
+        m.includes(metricKey) || metricKey.includes(m.split(' ')[0])
+      );
+      if (matchingMetrics.length > 0) {
+        const metricName = matchingMetrics[0];
+        const data = allMetrics[metricName];
+        if (data.values.length > 0) {
+          const stats = calculateStats(data.values);
+          if (stats) {
+            const formatValue = (val: number) => {
+              if (metricName.includes('Rate') || metricName.includes('%')) {
+                return `${val.toFixed(2)}%`;
+              }
+              if (metricName.includes('Revenue') || metricName.includes('Sales')) {
+                return `$${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+              }
+              return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            };
+            output += `${metricName}:
+`;
+            output += `  - Average: ${formatValue(stats.avg)}
+`;
+            output += `  - Median: ${formatValue(stats.median)}
+`;
+            output += `  - Minimum: ${formatValue(stats.min)} (${data.dates[data.values.indexOf(stats.min)]})
+`;
+            output += `  - Maximum: ${formatValue(stats.max)} (${data.dates[data.values.indexOf(stats.max)]})
+`;
+            output += `  - Range: ${formatValue(stats.max - stats.min)}
+`;
+            output += `  - Data points: ${stats.count} weeks
+
+`;
+          }
         }
       }
     });
     
-    output += `\n📊 SAMPLE HISTORICAL WEEKS (showing key metrics):\n`;
-    // Show last 8 weeks as sample
-    weeks.slice(0, 8).forEach((weekData: any, idx: number) => {
+    // 3. TREND ANALYSIS (multiple timeframes)
+    output += `📈 TREND ANALYSIS:
+
+`;
+    keyMetrics.forEach(metricKey => {
+      const matchingMetrics = Object.keys(allMetrics).filter(m => 
+        m.includes(metricKey) || metricKey.includes(m.split(' ')[0])
+      );
+      if (matchingMetrics.length > 0) {
+        const metricName = matchingMetrics[0];
+        const data = allMetrics[metricName];
+        if (data.values.length >= 8) {
+          // Recent 4 weeks vs previous 4 weeks
+          const recent4 = data.values.slice(0, 4);
+          const prev4 = data.values.slice(4, 8);
+          if (recent4.length === 4 && prev4.length === 4) {
+            const recentAvg = recent4.reduce((a, b) => a + b, 0) / 4;
+            const prevAvg = prev4.reduce((a, b) => a + b, 0) / 4;
+            const change = ((recentAvg - prevAvg) / prevAvg * 100);
+            const direction = change > 0 ? '↑' : '↓';
+            output += `${metricName} - Recent 4 weeks vs Previous 4 weeks: ${direction} ${Math.abs(change).toFixed(1)}%
+`;
+          }
+          
+          // Last 12 weeks vs previous 12 weeks (if available)
+          if (data.values.length >= 24) {
+            const recent12 = data.values.slice(0, 12);
+            const prev12 = data.values.slice(12, 24);
+            const recentAvg = recent12.reduce((a, b) => a + b, 0) / 12;
+            const prevAvg = prev12.reduce((a, b) => a + b, 0) / 12;
+            const change = ((recentAvg - prevAvg) / prevAvg * 100);
+            const direction = change > 0 ? '↑' : '↓';
+            output += `${metricName} - Last 12 weeks vs Previous 12 weeks: ${direction} ${Math.abs(change).toFixed(1)}%
+`;
+          }
+          
+          // Year-over-year if we have 52+ weeks
+          if (data.values.length >= 52) {
+            const thisYear = data.values.slice(0, 52);
+            const lastYear = data.values.slice(52, 104);
+            if (lastYear.length >= 52) {
+              const thisYearAvg = thisYear.reduce((a, b) => a + b, 0) / 52;
+              const lastYearAvg = lastYear.reduce((a, b) => a + b, 0) / 52;
+              const change = ((thisYearAvg - lastYearAvg) / lastYearAvg * 100);
+              const direction = change > 0 ? '↑' : '↓';
+              output += `${metricName} - Year-over-Year (last 52 weeks vs previous 52): ${direction} ${Math.abs(change).toFixed(1)}%
+`;
+            }
+          }
+        }
+      }
+    });
+    output += `
+`;
+    
+    // 4. SEASONAL BENCHMARKS (monthly averages)
+    output += `🌍 SEASONAL BENCHMARKS (Monthly Averages):
+
+`;
+    Object.keys(byMonthName).sort().forEach(month => {
+      const monthWeeks = byMonthName[month];
+      if (monthWeeks.length > 0) {
+        // Calculate average revenue for this month across all years
+        const revenues: number[] = [];
+        monthWeeks.forEach((weekData: any) => {
+          if (weekData.overallMetrics) {
+            const revenue = weekData.overallMetrics.find((m: any) => 
+              m.metric_name.includes('Revenue') || m.metric_name.includes('Sales')
+            );
+            if (revenue) {
+              const value = getNumericValue(revenue.metric_value);
+              if (value > 0) revenues.push(value);
+            }
+          }
+        });
+        if (revenues.length > 0) {
+          const avgRevenue = revenues.reduce((a, b) => a + b, 0) / revenues.length;
+          output += `${month}: Average Revenue $${avgRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${revenues.length} weeks across ${new Set(monthWeeks.map((w: any) => new Date(w.week.week_start_date).getFullYear())).size} years)
+`;
+        }
+      }
+    });
+    output += `
+`;
+    
+    // 5. QUARTERLY COMPARISONS
+    output += `📅 QUARTERLY PERFORMANCE SUMMARY:
+
+`;
+    const quarters = Object.keys(byQuarter).sort();
+    quarters.forEach(quarter => {
+      const quarterWeeks = byQuarter[quarter];
+      const revenues: number[] = [];
+      quarterWeeks.forEach((weekData: any) => {
+        if (weekData.overallMetrics) {
+          const revenue = weekData.overallMetrics.find((m: any) => 
+            m.metric_name.includes('Revenue') || m.metric_name.includes('Sales')
+          );
+          if (revenue) {
+            const value = getNumericValue(revenue.metric_value);
+            if (value > 0) revenues.push(value);
+          }
+        }
+      });
+      if (revenues.length > 0) {
+        const totalRevenue = revenues.reduce((a, b) => a + b, 0);
+        const avgRevenue = totalRevenue / revenues.length;
+        output += `${quarter}: Total $${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}, Avg/Week $${avgRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} (${revenues.length} weeks)
+`;
+      }
+    });
+    output += `
+`;
+    
+    // 6. BEST/WORST PERFORMING PERIODS
+    output += `🏆 BEST & WORST PERFORMING PERIODS:
+
+`;
+    const revenueMetric = Object.keys(allMetrics).find(m => m.includes('Revenue') || m.includes('Sales'));
+    if (revenueMetric && allMetrics[revenueMetric].values.length > 0) {
+      const revenueData = allMetrics[revenueMetric];
+      const maxIndex = revenueData.values.indexOf(Math.max(...revenueData.values));
+      const minIndex = revenueData.values.indexOf(Math.min(...revenueData.values));
+      output += `Best Week: ${revenueData.dates[maxIndex]} - $${revenueData.values[maxIndex].toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+`;
+      output += `Worst Week: ${revenueData.dates[minIndex]} - $${revenueData.values[minIndex].toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+`;
+      output += `Performance Range: ${((revenueData.values[maxIndex] - revenueData.values[minIndex]) / revenueData.values[minIndex] * 100).toFixed(1)}% difference
+`;
+    }
+    output += `
+`;
+    
+    // 7. CHANNEL-SPECIFIC HISTORICAL PATTERNS
+    output += `📺 CHANNEL-SPECIFIC HISTORICAL PATTERNS:
+
+`;
+    Object.keys(channelMetrics).forEach(channel => {
+      output += `${channel}:
+`;
+      Object.keys(channelMetrics[channel]).forEach(metric => {
+        const values = channelMetrics[channel][metric];
+        if (values.length > 0) {
+          const stats = calculateStats(values);
+          if (stats) {
+            const formatValue = (val: number) => {
+              if (metric.includes('Rate') || metric.includes('%')) {
+                return `${val.toFixed(2)}%`;
+              }
+              if (metric.includes('Revenue') || metric.includes('Sales') || metric.includes('Spend')) {
+                return `$${val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+              }
+              return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+            };
+            output += `  ${metric}: Avg ${formatValue(stats.avg)}, Range ${formatValue(stats.min)}-${formatValue(stats.max)} (${stats.count} data points)
+`;
+          }
+        }
+      });
+      output += `
+`;
+    });
+    
+    // 8. RECENT WEEKS DETAIL (last 12 weeks for detailed context)
+    output += `📋 RECENT WEEKS DETAIL (Last 12 weeks for context):
+
+`;
+    weeks.slice(0, 12).forEach((weekData: any, idx: number) => {
       if (weekData.week) {
-        output += `\nWeek ${idx + 1}: ${weekData.week.week_start_date} to ${weekData.week.week_end_date}\n`;
+        output += `Week ${idx + 1}: ${weekData.week.week_start_date} to ${weekData.week.week_end_date}
+`;
         if (weekData.overallMetrics) {
           const revenue = weekData.overallMetrics.find((m: any) => m.metric_name.includes('Revenue') || m.metric_name.includes('Sales'));
           const orders = weekData.overallMetrics.find((m: any) => m.metric_name.includes('Order') && !m.metric_name.includes('Value'));
           const conversion = weekData.overallMetrics.find((m: any) => m.metric_name.includes('Conversion'));
-          if (revenue) output += `  Revenue: ${revenue.metric_value}\n`;
-          if (orders) output += `  Orders: ${orders.metric_value}\n`;
-          if (conversion) output += `  Conversion: ${conversion.metric_value}\n`;
+          const aov = weekData.overallMetrics.find((m: any) => m.metric_name.includes('Average Order Value') || m.metric_name.includes('AOV'));
+          if (revenue) output += `  Revenue: ${revenue.metric_value}
+`;
+          if (orders) output += `  Orders: ${orders.metric_value}
+`;
+          if (conversion) output += `  Conversion: ${conversion.metric_value}
+`;
+          if (aov) output += `  AOV: ${aov.metric_value}
+`;
         }
+        output += `
+`;
       }
     });
     
@@ -251,41 +514,53 @@ ${historicalAnalysisText ? `🔍🔍🔍 DEEP HISTORICAL PATTERN & SEASONALITY A
 
 ${historicalAnalysisText}
 
-⚠️⚠️⚠️ CRITICAL ANALYSIS REQUIREMENTS - YOU MUST USE THIS HISTORICAL DATA:
+⚠️⚠️⚠️ CRITICAL ANALYSIS REQUIREMENTS - YOU MUST USE THIS COMPREHENSIVE HISTORICAL DATA:
 
-1. **PATTERN IDENTIFICATION**: Look for recurring patterns across weeks, months, and quarters. Identify:
-   - Seasonal trends (e.g., higher sales in certain months)
-   - Weekly patterns (e.g., certain days/weeks consistently perform better)
-   - Growth trends (improving, declining, or stable over time)
-   - Cyclical patterns (repeating patterns over time)
+🚨 MANDATORY: The historical data includes statistical summaries, seasonal benchmarks, quarterly comparisons, and channel patterns. You MUST reference these in your insights.
 
-2. **SEASONALITY ANALYSIS**: Compare current week performance to:
-   - Same period last year (if available)
-   - Same month in previous years
-   - Typical performance for this time period
-   - Identify if current performance is above/below seasonal norms
+1. **STATISTICAL ANALYSIS**: Use the provided statistical summaries (min, max, average, median) to:
+   - Identify if current metrics are in the top/bottom quartiles historically
+   - Compare current performance to historical averages and medians
+   - Reference the best/worst performing periods when relevant
+   - Calculate how many standard deviations current performance is from the mean
 
-3. **TREND ANALYSIS**: Analyze:
-   - Long-term trends (over 3+ months)
-   - Short-term trends (last 4-8 weeks)
-   - Acceleration or deceleration of trends
-   - Whether current week is part of a larger trend or an anomaly
+2. **SEASONALITY & BENCHMARKING**: Use the seasonal benchmarks to:
+   - Compare current week to the monthly average for this time of year
+   - Identify if performance is above/below seasonal norms
+   - Reference year-over-year comparisons when available
+   - Explain anomalies using seasonal context (e.g., "This is typically a slow month, so the performance is actually strong")
 
-4. **CONTEXTUAL COMPARISONS**: Instead of just comparing to last week, compare to:
-   - Average of last 4 weeks
-   - Average of last 8 weeks
-   - Average of same month in previous periods
-   - Best performing weeks in the dataset
-   - Worst performing weeks in the dataset
+3. **TREND ANALYSIS**: Use multiple timeframes:
+   - Recent 4 weeks vs previous 4 weeks (short-term momentum)
+   - Last 12 weeks vs previous 12 weeks (quarterly trend)
+   - Year-over-year (52 weeks vs previous 52) if available
+   - Identify acceleration, deceleration, or stabilization of trends
+   - Distinguish between cyclical patterns and structural changes
 
-5. **INSIGHT GENERATION**: Your insights MUST:
-   - Reference historical patterns when explaining current performance
-   - Identify if current metrics are typical or unusual for this time period
-   - Consider seasonality when making recommendations
-   - Use trend data to predict future performance
-   - Distinguish between short-term fluctuations and long-term changes
+4. **QUARTERLY & YEARLY CONTEXT**: Reference quarterly summaries to:
+   - Compare current quarter performance to historical quarters
+   - Identify seasonal patterns across quarters
+   - Explain performance in context of typical quarterly cycles
 
-⚠️ DO NOT just compare to the previous week. Use the full historical context to provide deeper, more informed insights.
+5. **CHANNEL-SPECIFIC PATTERNS**: Use channel historical patterns to:
+   - Identify which channels are performing above/below their historical averages
+   - Compare channel efficiency (ROI) to historical norms
+   - Recommend channel budget shifts based on historical performance patterns
+
+6. **BEST/WORST PERIOD ANALYSIS**: Reference the best/worst performing periods to:
+   - Explain what made those periods exceptional
+   - Identify if current conditions are similar to best/worst periods
+   - Learn from historical extremes
+
+7. **INSIGHT GENERATION REQUIREMENTS**: Each insight MUST:
+   - Reference specific statistical data (e.g., "Current revenue is 15% above the 2-year average")
+   - Compare to seasonal benchmarks (e.g., "For January, this is 20% higher than typical")
+   - Use trend analysis (e.g., "This continues a 3-month upward trend")
+   - Reference historical context (e.g., "Similar to Q2 2023 performance pattern")
+   - Distinguish short-term fluctuations from long-term changes
+   - Provide actionable recommendations based on historical patterns
+
+⚠️ CRITICAL: DO NOT just compare to the previous week. You have 104 weeks of data - use statistical analysis, seasonal benchmarks, quarterly comparisons, and trend analysis to provide deep, data-driven insights.
 
 ` : ''}
 ` : ''}
