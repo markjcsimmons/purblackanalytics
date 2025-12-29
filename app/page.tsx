@@ -110,6 +110,22 @@ export default function Dashboard() {
     return metric ? metric.metric_value : 0;
   };
 
+  // Helper to sum funnel metrics across all channels for overall funnel display
+  const getFunnelMetricSum = (funnelMetrics: any[], metricName: string): number => {
+    if (!funnelMetrics || !Array.isArray(funnelMetrics)) return 0;
+    
+    // Sum the metric across all stages (channels)
+    return funnelMetrics
+      .filter(m => {
+        const metricLower = m.metric_name?.toLowerCase() || '';
+        const searchLower = metricName.toLowerCase();
+        return metricLower === searchLower || 
+               metricLower === `* ${searchLower}` ||
+               metricLower.includes(searchLower);
+      })
+      .reduce((sum, m) => sum + (m.metric_value || 0), 0);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -367,11 +383,26 @@ export default function Dashboard() {
                         <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-100 rounded-lg border-2 border-purple-200">
                           <div className="text-sm text-purple-600 mb-2">Checkout</div>
                           <div className="text-3xl font-bold text-purple-900">
-                            {formatNumber(getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') || 0)}
+                            {(() => {
+                              // Sum Checkout from all channels, or use Orders as fallback (can't purchase without checkout)
+                              const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                              const orders = getMetricValue(weekData.overallMetrics, 'Orders');
+                              // Use checkout sum if available, otherwise use orders (since you can't purchase without checkout)
+                              return formatNumber(checkoutSum || orders || 0);
+                            })()}
                           </div>
                           <div className="text-xs font-semibold text-purple-700 mt-2">
-                            {((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
-                              (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 1)) * 100).toFixed(1)}% from cart
+                            {(() => {
+                              const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                              const orders = getMetricValue(weekData.overallMetrics, 'Orders');
+                              const checkoutValue = checkoutSum || orders || 0;
+                              const addToCartCount = getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                                (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                                 getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100);
+                              return addToCartCount > 0 
+                                ? ((checkoutValue / addToCartCount) * 100).toFixed(1)
+                                : '0.0';
+                            })()}% from cart
                           </div>
                         </div>
                         <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-purple-400">
@@ -387,7 +418,14 @@ export default function Dashboard() {
                             {formatNumber(getMetricValue(weekData.overallMetrics, 'Orders'))}
                           </div>
                           <div className="text-xs font-semibold text-green-700 mt-2">
-                            {((getMetricValue(weekData.funnelMetrics, 'Checkout → Purchase') || 0)).toFixed(1)}% checkout rate
+                            {(() => {
+                              const orders = getMetricValue(weekData.overallMetrics, 'Orders');
+                              const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                              const checkoutValue = checkoutSum || orders || 0; // Use orders as fallback
+                              return checkoutValue > 0 
+                                ? ((orders / checkoutValue) * 100).toFixed(1)
+                                : '0.0';
+                            })()}% checkout rate
                           </div>
                         </div>
                       </div>
@@ -407,7 +445,10 @@ export default function Dashboard() {
                               const addToCartCount = getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
                                 (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
                                  getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100);
-                              const checkoutCount = getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') || 0;
+                              // Sum Checkout from all channels, or use Orders as fallback
+                              const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                              const orders = getMetricValue(weekData.overallMetrics, 'Orders');
+                              const checkoutCount = checkoutSum || orders || 0; // Use orders as fallback since you can't purchase without checkout
                               
                               // Calculate abandonment: (1 - checkout/addToCart) * 100
                               const abandonmentRate = addToCartCount > 0 
