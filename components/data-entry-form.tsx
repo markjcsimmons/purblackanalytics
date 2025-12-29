@@ -127,7 +127,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     productPageATCRate: '',
     productPageTimeOnPage: '',
     productPageScrollDepth: '',
-    cartShippingIssues: '',
     cartAbandonment: '',
     topProduct1Name: '',
     topProduct1Units: '',

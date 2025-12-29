@@ -187,7 +187,7 @@ export function saveWeekData(data: WeekData) {
       'INSERT INTO weeks (week_start_date, week_end_date, notes, romans_recommendations) VALUES (?, ?, ?, ?)'
     );
     const info = insertWeek.run(data.weekStartDate, data.weekEndDate, data.notes || null, data.romansRecommendations || null);
-    weekId = info.lastInsertRowid;
+    weekId = Number(info.lastInsertRowid);
   }
 
   // Delete existing metrics for this week
