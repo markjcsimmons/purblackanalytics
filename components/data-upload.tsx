@@ -101,48 +101,23 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       addChannelMetric('Google Ads', '* Clicks', row.google_ads_clicks);
       addChannelMetric('Google Ads', '* Conversions', row.google_ads_conversions);
       addChannelMetric('Google Ads', '* Sessions', row.google_ads_sessions);
-      addFunnelMetric('Google Ads', 'Add to Cart', row.google_ads_add_to_cart);
-      addFunnelMetric('Google Ads', 'Checkout', row.google_ads_checkout);
-      addFunnelMetric('Google Ads', 'Purchases', row.google_ads_purchase);
 
       // Email & SMS
       addChannelMetric('Email & SMS', '* Revenue', row.email_sms_revenue);
-      addChannelMetric('Email & SMS', '* Spend', row.email_sms_spend);
       addChannelMetric('Email & SMS', '* Clicks', row.email_sms_clicks);
       addChannelMetric('Email & SMS', '* Conversions', row.email_sms_conversions);
       addChannelMetric('Email & SMS', '* Sessions', row.email_sms_sessions);
-      addFunnelMetric('Email & SMS', 'Add to Cart', row.email_sms_add_to_cart);
-      addFunnelMetric('Email & SMS', 'Checkout', row.email_sms_checkout);
-      addFunnelMetric('Email & SMS', 'Purchases', row.email_sms_purchase);
 
       // Affiliates
       addChannelMetric('Affiliates', '* Revenue', row.affiliates_revenue);
       addChannelMetric('Affiliates', '* Spend', row.affiliates_spend);
       addChannelMetric('Affiliates', '* Clicks', row.affiliates_clicks);
       addChannelMetric('Affiliates', '* Conversions', row.affiliates_coversions || row.affiliates_conversions);
-      addChannelMetric('Affiliates', '* Sessions', row.affiliates_sessions);
-      addFunnelMetric('Affiliates', 'Add to Cart', row.affiliates_add_to_cart);
-      addFunnelMetric('Affiliates', 'Checkout', row.affiliates_checkout);
-      addFunnelMetric('Affiliates', 'Purchases', row.affiliates_purchase);
 
       // SEO
-      addChannelMetric('SEO', '* Revenue', row.seo_revenue);
-      addChannelMetric('SEO', '* Spend', row.seo_spend);
       addChannelMetric('SEO', '* Impressions', row.seo_impressions);
       addChannelMetric('SEO', '* Clicks', row.seo_funnel_clicks);
       addChannelMetric('SEO', '* Sessions', row.seo_sessions);
-      addChannelMetric('SEO', '* Conversions', row.seo_purchase);
-      addFunnelMetric('SEO', 'Add to Cart', row.seo_add_to_cart);
-      addFunnelMetric('SEO', 'Checkout', row.seo_checkout);
-      addFunnelMetric('SEO', 'Purchases', row.seo_purchase);
-
-      // Social
-      addChannelMetric('Social', '* Revenue', row.social_revenue);
-      addChannelMetric('Social', '* Spend', row.social_spend);
-      addChannelMetric('Social', '* Sessions', row.social_sessions);
-      addFunnelMetric('Social', 'Add to Cart', row.social_add_to_cart);
-      addFunnelMetric('Social', 'Checkout', row.social_checkout);
-      addFunnelMetric('Social', 'Purchases', row.social_purchase);
 
       // Product Page
       addFunnelMetric('Product Page', '* Add-to-cart rate', row.product_page_add_to_cart_rate);
@@ -150,7 +125,6 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       addFunnelMetric('Product Page', '* Scroll depth', row.product_page_scroll_depth);
 
       // Cart
-      addFunnelMetric('Cart', '* Shipping issues', row.cart_shipping_issues);
       addFunnelMetric('Cart', '* Abandonment rate', row.cart_abandonment_rate);
 
       // Top Products (support top_product_1_name, top_product_1_units, top_product_1_revenue, etc.)

@@ -46,47 +46,23 @@ interface FormData {
   googleAdsClicks: string;
   googleAdsConversions: string;
   googleAdsSessions: string;
-  googleAdsATC: string;
-  googleAdsCheckout: string;
-  googleAdsPurchases: string;
   
   // Email & SMS
   emailRevenue: string;
-  emailSpend: string;
   emailOpenRate: string;
   emailCTR: string;
   emailSessions: string;
-  emailATC: string;
-  emailCheckout: string;
-  emailPurchases: string;
   
   // Affiliates
   affiliatesRevenue: string;
   affiliatesSpend: string;
   affiliatesClicks: string;
   affiliatesConversions: string;
-  affiliatesSessions: string;
-  affiliatesATC: string;
-  affiliatesCheckout: string;
-  affiliatesPurchases: string;
   
   // SEO
-  seoRevenue: string;
   seoImpressions: string;
   seoClicks: string;
   seoSessions: string;
-  seoSpend: string;
-  seoATC: string;
-  seoCheckout: string;
-  seoPurchases: string;
-  
-  // Social
-  socialRevenue: string;
-  socialSpend: string;
-  socialSessions: string;
-  socialATC: string;
-  socialCheckout: string;
-  socialPurchases: string;
   
   // Product Page Metrics
   productPageATCRate: string;
@@ -94,7 +70,6 @@ interface FormData {
   productPageScrollDepth: string;
   
   // Cart Metrics
-  cartShippingIssues: string;
   cartAbandonment: string;
   
   // Top Products (5 products)
@@ -138,39 +113,17 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     googleAdsClicks: '',
     googleAdsConversions: '',
     googleAdsSessions: '',
-    googleAdsATC: '',
-    googleAdsCheckout: '',
-    googleAdsPurchases: '',
     emailRevenue: '',
-    emailSpend: '',
     emailOpenRate: '',
     emailCTR: '',
     emailSessions: '',
-    emailATC: '',
-    emailCheckout: '',
-    emailPurchases: '',
     affiliatesRevenue: '',
     affiliatesSpend: '',
     affiliatesClicks: '',
     affiliatesConversions: '',
-    affiliatesSessions: '',
-    affiliatesATC: '',
-    affiliatesCheckout: '',
-    affiliatesPurchases: '',
-    seoRevenue: '',
     seoImpressions: '',
     seoClicks: '',
     seoSessions: '',
-    seoSpend: '',
-    seoATC: '',
-    seoCheckout: '',
-    seoPurchases: '',
-    socialRevenue: '',
-    socialSpend: '',
-    socialSessions: '',
-    socialATC: '',
-    socialCheckout: '',
-    socialPurchases: '',
     productPageATCRate: '',
     productPageTimeOnPage: '',
     productPageScrollDepth: '',
@@ -347,43 +300,20 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         googleAdsClicks: getChannelMetric('Google Ads', 'Clicks'),
         googleAdsConversions: getChannelMetric('Google Ads', 'Conversions'),
         googleAdsSessions: getChannelMetric('Google Ads', 'Sessions'),
-        googleAdsATC: getFunnelMetric('Google Ads', 'Add to Cart'),
-        googleAdsCheckout: getFunnelMetric('Google Ads', 'Checkout'),
-        googleAdsPurchases: getFunnelMetric('Google Ads', 'Purchases'),
         emailRevenue: getChannelMetric('Email & SMS', 'Revenue'),
-        emailSpend: getChannelMetric('Email & SMS', 'Spend'),
         emailOpenRate: getChannelMetric('Email & SMS', 'Email open rate'),
         emailCTR: getChannelMetric('Email & SMS', 'CTR'),
         emailSessions: getChannelMetric('Email & SMS', 'Sessions'),
-        emailATC: getFunnelMetric('Email & SMS', 'Add to Cart'),
-        emailCheckout: getFunnelMetric('Email & SMS', 'Checkout'),
-        emailPurchases: getFunnelMetric('Email & SMS', 'Purchases'),
         affiliatesRevenue: getChannelMetric('Affiliates', 'Revenue'),
         affiliatesSpend: getChannelMetric('Affiliates', 'Spend'),
         affiliatesClicks: getChannelMetric('Affiliates', 'Clicks'),
         affiliatesConversions: getChannelMetric('Affiliates', 'Conversions'),
-        affiliatesSessions: getChannelMetric('Affiliates', 'Sessions'),
-        affiliatesATC: getFunnelMetric('Affiliates', 'Add to Cart'),
-        affiliatesCheckout: getFunnelMetric('Affiliates', 'Checkout'),
-        affiliatesPurchases: getFunnelMetric('Affiliates', 'Purchases'),
-        seoRevenue: getChannelMetric('SEO', 'Revenue'),
         seoImpressions: getChannelMetric('SEO', 'Impressions'),
         seoClicks: getChannelMetric('SEO', 'Clicks'),
         seoSessions: getChannelMetric('SEO', 'Sessions'),
-        seoSpend: getChannelMetric('SEO', 'Spend'),
-        seoATC: getFunnelMetric('SEO', 'Add to Cart'),
-        seoCheckout: getFunnelMetric('SEO', 'Checkout'),
-        seoPurchases: getFunnelMetric('SEO', 'Purchases'),
-        socialRevenue: getChannelMetric('Social', 'Revenue'),
-        socialSpend: getChannelMetric('Social', 'Spend'),
-        socialSessions: getChannelMetric('Social', 'Sessions'),
-        socialATC: getFunnelMetric('Social', 'Add to Cart'),
-        socialCheckout: getFunnelMetric('Social', 'Checkout'),
-        socialPurchases: getFunnelMetric('Social', 'Purchases'),
         productPageATCRate: getFunnelMetric('Product Page', '* Add-to-cart rate'),
         productPageTimeOnPage: getFunnelMetric('Product Page', '* Time on page'),
         productPageScrollDepth: getFunnelMetric('Product Page', '* Scroll depth'),
-        cartShippingIssues: getFunnelMetric('Cart', '* Shipping issues'),
         cartAbandonment: getFunnelMetric('Cart', '* Abandonment rate'),
         ...topProductsData,
       });
@@ -410,44 +340,21 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
       googleAdsClicks: '',
       googleAdsConversions: '',
       googleAdsSessions: '',
-      googleAdsATC: '',
-      googleAdsCheckout: '',
-      googleAdsPurchases: '',
       emailRevenue: '',
-      emailSpend: '',
       emailOpenRate: '',
       emailCTR: '',
       emailSessions: '',
-      emailATC: '',
-      emailCheckout: '',
-      emailPurchases: '',
       affiliatesRevenue: '',
       affiliatesSpend: '',
       affiliatesClicks: '',
       affiliatesConversions: '',
-      affiliatesSessions: '',
-      affiliatesATC: '',
-      affiliatesCheckout: '',
-      affiliatesPurchases: '',
-      seoRevenue: '',
       seoImpressions: '',
       seoClicks: '',
       seoSessions: '',
-      seoSpend: '',
-      seoATC: '',
-      seoCheckout: '',
-      seoPurchases: '',
-      socialRevenue: '',
-      socialSpend: '',
-      socialSessions: '',
-      socialATC: '',
-      socialCheckout: '',
-      socialPurchases: '',
-    productPageATCRate: '',
-    productPageTimeOnPage: '',
-    productPageScrollDepth: '',
-    cartShippingIssues: '',
-    cartAbandonment: '',
+      productPageATCRate: '',
+      productPageTimeOnPage: '',
+      productPageScrollDepth: '',
+      cartAbandonment: '',
     topProduct1Name: '',
     topProduct1Units: '',
     topProduct1Revenue: '',
@@ -498,7 +405,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         { channel: 'Google Ads', metric: '* Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
         // Email & SMS
         { channel: 'Email & SMS', metric: '* Revenue', value: parseFloat(formData.emailRevenue) || 0 },
-        { channel: 'Email & SMS', metric: '* Spend', value: parseFloat(formData.emailSpend) || 0 },
         { channel: 'Email & SMS', metric: '* Email open rate', value: parseFloat(formData.emailOpenRate) || 0 },
         { channel: 'Email & SMS', metric: '* CTR', value: parseFloat(formData.emailCTR) || 0 },
         // Affiliates
@@ -506,50 +412,22 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         { channel: 'Affiliates', metric: '* Spend', value: parseFloat(formData.affiliatesSpend) || 0 },
         { channel: 'Affiliates', metric: '* Clicks', value: parseFloat(formData.affiliatesClicks) || 0 },
         { channel: 'Affiliates', metric: '* Conversions', value: parseFloat(formData.affiliatesConversions) || 0 },
-        // Social
-        { channel: 'Social', metric: '* Revenue', value: parseFloat(formData.socialRevenue) || 0 },
-        { channel: 'Social', metric: '* Spend', value: parseFloat(formData.socialSpend) || 0 },
         // SEO
-        { channel: 'SEO', metric: '* Revenue', value: parseFloat(formData.seoRevenue) || 0 },
-        { channel: 'SEO', metric: '* Spend', value: parseFloat(formData.seoSpend) || 0 },
         { channel: 'SEO', metric: '* Impressions', value: parseFloat(formData.seoImpressions) || 0 },
         { channel: 'SEO', metric: '* Clicks', value: parseFloat(formData.seoClicks) || 0 },
         { channel: 'SEO', metric: '* Sessions', value: parseFloat(formData.seoSessions) || 0 },
-        { channel: 'SEO', metric: '* Conversions', value: parseFloat(formData.seoPurchases) || 0 },
       ].filter(item => item.value > 0);
 
       const funnelMetricsArray = [
         // Google Ads Funnel
         { stage: 'Google Ads', metric: 'Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
-        { stage: 'Google Ads', metric: 'Add to Cart', value: parseFloat(formData.googleAdsATC) || 0 },
-        { stage: 'Google Ads', metric: 'Checkout', value: parseFloat(formData.googleAdsCheckout) || 0 },
-        { stage: 'Google Ads', metric: 'Purchases', value: parseFloat(formData.googleAdsPurchases) || 0 },
         // Email Funnel
         { stage: 'Email & SMS', metric: 'Sessions', value: parseFloat(formData.emailSessions) || 0 },
-        { stage: 'Email & SMS', metric: 'Add to Cart', value: parseFloat(formData.emailATC) || 0 },
-        { stage: 'Email & SMS', metric: 'Checkout', value: parseFloat(formData.emailCheckout) || 0 },
-        { stage: 'Email & SMS', metric: 'Purchases', value: parseFloat(formData.emailPurchases) || 0 },
-        // Affiliates Funnel
-        { stage: 'Affiliates', metric: 'Sessions', value: parseFloat(formData.affiliatesSessions) || 0 },
-        { stage: 'Affiliates', metric: 'Add to Cart', value: parseFloat(formData.affiliatesATC) || 0 },
-        { stage: 'Affiliates', metric: 'Checkout', value: parseFloat(formData.affiliatesCheckout) || 0 },
-        { stage: 'Affiliates', metric: 'Purchases', value: parseFloat(formData.affiliatesPurchases) || 0 },
-        // SEO Funnel
-        { stage: 'SEO', metric: 'Sessions', value: parseFloat(formData.seoSessions) || 0 },
-        { stage: 'SEO', metric: 'Add to Cart', value: parseFloat(formData.seoATC) || 0 },
-        { stage: 'SEO', metric: 'Checkout', value: parseFloat(formData.seoCheckout) || 0 },
-        { stage: 'SEO', metric: 'Purchases', value: parseFloat(formData.seoPurchases) || 0 },
-        // Social Funnel
-        { stage: 'Social', metric: 'Sessions', value: parseFloat(formData.socialSessions) || 0 },
-        { stage: 'Social', metric: 'Add to Cart', value: parseFloat(formData.socialATC) || 0 },
-        { stage: 'Social', metric: 'Checkout', value: parseFloat(formData.socialCheckout) || 0 },
-        { stage: 'Social', metric: 'Purchases', value: parseFloat(formData.socialPurchases) || 0 },
         // Product Page
         { stage: 'Product Page', metric: '* Add-to-cart rate', value: parseFloat(formData.productPageATCRate) || 0 },
         { stage: 'Product Page', metric: '* Time on page', value: parseFloat(formData.productPageTimeOnPage) || 0 },
         { stage: 'Product Page', metric: '* Scroll depth', value: parseFloat(formData.productPageScrollDepth) || 0 },
         // Cart
-        { stage: 'Cart', metric: '* Shipping issues', value: parseFloat(formData.cartShippingIssues) || 0 },
         { stage: 'Cart', metric: '* Abandonment rate', value: parseFloat(formData.cartAbandonment) || 0 },
       ].filter(item => item.value > 0);
 
@@ -936,8 +814,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Funnel Metrics</p>
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-1">
                 <div className="space-y-2">
                   <Label htmlFor="googleAdsSessions">Sessions</Label>
                   <Input
@@ -946,36 +823,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                     placeholder="107"
                     value={formData.googleAdsSessions}
                     onChange={(e) => handleChange('googleAdsSessions', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="googleAdsATC">Add to Cart</Label>
-                  <Input
-                    id="googleAdsATC"
-                    type="number"
-                    placeholder="25"
-                    value={formData.googleAdsATC}
-                    onChange={(e) => handleChange('googleAdsATC', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="googleAdsCheckout">Checkout</Label>
-                  <Input
-                    id="googleAdsCheckout"
-                    type="number"
-                    placeholder="10"
-                    value={formData.googleAdsCheckout}
-                    onChange={(e) => handleChange('googleAdsCheckout', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="googleAdsPurchases">Purchases</Label>
-                  <Input
-                    id="googleAdsPurchases"
-                    type="number"
-                    placeholder="8"
-                    value={formData.googleAdsPurchases}
-                    onChange={(e) => handleChange('googleAdsPurchases', e.target.value)}
                   />
                 </div>
               </div>
@@ -995,17 +842,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                   placeholder="8000"
                   value={formData.emailRevenue}
                   onChange={(e) => handleChange('emailRevenue', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="emailSpend">Spend ($)</Label>
-                <Input
-                  id="emailSpend"
-                  type="number"
-                  step="0.01"
-                  placeholder="0"
-                  value={formData.emailSpend}
-                  onChange={(e) => handleChange('emailSpend', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -1032,8 +868,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
               </div>
             </div>
             <div className="mt-4">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Funnel Metrics</p>
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-1">
                 <div className="space-y-2">
                   <Label htmlFor="emailSessions">Sessions</Label>
                   <Input
@@ -1042,36 +877,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                     placeholder="500"
                     value={formData.emailSessions}
                     onChange={(e) => handleChange('emailSessions', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emailATC">Add to Cart</Label>
-                  <Input
-                    id="emailATC"
-                    type="number"
-                    placeholder="150"
-                    value={formData.emailATC}
-                    onChange={(e) => handleChange('emailATC', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emailCheckout">Checkout</Label>
-                  <Input
-                    id="emailCheckout"
-                    type="number"
-                    placeholder="50"
-                    value={formData.emailCheckout}
-                    onChange={(e) => handleChange('emailCheckout', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="emailPurchases">Purchases</Label>
-                  <Input
-                    id="emailPurchases"
-                    type="number"
-                    placeholder="30"
-                    value={formData.emailPurchases}
-                    onChange={(e) => handleChange('emailPurchases', e.target.value)}
                   />
                 </div>
               </div>
@@ -1125,51 +930,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 />
               </div>
             </div>
-            <div className="mt-4">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Funnel Metrics</p>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="affiliatesSessions">Sessions</Label>
-                  <Input
-                    id="affiliatesSessions"
-                    type="number"
-                    placeholder="100"
-                    value={formData.affiliatesSessions}
-                    onChange={(e) => handleChange('affiliatesSessions', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="affiliatesATC">Add to Cart</Label>
-                  <Input
-                    id="affiliatesATC"
-                    type="number"
-                    placeholder="20"
-                    value={formData.affiliatesATC}
-                    onChange={(e) => handleChange('affiliatesATC', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="affiliatesCheckout">Checkout</Label>
-                  <Input
-                    id="affiliatesCheckout"
-                    type="number"
-                    placeholder="8"
-                    value={formData.affiliatesCheckout}
-                    onChange={(e) => handleChange('affiliatesCheckout', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="affiliatesPurchases">Purchases</Label>
-                  <Input
-                    id="affiliatesPurchases"
-                    type="number"
-                    placeholder="6"
-                    value={formData.affiliatesPurchases}
-                    onChange={(e) => handleChange('affiliatesPurchases', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* SEO */}
@@ -1177,29 +937,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             <h3 className="font-semibold text-lg mb-4">SEO (Organic)</h3>
             <div className="mt-4">
               <p className="text-sm font-medium text-muted-foreground mb-3">Channel Metrics</p>
-              <div className="grid gap-4 md:grid-cols-4 mb-4">
-                <div className="space-y-2">
-                  <Label htmlFor="seoRevenue">Revenue ($)</Label>
-                  <Input
-                    id="seoRevenue"
-                    type="number"
-                    step="0.01"
-                    placeholder="0"
-                    value={formData.seoRevenue}
-                    onChange={(e) => handleChange('seoRevenue', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="seoSpend">Spend ($)</Label>
-                  <Input
-                    id="seoSpend"
-                    type="number"
-                    step="0.01"
-                    placeholder="0"
-                    value={formData.seoSpend}
-                    onChange={(e) => handleChange('seoSpend', e.target.value)}
-                  />
-                </div>
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="seoImpressions">Impressions</Label>
                   <Input
@@ -1220,9 +958,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                     onChange={(e) => handleChange('seoClicks', e.target.value)}
                   />
                 </div>
-              </div>
-              <p className="text-sm font-medium text-muted-foreground mb-3">Funnel Metrics</p>
-              <div className="grid gap-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label htmlFor="seoSessions">Sessions</Label>
                   <Input
@@ -1233,113 +968,10 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                     onChange={(e) => handleChange('seoSessions', e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="seoATC">Add to Cart</Label>
-                  <Input
-                    id="seoATC"
-                    type="number"
-                    placeholder="200"
-                    value={formData.seoATC}
-                    onChange={(e) => handleChange('seoATC', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="seoCheckout">Checkout</Label>
-                  <Input
-                    id="seoCheckout"
-                    type="number"
-                    placeholder="96"
-                    value={formData.seoCheckout}
-                    onChange={(e) => handleChange('seoCheckout', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="seoPurchases">Purchases</Label>
-                  <Input
-                    id="seoPurchases"
-                    type="number"
-                    placeholder="80"
-                    value={formData.seoPurchases}
-                    onChange={(e) => handleChange('seoPurchases', e.target.value)}
-                  />
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Social */}
-          <div className="border-l-4 border-pink-500 pl-4">
-            <h3 className="font-semibold text-lg mb-4">Social Media</h3>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="socialRevenue">Revenue ($)</Label>
-                <Input
-                  id="socialRevenue"
-                  type="number"
-                  step="0.01"
-                  placeholder="250.00"
-                  value={formData.socialRevenue}
-                  onChange={(e) => handleChange('socialRevenue', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="socialSpend">Spend ($)</Label>
-                <Input
-                  id="socialSpend"
-                  type="number"
-                  step="0.01"
-                  placeholder="100.00"
-                  value={formData.socialSpend}
-                  onChange={(e) => handleChange('socialSpend', e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-sm font-medium text-muted-foreground mb-3">Funnel Metrics</p>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="space-y-2">
-                  <Label htmlFor="socialSessions">Sessions</Label>
-                  <Input
-                    id="socialSessions"
-                    type="number"
-                    placeholder="200"
-                    value={formData.socialSessions}
-                    onChange={(e) => handleChange('socialSessions', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="socialATC">Add to Cart</Label>
-                  <Input
-                    id="socialATC"
-                    type="number"
-                    placeholder="30"
-                    value={formData.socialATC}
-                    onChange={(e) => handleChange('socialATC', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="socialCheckout">Checkout</Label>
-                  <Input
-                    id="socialCheckout"
-                    type="number"
-                    placeholder="10"
-                    value={formData.socialCheckout}
-                    onChange={(e) => handleChange('socialCheckout', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="socialPurchases">Purchases</Label>
-                  <Input
-                    id="socialPurchases"
-                    type="number"
-                    placeholder="5"
-                    value={formData.socialPurchases}
-                    onChange={(e) => handleChange('socialPurchases', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -1396,18 +1028,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             </div>
             <div>
               <h3 className="font-semibold mb-3">Cart</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="cartShippingIssues">Shipping Issues (%)</Label>
-                  <Input
-                    id="cartShippingIssues"
-                    type="number"
-                    step="0.1"
-                    placeholder="4.4"
-                    value={formData.cartShippingIssues}
-                    onChange={(e) => handleChange('cartShippingIssues', e.target.value)}
-                  />
-                </div>
+              <div className="grid gap-4 md:grid-cols-1">
                 <div className="space-y-2">
                   <Label htmlFor="cartAbandonment">Checkout Abandonment Rate (%)</Label>
                   <Input
