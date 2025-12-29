@@ -154,16 +154,39 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       addFunnelMetric('Cart', '* Abandonment rate', row.cart_abandonment_rate);
 
       // Top Products (support top_product_1_name, top_product_1_units, top_product_1_revenue, etc.)
+      // Get all column names to help with debugging
+      const rowKeys = Object.keys(row);
+      
       for (let i = 1; i <= 5; i++) {
-        const name = row[`top_product_${i}_name`] || row[`topProduct${i}Name`];
-        const units = row[`top_product_${i}_units`] || row[`topProduct${i}Units`];
-        const revenue = row[`top_product_${i}_revenue`] || row[`topProduct${i}Revenue`];
+        // Try multiple column name variations (case-insensitive matching)
+        let name = row[`top_product_${i}_name`] || 
+                   row[`topProduct${i}Name`] ||
+                   row[`TOP_PRODUCT_${i}_NAME`] ||
+                   rowKeys.find(key => key.toLowerCase() === `top_product_${i}_name`.toLowerCase()) ? row[rowKeys.find(key => key.toLowerCase() === `top_product_${i}_name`.toLowerCase())!] : null;
         
-        if (name && name.trim() && units && parseValue(units) > 0) {
+        let units = row[`top_product_${i}_units`] || 
+                    row[`topProduct${i}Units`] ||
+                    row[`TOP_PRODUCT_${i}_UNITS`] ||
+                    rowKeys.find(key => key.toLowerCase() === `top_product_${i}_units`.toLowerCase()) ? row[rowKeys.find(key => key.toLowerCase() === `top_product_${i}_units`.toLowerCase())!] : null;
+        
+        let revenue = row[`top_product_${i}_revenue`] || 
+                      row[`topProduct${i}Revenue`] ||
+                      row[`TOP_PRODUCT_${i}_REVENUE`] ||
+                      rowKeys.find(key => key.toLowerCase() === `top_product_${i}_revenue`.toLowerCase()) ? row[rowKeys.find(key => key.toLowerCase() === `top_product_${i}_revenue`.toLowerCase())!] : null;
+        
+        // Parse units - handle both integer and decimal values
+        const unitsValue = units !== null && units !== undefined && units !== '' 
+          ? parseFloat(String(units).replace(/[^0-9.-]/g, '')) 
+          : 0;
+        const nameValue = name !== null && name !== undefined 
+          ? String(name).trim() 
+          : '';
+        
+        if (nameValue && !isNaN(unitsValue) && unitsValue > 0) {
           data.topProducts.push({
-            productName: name.trim(),
-            unitsSold: parseInt(units) || 0,
-            revenue: parseValue(revenue),
+            productName: nameValue,
+            unitsSold: Math.floor(unitsValue), // Convert to integer
+            revenue: revenue !== null && revenue !== undefined ? parseValue(revenue) : 0,
           });
         }
       }
@@ -225,9 +248,11 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
           try {
             console.log('CSV parsed, rows:', parseResults.data.length);
             console.log('First row:', parseResults.data[0]);
+            console.log('First row keys:', Object.keys(parseResults.data[0] || {}));
             
             const parsedData = parseCSVData(parseResults.data);
             console.log('Parsed data:', Array.isArray(parsedData) ? `${parsedData.length} weeks found` : 'Single week format');
+            console.log('Parsed top products for first week:', Array.isArray(parsedData) ? parsedData[0]?.topProducts : parsedData.topProducts);
 
             // Check if parsedData is an array (multiple weeks) or single object
             const weeksData = Array.isArray(parsedData) ? parsedData : [parsedData];
