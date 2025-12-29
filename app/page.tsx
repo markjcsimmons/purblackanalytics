@@ -123,6 +123,19 @@ export default function Dashboard() {
     return new Intl.NumberFormat('en-US').format(value);
   };
 
+  const renderMarkdownBold = (text: string) => {
+    if (!text) return '';
+    // Escape HTML first to prevent XSS
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+    // Then convert **text** to <strong>text</strong>
+    return escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />');
+  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -284,9 +297,12 @@ export default function Dashboard() {
                   <CardContent className="pt-6">
                     {weekData.week?.romans_recommendations ? (
                       <div className="prose prose-amber max-w-none">
-                        <p className="text-gray-800 text-base leading-relaxed whitespace-pre-wrap">
-                          {weekData.week.romans_recommendations}
-                        </p>
+                        <p 
+                          className="text-gray-800 text-base leading-relaxed whitespace-pre-wrap"
+                          dangerouslySetInnerHTML={{
+                            __html: renderMarkdownBold(weekData.week.romans_recommendations)
+                          }}
+                        />
                       </div>
                     ) : (
                       <div className="text-center py-8">

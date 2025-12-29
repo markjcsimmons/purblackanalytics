@@ -21,7 +21,8 @@ import {
   Save,
   Calendar,
   Edit,
-  Plus
+  Plus,
+  Bold
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -194,6 +195,40 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const handleChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleBoldText = () => {
+    const textarea = document.getElementById('romansRecommendations') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = formData.romansRecommendations.substring(start, end);
+    const beforeText = formData.romansRecommendations.substring(0, start);
+    const afterText = formData.romansRecommendations.substring(end);
+
+    if (selectedText) {
+      // Wrap selected text with **
+      const newText = beforeText + '**' + selectedText + '**' + afterText;
+      handleChange('romansRecommendations', newText);
+      
+      // Restore cursor position after state update
+      setTimeout(() => {
+        textarea.focus();
+        const newPosition = start + 2; // Position after opening **
+        textarea.setSelectionRange(newPosition, newPosition + selectedText.length);
+      }, 0);
+    } else {
+      // If no text selected, insert ** ** and place cursor between them
+      const newText = beforeText + '****' + afterText;
+      handleChange('romansRecommendations', newText);
+      
+      setTimeout(() => {
+        textarea.focus();
+        const newPosition = start + 2; // Position between **
+        textarea.setSelectionRange(newPosition, newPosition);
+      }, 0);
+    }
   };
 
   // Fetch weeks on component mount
@@ -736,10 +771,25 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             />
           </div>
           <div className="space-y-2 mt-4 p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
-            <Label htmlFor="romansRecommendations" className="flex items-center gap-2 text-amber-900 font-semibold">
-              <Sparkles className="h-5 w-5 text-amber-600" />
-              Roman's Recommendations
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="romansRecommendations" className="flex items-center gap-2 text-amber-900 font-semibold">
+                <Sparkles className="h-5 w-5 text-amber-600" />
+                Roman's Recommendations
+              </Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBoldText}
+                  className="h-8 px-3 text-xs border-amber-300 hover:bg-amber-100"
+                  title="Bold (wrap selected text with **)"
+                >
+                  <Bold className="h-3 w-3 mr-1" />
+                  Bold
+                </Button>
+              </div>
+            </div>
             <Textarea
               id="romansRecommendations"
               placeholder="Enter Roman's insights and recommendations for this week..."
@@ -750,7 +800,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             />
             <div className="flex items-start gap-2 text-xs text-amber-800">
               <Sparkles className="h-3 w-3 mt-0.5 text-amber-600" />
-              <p>These recommendations will be prominently displayed on the Overview page in a special amber-colored card.</p>
+              <p>These recommendations will be prominently displayed on the Overview page in a special amber-colored card. Use <strong>**text**</strong> for bold formatting.</p>
             </div>
           </div>
         </CardContent>
