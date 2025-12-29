@@ -164,13 +164,31 @@ export interface WeekData {
 export function saveWeekData(data: WeekData) {
   const database = getDb();
   
-  // Start transaction
-  const insertWeek = database.prepare(
-    'INSERT OR REPLACE INTO weeks (week_start_date, week_end_date, notes, romans_recommendations) VALUES (?, ?, ?, ?)'
-  );
+  // Check if week already exists
+  const existingWeek = database.prepare('SELECT id, romans_recommendations, notes FROM weeks WHERE week_start_date = ?').get(data.weekStartDate) as any;
   
-  const info = insertWeek.run(data.weekStartDate, data.weekEndDate, data.notes || null, data.romansRecommendations || null);
-  const weekId = info.lastInsertRowid;
+  let weekId: number;
+  
+  if (existingWeek) {
+    // Update existing week - preserve existing values if new ones aren't provided
+    weekId = existingWeek.id;
+    const updateWeek = database.prepare(
+      'UPDATE weeks SET week_end_date = ?, notes = COALESCE(?, notes), romans_recommendations = COALESCE(?, romans_recommendations) WHERE id = ?'
+    );
+    updateWeek.run(
+      data.weekEndDate,
+      data.notes || null,
+      data.romansRecommendations || null,
+      weekId
+    );
+  } else {
+    // Insert new week
+    const insertWeek = database.prepare(
+      'INSERT INTO weeks (week_start_date, week_end_date, notes, romans_recommendations) VALUES (?, ?, ?, ?)'
+    );
+    const info = insertWeek.run(data.weekStartDate, data.weekEndDate, data.notes || null, data.romansRecommendations || null);
+    weekId = info.lastInsertRowid;
+  }
 
   // Delete existing metrics for this week
   database.prepare('DELETE FROM overall_metrics WHERE week_id = ?').run(weekId);
