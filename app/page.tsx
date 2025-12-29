@@ -402,11 +402,25 @@ export default function Dashboard() {
                         <div className="flex-1">
                           <div className="font-semibold text-amber-900 text-sm mb-1">Checkout Abandonment</div>
                           <div className="text-sm text-amber-700">
-                            <span className="font-bold text-lg">
-                              {(100 - ((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
-                                (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 1)) * 100)).toFixed(1)}%
-                            </span>
-                            {' '}of users who added to cart didn't checkout
+                            {(() => {
+                              // Get the actual Add to Cart count (same calculation as the Add to Cart card)
+                              const addToCartCount = getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                                (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                                 getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100);
+                              const checkoutCount = getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') || 0;
+                              
+                              // Calculate abandonment: (1 - checkout/addToCart) * 100
+                              const abandonmentRate = addToCartCount > 0 
+                                ? (100 - ((checkoutCount / addToCartCount) * 100)).toFixed(1)
+                                : '0.0';
+                              
+                              return (
+                                <>
+                                  <span className="font-bold text-lg">{abandonmentRate}%</span>
+                                  {' '}of users who added to cart didn't checkout
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
