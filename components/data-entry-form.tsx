@@ -95,6 +95,23 @@ interface FormData {
   // Cart Metrics
   cartShippingIssues: string;
   cartAbandonment: string;
+  
+  // Top Products (5 products)
+  topProduct1Name: string;
+  topProduct1Units: string;
+  topProduct1Revenue: string;
+  topProduct2Name: string;
+  topProduct2Units: string;
+  topProduct2Revenue: string;
+  topProduct3Name: string;
+  topProduct3Units: string;
+  topProduct3Revenue: string;
+  topProduct4Name: string;
+  topProduct4Units: string;
+  topProduct4Revenue: string;
+  topProduct5Name: string;
+  topProduct5Units: string;
+  topProduct5Revenue: string;
 }
 
 export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
@@ -158,6 +175,21 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     productPageScrollDepth: '',
     cartShippingIssues: '',
     cartAbandonment: '',
+    topProduct1Name: '',
+    topProduct1Units: '',
+    topProduct1Revenue: '',
+    topProduct2Name: '',
+    topProduct2Units: '',
+    topProduct2Revenue: '',
+    topProduct3Name: '',
+    topProduct3Units: '',
+    topProduct3Revenue: '',
+    topProduct4Name: '',
+    topProduct4Units: '',
+    topProduct4Revenue: '',
+    topProduct5Name: '',
+    topProduct5Units: '',
+    topProduct5Revenue: '',
   });
 
   const handleChange = (field: keyof FormData, value: string) => {
@@ -233,6 +265,37 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         return metric ? metric.metric_value.toString() : '';
       };
 
+      // Load top products if available
+      const topProducts = data.topProducts || [];
+      const topProductsData: any = {
+        topProduct1Name: '',
+        topProduct1Units: '',
+        topProduct1Revenue: '',
+        topProduct2Name: '',
+        topProduct2Units: '',
+        topProduct2Revenue: '',
+        topProduct3Name: '',
+        topProduct3Units: '',
+        topProduct3Revenue: '',
+        topProduct4Name: '',
+        topProduct4Units: '',
+        topProduct4Revenue: '',
+        topProduct5Name: '',
+        topProduct5Units: '',
+        topProduct5Revenue: '',
+      };
+      
+      if (Array.isArray(topProducts)) {
+        topProducts.forEach((product: any, index: number) => {
+          const productNum = index + 1;
+          if (productNum <= 5) {
+            topProductsData[`topProduct${productNum}Name`] = product.productName || '';
+            topProductsData[`topProduct${productNum}Units`] = product.unitsSold?.toString() || '';
+            topProductsData[`topProduct${productNum}Revenue`] = product.revenue?.toString() || '';
+          }
+        });
+      }
+
       // Populate form with loaded data
       setFormData({
         weekStartDate: week.week_start_date || '',
@@ -287,6 +350,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         productPageScrollDepth: getFunnelMetric('Product Page', '* Scroll depth'),
         cartShippingIssues: getFunnelMetric('Cart', '* Shipping issues'),
         cartAbandonment: getFunnelMetric('Cart', '* Abandonment rate'),
+        ...topProductsData,
       });
     } catch (err: any) {
       setError(err.message || 'Failed to load week data');
@@ -344,15 +408,30 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
       socialATC: '',
       socialCheckout: '',
       socialPurchases: '',
-      productPageATCRate: '',
-      productPageTimeOnPage: '',
-      productPageScrollDepth: '',
-      cartShippingIssues: '',
-      cartAbandonment: '',
-    });
-    setError('');
-    setSuccess('');
-  };
+    productPageATCRate: '',
+    productPageTimeOnPage: '',
+    productPageScrollDepth: '',
+    cartShippingIssues: '',
+    cartAbandonment: '',
+    topProduct1Name: '',
+    topProduct1Units: '',
+    topProduct1Revenue: '',
+    topProduct2Name: '',
+    topProduct2Units: '',
+    topProduct2Revenue: '',
+    topProduct3Name: '',
+    topProduct3Units: '',
+    topProduct3Revenue: '',
+    topProduct4Name: '',
+    topProduct4Units: '',
+    topProduct4Revenue: '',
+    topProduct5Name: '',
+    topProduct5Units: '',
+    topProduct5Revenue: '',
+  });
+  setError('');
+  setSuccess('');
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -461,6 +540,22 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         funnelMetricsObj[m.stage][m.metric] = m.value;
       });
 
+      // Build top products array
+      const topProducts = [];
+      for (let i = 1; i <= 5; i++) {
+        const name = formData[`topProduct${i}Name` as keyof FormData] as string;
+        const units = formData[`topProduct${i}Units` as keyof FormData] as string;
+        const revenue = formData[`topProduct${i}Revenue` as keyof FormData] as string;
+        
+        if (name && name.trim() && units && parseFloat(units) > 0) {
+          topProducts.push({
+            productName: name.trim(),
+            unitsSold: parseInt(units) || 0,
+            revenue: parseFloat(revenue) || 0,
+          });
+        }
+      }
+
       const uploadData = {
         weekStartDate: formData.weekStartDate,
         weekEndDate: formData.weekEndDate,
@@ -469,6 +564,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         overallMetrics: overallMetricsObj,
         marketingChannels: marketingChannelsObj,
         funnelMetrics: funnelMetricsObj,
+        topProducts: topProducts.length > 0 ? topProducts : undefined,
       };
 
       const response = await fetch('/api/upload', {
@@ -1275,6 +1371,66 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 </div>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Top Selling Products */}
+      <Card>
+        <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50">
+          <div className="flex items-center gap-3">
+            <Sparkles className="h-5 w-5 text-pink-600" />
+            <div>
+              <CardTitle>Top 5 Selling Products</CardTitle>
+              <CardDescription>Enter the top 5 products by units sold for this week</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((num) => (
+              <div key={num} className="p-4 border-2 border-pink-200 rounded-lg bg-gradient-to-r from-white to-pink-50">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
+                    {num}
+                  </div>
+                  <h3 className="font-semibold text-pink-900">Product #{num}</h3>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor={`topProduct${num}Name`}>Product Name *</Label>
+                    <Input
+                      id={`topProduct${num}Name`}
+                      type="text"
+                      placeholder="e.g., Product Name"
+                      value={formData[`topProduct${num}Name` as keyof FormData] as string}
+                      onChange={(e) => handleChange(`topProduct${num}Name` as keyof FormData, e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`topProduct${num}Units`}>Units Sold *</Label>
+                    <Input
+                      id={`topProduct${num}Units`}
+                      type="number"
+                      placeholder="0"
+                      value={formData[`topProduct${num}Units` as keyof FormData] as string}
+                      onChange={(e) => handleChange(`topProduct${num}Units` as keyof FormData, e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`topProduct${num}Revenue`}>Revenue ($)</Label>
+                    <Input
+                      id={`topProduct${num}Revenue`}
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={formData[`topProduct${num}Revenue` as keyof FormData] as string}
+                      onChange={(e) => handleChange(`topProduct${num}Revenue` as keyof FormData, e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

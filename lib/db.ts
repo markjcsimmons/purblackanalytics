@@ -128,6 +128,26 @@ function initializeDatabase(database: Database.Database) {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // Create top_products table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS top_products (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_id INTEGER NOT NULL,
+      product_name TEXT NOT NULL,
+      units_sold INTEGER NOT NULL,
+      revenue REAL NOT NULL,
+      rank INTEGER NOT NULL,
+      FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE,
+      UNIQUE(week_id, rank)
+    )
+  `);
+}
+
+export interface TopProduct {
+  productName: string;
+  unitsSold: number;
+  revenue: number;
 }
 
 export interface WeekData {
@@ -138,6 +158,7 @@ export interface WeekData {
   overallMetrics: { [key: string]: number };
   marketingChannels: { [channel: string]: { [metric: string]: number } };
   funnelMetrics: { [stage: string]: { [metric: string]: number } };
+  topProducts?: TopProduct[];
 }
 
 export function saveWeekData(data: WeekData) {
@@ -155,6 +176,7 @@ export function saveWeekData(data: WeekData) {
   database.prepare('DELETE FROM overall_metrics WHERE week_id = ?').run(weekId);
   database.prepare('DELETE FROM marketing_channels WHERE week_id = ?').run(weekId);
   database.prepare('DELETE FROM funnel_metrics WHERE week_id = ?').run(weekId);
+  database.prepare('DELETE FROM top_products WHERE week_id = ?').run(weekId);
 
   // Insert overall metrics
   const insertOverallMetric = database.prepare(
@@ -187,6 +209,19 @@ export function saveWeekData(data: WeekData) {
     }
   }
 
+  // Insert top products
+  if (data.topProducts && Array.isArray(data.topProducts)) {
+    const insertTopProduct = database.prepare(
+      'INSERT INTO top_products (week_id, product_name, units_sold, revenue, rank) VALUES (?, ?, ?, ?, ?)'
+    );
+    
+    data.topProducts.forEach((product, index) => {
+      if (product.productName && product.unitsSold > 0) {
+        insertTopProduct.run(weekId, product.productName, product.unitsSold, product.revenue || 0, index + 1);
+      }
+    });
+  }
+
   return weekId;
 }
 
@@ -203,6 +238,7 @@ export function getWeekData(weekId: number) {
   const marketingChannels = database.prepare('SELECT * FROM marketing_channels WHERE week_id = ?').all(weekId);
   const funnelMetrics = database.prepare('SELECT * FROM funnel_metrics WHERE week_id = ?').all(weekId);
   const insightsRaw = database.prepare('SELECT * FROM insights WHERE week_id = ?').all(weekId) as any[];
+  const topProductsRaw = database.prepare('SELECT * FROM top_products WHERE week_id = ? ORDER BY rank ASC').all(weekId) as any[];
   
   // Map database field names to component expected format
   const insights = insightsRaw.map((insight: any) => ({
@@ -212,12 +248,21 @@ export function getWeekData(weekId: number) {
     priority: insight.priority,
   }));
 
+  // Map top products to component expected format
+  const topProducts = topProductsRaw.map((product: any) => ({
+    productName: product.product_name,
+    unitsSold: product.units_sold,
+    revenue: product.revenue,
+    rank: product.rank,
+  }));
+
   return {
     week,
     overallMetrics,
     marketingChannels,
     funnelMetrics,
-    insights
+    insights,
+    topProducts
   };
 }
 

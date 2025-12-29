@@ -38,6 +38,7 @@ interface WeekData {
   marketingChannels: any[];
   funnelMetrics: any[];
   insights: any[];
+  topProducts?: any[];
 }
 
 export default function Dashboard() {
@@ -411,31 +412,37 @@ export default function Dashboard() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      {weekData.overallMetrics
-                        .filter((m: any) => m.metric_name.startsWith('/products/') && m.metric_name !== '/products/')
-                        .sort((a: any, b: any) => b.metric_value - a.metric_value)
-                        .slice(0, 6)
-                        .map((product: any, idx: number) => {
-                          const productName = product.metric_name
-                            .replace('/products/', '')
-                            .split('-')
-                            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                          return (
-                            <div key={idx} className="flex items-center gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
+                    {weekData.topProducts && weekData.topProducts.length > 0 ? (
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {weekData.topProducts.map((product: any, idx: number) => (
+                          <div key={idx} className="p-4 bg-gradient-to-r from-white to-pink-50 border-2 border-pink-200 rounded-lg">
+                            <div className="flex items-center gap-3 mb-3">
                               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
-                                {idx + 1}
+                                {product.rank || idx + 1}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-sm truncate">{productName}</div>
-                                <div className="text-xs text-muted-foreground">{product.metric_value} orders</div>
+                                <div className="font-semibold text-base truncate">{product.productName || product.product_name}</div>
                               </div>
                             </div>
-                          );
-                        })
-                      }
-                    </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Units Sold:</span>
+                                <span className="font-bold text-pink-900">{formatNumber(product.unitsSold || product.units_sold || 0)}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">Revenue:</span>
+                                <span className="font-bold text-green-700">{formatCurrency(product.revenue || 0)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                        <p>No top products data available. Add them in the <strong>Add Data</strong> tab.</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -680,3 +687,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

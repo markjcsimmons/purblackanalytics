@@ -54,6 +54,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
           overallMetrics: [],
           marketingChannels: [],
           funnelMetrics: [],
+          topProducts: [],
         };
 
         // Helper to parse value
@@ -151,6 +152,21 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       // Cart
       addFunnelMetric('Cart', '* Shipping issues', row.cart_shipping_issues);
       addFunnelMetric('Cart', '* Abandonment rate', row.cart_abandonment_rate);
+
+      // Top Products (support top_product_1_name, top_product_1_units, top_product_1_revenue, etc.)
+      for (let i = 1; i <= 5; i++) {
+        const name = row[`top_product_${i}_name`] || row[`topProduct${i}Name`];
+        const units = row[`top_product_${i}_units`] || row[`topProduct${i}Units`];
+        const revenue = row[`top_product_${i}_revenue`] || row[`topProduct${i}Revenue`];
+        
+        if (name && name.trim() && units && parseValue(units) > 0) {
+          data.topProducts.push({
+            productName: name.trim(),
+            unitsSold: parseInt(units) || 0,
+            revenue: parseValue(revenue),
+          });
+        }
+      }
 
         return data;
       });
@@ -268,6 +284,9 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
                 overallMetrics: overallMetricsObj,
                 marketingChannels: marketingChannelsObj,
                 funnelMetrics: funnelMetricsObj,
+                topProducts: weekData.topProducts && Array.isArray(weekData.topProducts) && weekData.topProducts.length > 0 
+                  ? weekData.topProducts 
+                  : undefined,
               };
 
               const response = await fetch('/api/upload', {
