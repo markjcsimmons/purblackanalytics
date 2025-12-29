@@ -115,7 +115,7 @@ export default function Dashboard() {
     if (!funnelMetrics || !Array.isArray(funnelMetrics)) return 0;
     
     // Sum the metric across all stages (channels)
-    return funnelMetrics
+    const sum = funnelMetrics
       .filter(m => {
         const metricLower = m.metric_name?.toLowerCase() || '';
         const searchLower = metricName.toLowerCase();
@@ -123,7 +123,9 @@ export default function Dashboard() {
                metricLower === `* ${searchLower}` ||
                metricLower.includes(searchLower);
       })
-      .reduce((sum, m) => sum + (m.metric_value || 0), 0);
+      .reduce((sum, m) => sum + (Number(m.metric_value) || 0), 0);
+    
+    return isNaN(sum) ? 0 : sum;
   };
 
   const formatCurrency = (value: number) => {
@@ -387,15 +389,16 @@ export default function Dashboard() {
                               // Sum Checkout from all channels, or use Orders as fallback (can't purchase without checkout)
                               const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                               const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              // Use checkout sum if available, otherwise use orders (since you can't purchase without checkout)
-                              return formatNumber(checkoutSum || orders || 0);
+                              // Use checkout sum if > 0, otherwise use orders (since you can't purchase without checkout)
+                              const checkoutValue = (checkoutSum > 0) ? checkoutSum : (orders || 0);
+                              return formatNumber(checkoutValue);
                             })()}
                           </div>
                           <div className="text-xs font-semibold text-purple-700 mt-2">
                             {(() => {
                               const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                               const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              const checkoutValue = checkoutSum || orders || 0;
+                              const checkoutValue = (checkoutSum > 0) ? checkoutSum : (orders || 0);
                               const addToCartCount = getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
                                 (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
                                  getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100);
@@ -421,7 +424,7 @@ export default function Dashboard() {
                             {(() => {
                               const orders = getMetricValue(weekData.overallMetrics, 'Orders');
                               const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                              const checkoutValue = checkoutSum || orders || 0; // Use orders as fallback
+                              const checkoutValue = (checkoutSum > 0) ? checkoutSum : (orders || 0); // Use orders as fallback
                               return checkoutValue > 0 
                                 ? ((orders / checkoutValue) * 100).toFixed(1)
                                 : '0.0';
@@ -448,12 +451,17 @@ export default function Dashboard() {
                               // Sum Checkout from all channels, or use Orders as fallback
                               const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                               const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              const checkoutCount = checkoutSum || orders || 0; // Use orders as fallback since you can't purchase without checkout
+                              // Use orders as fallback since you can't purchase without checkout
+                              // But only if checkoutSum is 0 or falsy - if it's a valid number > 0, use it
+                              const checkoutCount = (checkoutSum > 0) ? checkoutSum : (orders || 0);
                               
                               // Calculate abandonment: (1 - checkout/addToCart) * 100
-                              const abandonmentRate = addToCartCount > 0 
-                                ? (100 - ((checkoutCount / addToCartCount) * 100)).toFixed(1)
-                                : '0.0';
+                              // Ensure we don't divide by zero and handle edge cases
+                              let abandonmentRate = '0.0';
+                              if (addToCartCount > 0 && checkoutCount >= 0) {
+                                const rate = (100 - ((checkoutCount / addToCartCount) * 100));
+                                abandonmentRate = Math.max(0, Math.min(100, rate)).toFixed(1); // Clamp between 0-100
+                              }
                               
                               return (
                                 <>
