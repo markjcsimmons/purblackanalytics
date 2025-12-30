@@ -41,6 +41,26 @@ export async function POST(request: NextRequest) {
       previousWeekData = getWeekData(previousWeek.id);
     }
 
+    // Find the same week a year earlier for YoY comparison
+    let sameWeekYearEarlierData = null;
+    if (weekData.week && typeof weekData.week === 'object' && 'week_start_date' in weekData.week) {
+      const currentWeekStart = new Date((weekData.week as any).week_start_date);
+      const yearEarlierDate = new Date(currentWeekStart);
+      yearEarlierDate.setFullYear(yearEarlierDate.getFullYear() - 1);
+      
+      // Find the week that starts closest to the same date a year earlier
+      // Allow up to 7 days difference to account for week boundaries
+      const sameWeekYearEarlier = weeks.find((w: any) => {
+        const weekStart = new Date(w.week_start_date);
+        const daysDiff = Math.abs((weekStart.getTime() - yearEarlierDate.getTime()) / (1000 * 60 * 60 * 24));
+        return daysDiff <= 7;
+      });
+      
+      if (sameWeekYearEarlier && typeof sameWeekYearEarlier === 'object' && 'id' in sameWeekYearEarlier) {
+        sameWeekYearEarlierData = getWeekData((sameWeekYearEarlier as any).id);
+      }
+    }
+
     // Combine week notes and additional context
     let contextParts: string[] = [];
     if (weekData.week && typeof weekData.week === 'object' && 'notes' in weekData.week) {
@@ -62,6 +82,7 @@ export async function POST(request: NextRequest) {
     const insights = await generateInsights({
       ...weekData,
       previousWeekData,
+      sameWeekYearEarlierData,
       historicalData: historicalWeeks,
       businessContext: combinedContext,
       recommendationRules: rules,

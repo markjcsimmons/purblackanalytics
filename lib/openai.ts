@@ -45,20 +45,21 @@ export async function generateInsights(data: {
   marketingChannels: any[];
   funnelMetrics: any[];
   previousWeekData?: any;
+  sameWeekYearEarlierData?: any;
   historicalData?: any[];
   businessContext?: string;
   recommendationRules?: string[];
 }): Promise<Insight[]> {
-  const { week, overallMetrics, marketingChannels, funnelMetrics, previousWeekData, historicalData, businessContext, recommendationRules } = data;
+  const { week, overallMetrics, marketingChannels, funnelMetrics, previousWeekData, sameWeekYearEarlierData, historicalData, businessContext, recommendationRules } = data;
 
   // Format data for the prompt
   const overallMetricsText = overallMetrics
-    .map((m: any) => `${m.metric_name}: ${m.metric_value}`)
-    .join('\n');
+    .map((m: any) => String(m.metric_name) + ': ' + String(m.metric_value))
+    .join('\\n');
 
   const channelsText = marketingChannels.reduce((acc: any, m: any) => {
     if (!acc[m.channel_name]) acc[m.channel_name] = [];
-    acc[m.channel_name].push(`${m.metric_name}: ${m.metric_value}`);
+    acc[m.channel_name].push(String(m.metric_name) + ': ' + String(m.metric_value));
     return acc;
   }, {});
 
@@ -68,7 +69,7 @@ export async function generateInsights(data: {
 
   const funnelText = funnelMetrics.reduce((acc: any, m: any) => {
     if (!acc[m.stage_name]) acc[m.stage_name] = [];
-    acc[m.stage_name].push(`${m.metric_name}: ${m.metric_value}`);
+    acc[m.stage_name].push(String(m.metric_name) + ': ' + String(m.metric_value));
     return acc;
   }, {});
 
@@ -464,7 +465,7 @@ ${recommendationRules && recommendationRules.length > 0 ? `
 
 The following rules MUST be applied to all recommendations you generate:
 
-${recommendationRules.map((rule: string, i: number) => `${i + 1}. ${rule}`).join('\n')}
+${recommendationRules.map((rule: string, i: number) => `${i + 1}. ${rule}`).join('\\n')}
 
 ⚠️ CRITICAL: 
 - DO NOT generate recommendations that violate these rules
@@ -493,16 +494,16 @@ Previous Week: ${previousWeekData.week?.week_start_date} to ${previousWeekData.w
 ${previousWeekData.week?.notes ? `Previous Week Notes: ${previousWeekData.week.notes}` : ''}
 
 Previous Week Metrics:
-${previousWeekData.overallMetrics?.map((m: any) => `${m.metric_name}: ${m.metric_value}`).join('\n') || 'No metrics available'}
+${previousWeekData.overallMetrics?.map((m: any) => String(m.metric_name) + ': ' + String(m.metric_value)).join('\\n') || 'No metrics available'}
 
 Previous Week Channels:
 ${Object.entries(
   (previousWeekData.marketingChannels || []).reduce((acc: any, item: any) => {
     if (!acc[item.channel_name]) acc[item.channel_name] = [];
-    acc[item.channel_name].push(`${item.metric_name}: ${item.metric_value}`);
+    acc[item.channel_name].push(String(item.metric_name) + ': ' + String(item.metric_value));
     return acc;
   }, {})
-).map(([channel, metrics]: [string, any]) => `${channel}: ${metrics.join(', ')}`).join('\n') || 'No channel data available'}
+).map(([channel, metrics]: [string, any]) => `${channel}: ${metrics.join(', ')}`).join('\\n') || 'No channel data available'}
 
 ⚠️ IMPORTANT: Use this previous week data to:
 - Compare current week performance vs previous week
@@ -510,7 +511,31 @@ ${Object.entries(
 - Calculate percentage changes where relevant
 - Highlight significant changes that warrant attention
 
-${historicalAnalysisText ? `🔍🔍🔍 DEEP HISTORICAL PATTERN & SEASONALITY ANALYSIS (${historicalData?.length || 0} weeks of data) 🔍🔍🔍
+
+
+${sameWeekYearEarlierData ? `📅 SAME WEEK A YEAR EARLIER (YEAR-OVER-YEAR COMPARISON):
+This is the historical average for comparison - the same week from one year ago. This data is critical for year-over-year analysis and understanding seasonal patterns.
+
+Same Week Year Earlier: ${sameWeekYearEarlierData.week?.week_start_date} to ${sameWeekYearEarlierData.week?.week_end_date}
+${sameWeekYearEarlierData.week?.notes ? `Same Week Year Earlier Notes: ${sameWeekYearEarlierData.week.notes}` : ''}
+
+Same Week Year Earlier Metrics:
+${sameWeekYearEarlierData.overallMetrics?.map((m: any) => String(m.metric_name) + ': ' + String(m.metric_value)).join('\n') || 'No metrics available'}
+
+Same Week Year Earlier Channels:
+${Object.entries(
+  (sameWeekYearEarlierData.marketingChannels || []).reduce((acc: any, item: any) => {
+    if (!acc[item.channel_name]) acc[item.channel_name] = [];
+    acc[item.channel_name].push(String(item.metric_name) + ': ' + String(item.metric_value));
+    return acc;
+  }, {})
+).map(([channel, metrics]: [string, any]) => `${channel}: ${metrics.join(', ')}`).join('\n') || 'No channel data available'}}
+
+⚠️ CRITICAL: When referencing "historical average" in your insights, you MUST mean the same week a year earlier. Always state comparisons with:
+1. The same week a year earlier (year-over-year comparison)
+2. The week immediately prior (week-over-week comparison)
+
+` : ''}${historicalAnalysisText ? `🔍🔍🔍 DEEP HISTORICAL PATTERN & SEASONALITY ANALYSIS (${historicalData?.length || 0} weeks of data) 🔍🔍🔍
 
 ${historicalAnalysisText}
 
@@ -520,7 +545,7 @@ ${historicalAnalysisText}
 
 1. **STATISTICAL ANALYSIS**: Use the provided statistical summaries (min, max, average, median) to:
    - Identify if current metrics are in the top/bottom quartiles historically
-   - Compare current performance to historical averages and medians
+   - Compare current performance to the same week a year earlier (historical average) and medians
    - Reference the best/worst performing periods when relevant
    - Calculate how many standard deviations current performance is from the mean
 
@@ -543,7 +568,7 @@ ${historicalAnalysisText}
    - Explain performance in context of typical quarterly cycles
 
 5. **CHANNEL-SPECIFIC PATTERNS**: Use channel historical patterns to:
-   - Identify which channels are performing above/below their historical averages
+   - Identify which channels are performing above/below the same week a year earlier (historical average)
    - Compare channel efficiency (ROI) to historical norms
    - Recommend channel budget shifts based on historical performance patterns
 
@@ -553,14 +578,25 @@ ${historicalAnalysisText}
    - Learn from historical extremes
 
 7. **INSIGHT GENERATION REQUIREMENTS**: Each insight MUST:
-   - Reference specific statistical data (e.g., "Current revenue is 15% above the 2-year average")
-   - Compare to seasonal benchmarks (e.g., "For January, this is 20% higher than typical")
+   - ALWAYS state comparisons with BOTH:
+     * The same week a year earlier (year-over-year comparison) - this is the "historical average"
+     * The week immediately prior (week-over-week comparison)
+   - When referencing "historical average", you MUST mean the same week a year earlier
+   - Reference specific statistical data with clear comparisons (e.g., "Current revenue is 15% above the same week a year earlier ($8,773) and 30.9% above the previous week")
+   - Compare to seasonal benchmarks (e.g., "For January, this is 20% higher than the same week last year")
    - Use trend analysis (e.g., "This continues a 3-month upward trend")
    - Reference historical context (e.g., "Similar to Q2 2023 performance pattern")
    - Distinguish short-term fluctuations from long-term changes
    - Provide actionable recommendations based on historical patterns
+   - DO NOT make suggestions about changes to the cart (cart abandonment, cart optimization, exit-intent pop-ups, etc.)
 
-⚠️ CRITICAL: DO NOT just compare to the previous week. You have 104 weeks of data - use statistical analysis, seasonal benchmarks, quarterly comparisons, and trend analysis to provide deep, data-driven insights.
+⚠️ CRITICAL COMPARISON REQUIREMENTS:
+- You MUST ALWAYS compare with BOTH:
+  1. The same week a year earlier (year-over-year) - this is the "historical average"
+  2. The week immediately prior (week-over-week)
+- When you say "historical average" or "compared to historical average", you MUST mean the same week a year earlier
+- Use statistical analysis, seasonal benchmarks, quarterly comparisons, and trend analysis to provide deep, data-driven insights
+- State both comparisons clearly in each insight (e.g., "30.9% above the same week a year earlier and 15% above the previous week")
 
 ` : ''}
 ` : ''}
@@ -582,8 +618,11 @@ Format your response as a JSON object with an "insights" array. ${businessContex
   ]
 }
 
+🛡️ DEFAULT RECOMMENDATION RULES:
+- DO NOT make suggestions about changes to the cart (cart abandonment, cart optimization, exit-intent pop-ups for cart, etc.)
+
 Focus on:
-- ROI and efficiency across channels (compare to historical averages, not just last week)
+- ROI and efficiency across channels (compare to the same week a year earlier and the previous week)
 - Conversion rate optimization (identify if current rates are above/below seasonal norms)
 - Customer acquisition cost trends (analyze long-term trends, not just week-over-week)
 - Funnel drop-off points (compare to historical patterns to identify anomalies)
