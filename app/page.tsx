@@ -621,8 +621,9 @@ export default function Dashboard() {
                             return acc;
                           }, {})
                         ).map(([channel, data]: [string, any]) => {
-                          const roi = data.spend > 0 ? ((data.revenue - data.spend) / data.spend * 100) : 0;
+                          const isGoogleAds = channel.toLowerCase().includes('google');
                           const isAffiliate = channel.toLowerCase().includes('affiliate');
+                          const roas = isGoogleAds && data.spend > 0 ? (data.revenue / data.spend) : 0;
                           return (
                             <div 
                               key={channel} 
@@ -645,17 +646,21 @@ export default function Dashboard() {
                                   <span className="text-muted-foreground">Revenue:</span>
                                   <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Spend:</span>
-                                  <span className="text-red-600">{formatCurrency(data.spend)}</span>
-                                </div>
-                                <div className="flex justify-between items-center pt-2 border-t">
-                                  <span className="text-muted-foreground font-semibold">ROI:</span>
-                                  <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : roi < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                    {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : roi < 0 ? <ArrowDownRight className="h-4 w-4" /> : null}
-                                    {roi.toFixed(0)}%
-                                  </span>
-                                </div>
+                                {isGoogleAds && (
+                                  <>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Spend:</span>
+                                      <span className="text-red-600">{formatCurrency(data.spend)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t">
+                                      <span className="text-muted-foreground font-semibold">ROAS:</span>
+                                      <span className={`font-bold text-lg flex items-center gap-1 ${roas > 1 ? 'text-green-600' : roas > 0 ? 'text-gray-600' : 'text-gray-400'}`}>
+                                        {roas > 1 ? <ArrowUpRight className="h-4 w-4" /> : null}
+                                        {roas > 0 ? `${roas.toFixed(2)}x` : '0.00x'}
+                                      </span>
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </div>
                           );
