@@ -39,6 +39,8 @@ interface FormData {
   aov: string;
   conversionRate: string;
   sessions: string;
+  addToCart: string;
+  checkout: string;
   
   // Google Ads
   googleAdsRevenue: string;
@@ -108,6 +110,8 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     aov: '',
     conversionRate: '',
     sessions: '',
+    addToCart: '',
+    checkout: '',
     googleAdsRevenue: '',
     googleAdsSpend: '',
     googleAdsClicks: '',
@@ -294,6 +298,18 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         aov: getMetricValue(overallMetrics, 'AOV'),
         conversionRate: getMetricValue(overallMetrics, 'Conversion Rate'),
         sessions: getMetricValue(overallMetrics, 'Total Sessions'),
+        addToCart: (() => {
+          const metric = funnelMetrics.find((m: any) => 
+            m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
+          );
+          return metric ? metric.metric_value.toString() : '';
+        })(),
+        checkout: (() => {
+          const metric = funnelMetrics.find((m: any) => 
+            m.stage_name === 'Overall' && m.metric_name === 'Checkout'
+          );
+          return metric ? metric.metric_value.toString() : '';
+        })(),
         googleAdsRevenue: getChannelMetric('Google Ads', 'Sales') || getChannelMetric('Google Ads', 'Revenue'),
         googleAdsSpend: getChannelMetric('Google Ads', 'Spend'),
         googleAdsClicks: getChannelMetric('Google Ads', 'Clicks'),
@@ -334,6 +350,8 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
       aov: '',
       conversionRate: '',
       sessions: '',
+      addToCart: '',
+      checkout: '',
       googleAdsRevenue: '',
       googleAdsSpend: '',
       googleAdsClicks: '',
@@ -418,6 +436,9 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
       ].filter(item => item.value > 0);
 
       const funnelMetricsArray = [
+        // Overall Funnel Metrics (manual entry)
+        { stage: 'Overall', metric: 'Sessions → Add to Cart', value: parseFloat(formData.addToCart) || 0 },
+        { stage: 'Overall', metric: 'Checkout', value: parseFloat(formData.checkout) || 0 },
         // Google Ads Funnel
         { stage: 'Google Ads', metric: 'Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
         // Email Funnel
@@ -747,6 +768,26 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 placeholder="1484"
                 value={formData.sessions}
                 onChange={(e) => handleChange('sessions', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="addToCart">Add to Cart</Label>
+              <Input
+                id="addToCart"
+                type="number"
+                placeholder="93"
+                value={formData.addToCart}
+                onChange={(e) => handleChange('addToCart', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="checkout">Checkout</Label>
+              <Input
+                id="checkout"
+                type="number"
+                placeholder="92"
+                value={formData.checkout}
+                onChange={(e) => handleChange('checkout', e.target.value)}
               />
             </div>
           </div>

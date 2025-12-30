@@ -127,6 +127,10 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       // Cart
       addFunnelMetric('Cart', '* Abandonment rate', row.cart_abandonment_rate);
 
+      // Overall Funnel Metrics (manual entry)
+      addFunnelMetric('Overall', 'Sessions → Add to Cart', row.add_to_cart || row.addToCart || row.add_to_cart_count);
+      addFunnelMetric('Overall', 'Checkout', row.checkout || row.checkout_count);
+
       // Top Products (support top_product_1_name, top_product_1_units, top_product_1_revenue, etc.)
       // Get all column names to help with debugging
       const rowKeys = Object.keys(row);

@@ -367,12 +367,35 @@ export default function Dashboard() {
                         <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-cyan-100 rounded-lg border-2 border-blue-200">
                           <div className="text-sm text-blue-600 mb-2">Add to Cart</div>
                           <div className="text-3xl font-bold text-blue-900">
-                            {formatNumber(getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                              getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                              getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100)}
+                            {(() => {
+                              // Prioritize manually entered value (Overall stage)
+                              const manualAddToCart = weekData.funnelMetrics.find((m: any) => 
+                                m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
+                              );
+                              if (manualAddToCart && manualAddToCart.metric_value > 0) {
+                                return formatNumber(manualAddToCart.metric_value);
+                              }
+                              // Fallback to calculated value
+                              return formatNumber(
+                                getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                                (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                                 getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100)
+                              );
+                            })()}
                           </div>
                           <div className="text-xs font-semibold text-blue-700 mt-2">
-                            {(getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') || 0).toFixed(1)}% rate
+                            {(() => {
+                              const manualAddToCart = weekData.funnelMetrics.find((m: any) => 
+                                m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
+                              );
+                              const addToCartValue = manualAddToCart && manualAddToCart.metric_value > 0
+                                ? manualAddToCart.metric_value
+                                : (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                                    (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                                     getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100));
+                              const sessions = getMetricValue(weekData.overallMetrics, 'Total Sessions');
+                              return sessions > 0 ? ((addToCartValue / sessions) * 100).toFixed(1) : '0.0';
+                            })()}% rate
                           </div>
                         </div>
                         <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-blue-400">
@@ -386,22 +409,40 @@ export default function Dashboard() {
                           <div className="text-sm text-purple-600 mb-2">Checkout</div>
                           <div className="text-3xl font-bold text-purple-900">
                             {(() => {
-                              // Sum Checkout from all channels, or use Orders as fallback (can't purchase without checkout)
+                              // Prioritize manually entered value (Overall stage)
+                              const manualCheckout = weekData.funnelMetrics.find((m: any) => 
+                                m.stage_name === 'Overall' && m.metric_name === 'Checkout'
+                              );
+                              if (manualCheckout && manualCheckout.metric_value > 0) {
+                                return formatNumber(manualCheckout.metric_value);
+                              }
+                              // Fallback to calculated value (sum from all channels, or use Orders)
                               const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                               const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              // Use checkout sum if > 0, otherwise use orders (since you can't purchase without checkout)
                               const checkoutValue = (checkoutSum > 0) ? checkoutSum : (orders || 0);
                               return formatNumber(checkoutValue);
                             })()}
                           </div>
                           <div className="text-xs font-semibold text-purple-700 mt-2">
                             {(() => {
-                              const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                              const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              const checkoutValue = (checkoutSum > 0) ? checkoutSum : (orders || 0);
-                              const addToCartCount = getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                                (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                                 getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100);
+                              const manualCheckout = weekData.funnelMetrics.find((m: any) => 
+                                m.stage_name === 'Overall' && m.metric_name === 'Checkout'
+                              );
+                              const checkoutValue = manualCheckout && manualCheckout.metric_value > 0
+                                ? manualCheckout.metric_value
+                                : (() => {
+                                    const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                                    const orders = getMetricValue(weekData.overallMetrics, 'Orders');
+                                    return (checkoutSum > 0) ? checkoutSum : (orders || 0);
+                                  })();
+                              const manualAddToCart = weekData.funnelMetrics.find((m: any) => 
+                                m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
+                              );
+                              const addToCartCount = manualAddToCart && manualAddToCart.metric_value > 0
+                                ? manualAddToCart.metric_value
+                                : (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                                    (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                                     getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100));
                               return addToCartCount > 0 
                                 ? ((checkoutValue / addToCartCount) * 100).toFixed(1)
                                 : '0.0';
@@ -423,8 +464,15 @@ export default function Dashboard() {
                           <div className="text-xs font-semibold text-green-700 mt-2">
                             {(() => {
                               const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                              const checkoutValue = (checkoutSum > 0) ? checkoutSum : (orders || 0); // Use orders as fallback
+                              const manualCheckout = weekData.funnelMetrics.find((m: any) => 
+                                m.stage_name === 'Overall' && m.metric_name === 'Checkout'
+                              );
+                              const checkoutValue = manualCheckout && manualCheckout.metric_value > 0
+                                ? manualCheckout.metric_value
+                                : (() => {
+                                    const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                                    return (checkoutSum > 0) ? checkoutSum : (orders || 0);
+                                  })();
                               return checkoutValue > 0 
                                 ? ((orders / checkoutValue) * 100).toFixed(1)
                                 : '0.0';
@@ -444,16 +492,25 @@ export default function Dashboard() {
                           <div className="font-semibold text-amber-900 text-sm mb-1">Checkout Abandonment</div>
                           <div className="text-sm text-amber-700">
                             {(() => {
-                              // Get the actual Add to Cart count (same calculation as the Add to Cart card)
-                              const addToCartCount = getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                                (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                                 getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100);
-                              // Sum Checkout from all channels, or use Orders as fallback
-                              const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                              const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              // Use orders as fallback since you can't purchase without checkout
-                              // But only if checkoutSum is 0 or falsy - if it's a valid number > 0, use it
-                              const checkoutCount = (checkoutSum > 0) ? checkoutSum : (orders || 0);
+                              // Prioritize manually entered values
+                              const manualAddToCart = weekData.funnelMetrics.find((m: any) => 
+                                m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
+                              );
+                              const addToCartCount = manualAddToCart && manualAddToCart.metric_value > 0
+                                ? manualAddToCart.metric_value
+                                : (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                                    (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                                     getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100));
+                              const manualCheckout = weekData.funnelMetrics.find((m: any) => 
+                                m.stage_name === 'Overall' && m.metric_name === 'Checkout'
+                              );
+                              const checkoutCount = manualCheckout && manualCheckout.metric_value > 0
+                                ? manualCheckout.metric_value
+                                : (() => {
+                                    const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                                    const orders = getMetricValue(weekData.overallMetrics, 'Orders');
+                                    return (checkoutSum > 0) ? checkoutSum : (orders || 0);
+                                  })();
                               
                               // Calculate abandonment: (1 - checkout/addToCart) * 100
                               // Ensure we don't divide by zero and handle edge cases
