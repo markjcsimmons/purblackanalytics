@@ -316,7 +316,7 @@ export default function Dashboard() {
                     {weekData.week?.romans_recommendations ? (
                       <div className="prose prose-amber max-w-none">
                         <p 
-                          className="text-gray-800 text-base leading-relaxed whitespace-pre-wrap"
+                          className="text-gray-800 text-xs leading-relaxed whitespace-pre-wrap"
                           dangerouslySetInnerHTML={{
                             __html: renderMarkdownBold(weekData.week.romans_recommendations)
                           }}
