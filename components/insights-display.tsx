@@ -332,7 +332,7 @@ Examples:
                       {insight.type}
                     </Badge>
                   </div>
-                  <p className="text-sm leading-relaxed">{insight.text}</p>
+                  <p className="text-xs leading-relaxed">{insight.text}</p>
                 </div>
               </div>
             </div>
