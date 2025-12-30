@@ -557,7 +557,7 @@ export default function Dashboard() {
                                 {product.rank || idx + 1}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-base truncate">{product.productName || product.product_name}</div>
+                                <div className="font-semibold text-base line-clamp-2 leading-tight">{product.productName || product.product_name}</div>
                               </div>
                             </div>
                             <div className="space-y-2">
