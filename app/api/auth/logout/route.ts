@@ -15,5 +15,14 @@ export async function POST() {
     path: '/',
   });
 
+  // Clear access level cookie
+  response.cookies.set('access_level', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 0,
+    path: '/',
+  });
+
   return response;
 }

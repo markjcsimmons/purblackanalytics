@@ -12,7 +12,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DataEntryForm } from '@/components/data-entry-form';
-import { DataUpload } from '@/components/data-upload';
 import { InsightsDisplay } from '@/components/insights-display';
 import { 
   TrendingUp, 
@@ -38,7 +37,6 @@ interface WeekData {
   marketingChannels: any[];
   funnelMetrics: any[];
   insights: any[];
-  topProducts?: any[];
 }
 
 export default function Dashboard() {
@@ -46,6 +44,8 @@ export default function Dashboard() {
   const [selectedWeekId, setSelectedWeekId] = useState<number | null>(null);
   const [weekData, setWeekData] = useState<WeekData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [accessLevel, setAccessLevel] = useState<'full' | 'limited' | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   const fetchWeeks = async () => {
     try {
@@ -76,6 +76,20 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    // Check access level
+    fetch('/api/auth/check')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated) {
+          setAccessLevel(data.accessLevel || 'full');
+        } else {
+          window.location.href = '/login';
+        }
+      })
+      .catch(() => {
+        window.location.href = '/login';
+      });
+    
     fetchWeeks();
   }, []);
 
@@ -110,24 +124,6 @@ export default function Dashboard() {
     return metric ? metric.metric_value : 0;
   };
 
-  // Helper to sum funnel metrics across all channels for overall funnel display
-  const getFunnelMetricSum = (funnelMetrics: any[], metricName: string): number => {
-    if (!funnelMetrics || !Array.isArray(funnelMetrics)) return 0;
-    
-    // Sum the metric across all stages (channels)
-    const sum = funnelMetrics
-      .filter(m => {
-        const metricLower = m.metric_name?.toLowerCase() || '';
-        const searchLower = metricName.toLowerCase();
-        return metricLower === searchLower || 
-               metricLower === `* ${searchLower}` ||
-               metricLower.includes(searchLower);
-      })
-      .reduce((sum, m) => sum + (Number(m.metric_value) || 0), 0);
-    
-    return isNaN(sum) ? 0 : sum;
-  };
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -139,19 +135,6 @@ export default function Dashboard() {
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('en-US').format(value);
-  };
-
-  const renderMarkdownBold = (text: string) => {
-    if (!text) return '';
-    // Escape HTML first to prevent XSS
-    const escaped = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-    // Then convert **text** to <strong>text</strong>
-    return escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />');
   };
 
 
@@ -213,11 +196,33 @@ export default function Dashboard() {
       </div>
 
       <div className="container mx-auto px-6 py-8">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+        {accessLevel === 'limited' && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-amber-900">Limited Access:</span>
+              <span className="text-sm text-amber-700">You can only view the Overview page.</span>
+            </div>
+          </div>
+        )}
+        <Tabs 
+          value={activeTab}
+          onValueChange={(value) => {
+            // Prevent limited access users from switching to restricted tabs
+            if (accessLevel === 'limited' && value !== 'overview') {
+              return;
+            }
+            setActiveTab(value);
+          }}
+          className="space-y-6"
+        >
+          <TabsList className={`grid w-full ${accessLevel === 'limited' ? 'grid-cols-1' : 'grid-cols-3'} lg:w-[400px]`}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="channels">Channels</TabsTrigger>
-            <TabsTrigger value="add-data">Add Data</TabsTrigger>
+            {accessLevel === 'full' && (
+              <>
+                <TabsTrigger value="channels">Channels</TabsTrigger>
+                <TabsTrigger value="add-data">Add Data</TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           {/* Overview Tab */}
@@ -299,40 +304,6 @@ export default function Dashboard() {
                   </Card>
                 </div>
 
-                {/* ROMAN'S RECOMMENDATIONS */}
-                <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50">
-                  <CardHeader className="bg-gradient-to-r from-amber-100 to-yellow-100">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-amber-500 rounded-lg">
-                        <Sparkles className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-amber-900">Roman's Recommendations</CardTitle>
-                        <CardDescription className="text-amber-700">Expert insights and actionable recommendations</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-6">
-                    {weekData.week?.romans_recommendations ? (
-                      <div className="prose prose-amber max-w-none">
-                        <p 
-                          className="text-gray-800 text-xs leading-relaxed whitespace-pre-wrap"
-                          dangerouslySetInnerHTML={{
-                            __html: renderMarkdownBold(weekData.week.romans_recommendations)
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Sparkles className="h-12 w-12 mx-auto mb-3 text-amber-300 opacity-50" />
-                        <p className="text-amber-700 text-sm">
-                          No recommendations added yet. Add them in the <strong>Add Data</strong> tab under "Week Information".
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
                 {/* CONVERSION FUNNEL - Detailed Breakdown */}
                 <Card className="border-2 border-indigo-100">
                   <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
@@ -367,35 +338,12 @@ export default function Dashboard() {
                         <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-cyan-100 rounded-lg border-2 border-blue-200">
                           <div className="text-sm text-blue-600 mb-2">Add to Cart</div>
                           <div className="text-3xl font-bold text-blue-900">
-                            {(() => {
-                              // Prioritize manually entered value (Overall stage)
-                              const manualAddToCart = weekData.funnelMetrics.find((m: any) => 
-                                m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
-                              );
-                              if (manualAddToCart && manualAddToCart.metric_value > 0) {
-                                return formatNumber(manualAddToCart.metric_value);
-                              }
-                              // Fallback to calculated value
-                              return formatNumber(
-                                getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                                (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                                 getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100)
-                              );
-                            })()}
+                            {formatNumber(getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                              getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                              getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100)}
                           </div>
                           <div className="text-xs font-semibold text-blue-700 mt-2">
-                            {(() => {
-                              const manualAddToCart = weekData.funnelMetrics.find((m: any) => 
-                                m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
-                              );
-                              const addToCartValue = manualAddToCart && manualAddToCart.metric_value > 0
-                                ? manualAddToCart.metric_value
-                                : (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                                    (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                                     getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100));
-                              const sessions = getMetricValue(weekData.overallMetrics, 'Total Sessions');
-                              return sessions > 0 ? ((addToCartValue / sessions) * 100).toFixed(1) : '0.0';
-                            })()}% rate
+                            {(getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') || 0).toFixed(1)}% rate
                           </div>
                         </div>
                         <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-blue-400">
@@ -408,45 +356,11 @@ export default function Dashboard() {
                         <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-100 rounded-lg border-2 border-purple-200">
                           <div className="text-sm text-purple-600 mb-2">Checkout</div>
                           <div className="text-3xl font-bold text-purple-900">
-                            {(() => {
-                              // Prioritize manually entered value (Overall stage)
-                              const manualCheckout = weekData.funnelMetrics.find((m: any) => 
-                                m.stage_name === 'Overall' && m.metric_name === 'Checkout'
-                              );
-                              if (manualCheckout && manualCheckout.metric_value > 0) {
-                                return formatNumber(manualCheckout.metric_value);
-                              }
-                              // Fallback to calculated value (sum from all channels, or use Orders)
-                              const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                              const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              const checkoutValue = (checkoutSum > 0) ? checkoutSum : (orders || 0);
-                              return formatNumber(checkoutValue);
-                            })()}
+                            {formatNumber(getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') || 0)}
                           </div>
                           <div className="text-xs font-semibold text-purple-700 mt-2">
-                            {(() => {
-                              const manualCheckout = weekData.funnelMetrics.find((m: any) => 
-                                m.stage_name === 'Overall' && m.metric_name === 'Checkout'
-                              );
-                              const checkoutValue = manualCheckout && manualCheckout.metric_value > 0
-                                ? manualCheckout.metric_value
-                                : (() => {
-                                    const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                                    const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                                    return (checkoutSum > 0) ? checkoutSum : (orders || 0);
-                                  })();
-                              const manualAddToCart = weekData.funnelMetrics.find((m: any) => 
-                                m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
-                              );
-                              const addToCartCount = manualAddToCart && manualAddToCart.metric_value > 0
-                                ? manualAddToCart.metric_value
-                                : (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                                    (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                                     getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100));
-                              return addToCartCount > 0 
-                                ? ((checkoutValue / addToCartCount) * 100).toFixed(1)
-                                : '0.0';
-                            })()}% from cart
+                            {((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
+                              (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 1)) * 100).toFixed(1)}% from cart
                           </div>
                         </div>
                         <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-purple-400">
@@ -462,71 +376,26 @@ export default function Dashboard() {
                             {formatNumber(getMetricValue(weekData.overallMetrics, 'Orders'))}
                           </div>
                           <div className="text-xs font-semibold text-green-700 mt-2">
-                            {(() => {
-                              const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                              const manualCheckout = weekData.funnelMetrics.find((m: any) => 
-                                m.stage_name === 'Overall' && m.metric_name === 'Checkout'
-                              );
-                              const checkoutValue = manualCheckout && manualCheckout.metric_value > 0
-                                ? manualCheckout.metric_value
-                                : (() => {
-                                    const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                                    return (checkoutSum > 0) ? checkoutSum : (orders || 0);
-                                  })();
-                              return checkoutValue > 0 
-                                ? ((orders / checkoutValue) * 100).toFixed(1)
-                                : '0.0';
-                            })()}% checkout rate
+                            {((getMetricValue(weekData.funnelMetrics, 'Checkout → Purchase') || 0)).toFixed(1)}% checkout rate
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Checkout Abandonment Callout */}
+                    {/* Cart Abandonment Callout */}
                     <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-amber-100 rounded">
                           <ShoppingCart className="h-4 w-4 text-amber-600" />
                         </div>
                         <div className="flex-1">
-                          <div className="font-semibold text-amber-900 text-sm mb-1">Checkout Abandonment</div>
+                          <div className="font-semibold text-amber-900 text-sm mb-1">Cart Abandonment</div>
                           <div className="text-sm text-amber-700">
-                            {(() => {
-                              // Prioritize manually entered values
-                              const manualAddToCart = weekData.funnelMetrics.find((m: any) => 
-                                m.stage_name === 'Overall' && m.metric_name === 'Sessions → Add to Cart'
-                              );
-                              const addToCartCount = manualAddToCart && manualAddToCart.metric_value > 0
-                                ? manualAddToCart.metric_value
-                                : (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                                    (getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                                     getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100));
-                              const manualCheckout = weekData.funnelMetrics.find((m: any) => 
-                                m.stage_name === 'Overall' && m.metric_name === 'Checkout'
-                              );
-                              const checkoutCount = manualCheckout && manualCheckout.metric_value > 0
-                                ? manualCheckout.metric_value
-                                : (() => {
-                                    const checkoutSum = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                                    const orders = getMetricValue(weekData.overallMetrics, 'Orders');
-                                    return (checkoutSum > 0) ? checkoutSum : (orders || 0);
-                                  })();
-                              
-                              // Calculate abandonment: (1 - checkout/addToCart) * 100
-                              // Ensure we don't divide by zero and handle edge cases
-                              let abandonmentRate = '0.0';
-                              if (addToCartCount > 0 && checkoutCount >= 0) {
-                                const rate = (100 - ((checkoutCount / addToCartCount) * 100));
-                                abandonmentRate = Math.max(0, Math.min(100, rate)).toFixed(1); // Clamp between 0-100
-                              }
-                              
-                              return (
-                                <>
-                                  <span className="font-bold text-lg">{abandonmentRate}%</span>
-                                  {' '}of users who added to cart didn't checkout
-                                </>
-                              );
-                            })()}
+                            <span className="font-bold text-lg">
+                              {(100 - ((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
+                                (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 1)) * 100)).toFixed(1)}%
+                            </span>
+                            {' '}of users who added to cart didn't checkout
                           </div>
                         </div>
                       </div>
@@ -548,37 +417,32 @@ export default function Dashboard() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    {weekData.topProducts && weekData.topProducts.length > 0 ? (
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {weekData.topProducts.map((product: any, idx: number) => (
-                          <div key={idx} className="p-4 bg-gradient-to-r from-white to-pink-50 border-2 border-pink-200 rounded-lg">
-                            <div className="flex items-center gap-3 mb-3">
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {weekData.overallMetrics
+                        .filter((m: any) => m.metric_name.startsWith('/products/') && m.metric_name !== '/products/')
+                        .sort((a: any, b: any) => b.metric_value - a.metric_value)
+                        .slice(0, 6)
+                        .map((product: any, idx: number) => {
+                          const productName = product.metric_name
+                            .replace('/products/', '')
+                            .split('-')
+                            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                          return (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
                               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
-                                {product.rank || idx + 1}
+                                {idx + 1}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-base line-clamp-3 leading-tight">{product.productName || product.product_name}</div>
+                                <div className="font-semibold text-sm truncate">{productName}</div>
+                                <div className="text-xs text-muted-foreground">{product.metric_value} orders</div>
                               </div>
+
                             </div>
-                            <div className="space-y-2">
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">Units Sold:</span>
-                                <span className="font-bold text-pink-900">{formatNumber(product.unitsSold || product.units_sold || 0)}</span>
-                              </div>
-                              <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">Revenue:</span>
-                                <span className="font-bold text-green-700">{formatCurrency(product.revenue || 0)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                        <p>No top products data available. Add them in the <strong>Add Data</strong> tab.</p>
-                      </div>
-                    )}
+                          );
+                        })
+                      }
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -621,9 +485,8 @@ export default function Dashboard() {
                             return acc;
                           }, {})
                         ).map(([channel, data]: [string, any]) => {
-                          const isGoogleAds = channel.toLowerCase().includes('google');
+                          const roi = data.spend > 0 ? ((data.revenue - data.spend) / data.spend * 100) : 0;
                           const isAffiliate = channel.toLowerCase().includes('affiliate');
-                          const roas = isGoogleAds && data.spend > 0 ? (data.revenue / data.spend) : 0;
                           return (
                             <div 
                               key={channel} 
@@ -646,21 +509,17 @@ export default function Dashboard() {
                                   <span className="text-muted-foreground">Revenue:</span>
                                   <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
                                 </div>
-                                {isGoogleAds && (
-                                  <>
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Spend:</span>
-                                      <span className="text-red-600">{formatCurrency(data.spend)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center pt-2 border-t">
-                                      <span className="text-muted-foreground font-semibold">ROAS:</span>
-                                      <span className={`font-bold text-lg flex items-center gap-1 ${roas > 1 ? 'text-green-600' : roas > 0 ? 'text-gray-600' : 'text-gray-400'}`}>
-                                        {roas > 1 ? <ArrowUpRight className="h-4 w-4" /> : null}
-                                        {roas > 0 ? `${roas.toFixed(2)}x` : '0.00x'}
-                                      </span>
-                                    </div>
-                                  </>
-                                )}
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Spend:</span>
+                                  <span className="text-red-600">{formatCurrency(data.spend)}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 border-t">
+                                  <span className="text-muted-foreground font-semibold">ROI:</span>
+                                  <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : roi < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                    {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : roi < 0 ? <ArrowDownRight className="h-4 w-4" /> : null}
+                                    {roi.toFixed(0)}%
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           );
@@ -702,17 +561,10 @@ export default function Dashboard() {
                               {stage}
                             </div>
                             <div className="space-y-2">
-                              {metrics.map((metric: any, idx: number) => {
-                                // Format metric name for display
-                                let displayName = metric.metric_name.replace(/^\*\s*/, '');
-                                // Transform specific metric names
-                                if (displayName === 'Add-to-cart rate') {
-                                  displayName = 'Add to Cart Rate';
-                                }
-                                return (
+                              {metrics.map((metric: any, idx: number) => (
                                 <div key={idx} className="flex justify-between items-start text-sm">
                                   <span className="text-muted-foreground text-xs flex-1">
-                                    {displayName}
+                                    {metric.metric_name.replace(/^\*\s*/, '')}
                                   </span>
                                   <span className="font-semibold ml-2 text-teal-900">
                                     {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
@@ -721,8 +573,7 @@ export default function Dashboard() {
                                     {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''}
                                   </span>
                                 </div>
-                                );
-                              })}
+                              ))}
                             </div>
                           </div>
                         ))}
@@ -763,8 +614,9 @@ export default function Dashboard() {
             )}
           </TabsContent>
 
-          {/* Channels Tab */}
-          <TabsContent value="channels" className="space-y-6">
+          {/* Channels Tab - Full Access Only */}
+          {accessLevel === 'full' && (
+            <TabsContent value="channels" className="space-y-6">
             {weekData && (
               <div className="grid gap-6">
                 {weekData && weekData.marketingChannels && Array.isArray(weekData.marketingChannels) && Object.entries(
@@ -805,24 +657,14 @@ export default function Dashboard() {
               </div>
             )}
           </TabsContent>
+          )}
 
-          {/* Add Data Tab */}
-          <TabsContent value="add-data" className="space-y-6">
-            <Tabs defaultValue="form" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-                <TabsTrigger value="form">Manual Entry</TabsTrigger>
-                <TabsTrigger value="csv">CSV Upload</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="form" className="space-y-4">
-                <DataEntryForm onSuccess={handleUploadSuccess} />
-              </TabsContent>
-              
-              <TabsContent value="csv" className="space-y-4">
-                <DataUpload onUploadSuccess={handleUploadSuccess} />
-              </TabsContent>
-            </Tabs>
-          </TabsContent>
+          {/* Add Data Tab - Full Access Only */}
+          {accessLevel === 'full' && (
+            <TabsContent value="add-data" className="space-y-6">
+              <DataEntryForm onSuccess={handleUploadSuccess} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
