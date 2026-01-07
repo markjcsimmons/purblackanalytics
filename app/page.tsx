@@ -146,11 +146,34 @@ export default function Dashboard() {
   };
 
   // Helper function to get total Add to Cart across all stages
-  const getTotalAddToCart = (funnelMetrics: any[]): number => {
+  const getTotalAddToCart = (funnelMetrics: any[], overallMetrics: any[]): number => {
     if (!funnelMetrics || !Array.isArray(funnelMetrics)) return 0;
+    
+    // Try to find 'Sessions → Add to Cart' first
+    const sessionsToATC = getMetricValue(funnelMetrics, 'Sessions → Add to Cart');
+    if (sessionsToATC > 0) {
+      return sessionsToATC;
+    }
+    
+    // Try to calculate from Add-to-cart rate
+    const atcRate = getMetricValue(funnelMetrics, 'Add-to-cart rate');
+    if (atcRate > 0 && overallMetrics) {
+      const totalSessions = getMetricValue(overallMetrics, 'Total Sessions');
+      if (totalSessions > 0) {
+        return (atcRate * totalSessions) / 100;
+      }
+    }
+    
+    // Fallback: sum all 'Add to Cart' metrics
     return funnelMetrics
-      .filter(m => m.metric_name === 'Add to Cart')
-      .reduce((sum, m) => sum + (m.metric_value || 0), 0);
+      .filter(m => m.metric_name === 'Add to Cart' || m.metric_name === 'Add-to-cart rate')
+      .reduce((sum, m) => {
+        if (m.metric_name === 'Add-to-cart rate' && overallMetrics) {
+          const totalSessions = getMetricValue(overallMetrics, 'Total Sessions');
+          return sum + (totalSessions > 0 ? (m.metric_value * totalSessions) / 100 : 0);
+        }
+        return sum + (m.metric_value || 0);
+      }, 0);
   };
 
   // Helper function to find a funnel metric in comparison data
@@ -610,7 +633,7 @@ export default function Dashboard() {
                           <div className="text-xs font-semibold text-purple-700 mt-2">
                             {(() => {
                               const totalCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                              const totalATC = getTotalAddToCart(weekData.funnelMetrics);
+                              const totalATC = getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics);
                               return totalATC > 0 ? ((totalCheckout / totalATC) * 100).toFixed(1) : '0.0';
                             })()}% from cart
                           </div>
@@ -646,7 +669,7 @@ export default function Dashboard() {
                             <span className="font-bold text-lg">
                               {(() => {
                                 const totalCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
-                                const totalATC = getTotalAddToCart(weekData.funnelMetrics);
+                                const totalATC = getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics);
                                 return totalATC > 0 ? (100 - ((totalCheckout / totalATC) * 100)).toFixed(1) : '0.0';
                               })()}%
                             </span>
