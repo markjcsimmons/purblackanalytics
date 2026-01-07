@@ -1043,23 +1043,66 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent className="pt-6">
                     {weekData && weekData.funnelMetrics && weekData.funnelMetrics.length > 0 ? (
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {Object.entries(
-                          weekData.funnelMetrics.reduce((acc: any, item: any) => {
-                            if (!acc[item.stage_name]) {
-                              acc[item.stage_name] = [];
-                            }
-                            acc[item.stage_name].push(item);
-                            return acc;
-                          }, {})
-                        ).map(([stage, metrics]: [string, any]) => (
-                          <div key={stage} className="p-4 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
-                            <div className="font-bold mb-3 text-teal-900 flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                              {stage}
-                            </div>
-                            <div className="space-y-2">
-                              {metrics.map((metric: any, idx: number) => {
+                      (() => {
+                        // Define funnel flow order
+                        const funnelOrder = ['Sessions', 'Add to Cart', 'Sessions → Add to Cart', 'Checkout', 'Purchases'];
+                        const metricOrder = [
+                          'Sessions',
+                          'Add to Cart',
+                          'Sessions → Add to Cart',
+                          'Add-to-cart rate',
+                          'Checkout',
+                          'Purchases',
+                          'Time on page',
+                          'Scroll depth',
+                          'Abandonment rate',
+                          'Shipping issues'
+                        ];
+
+                        // Group metrics by metric name instead of stage
+                        const metricsByType = weekData.funnelMetrics.reduce((acc: any, item: any) => {
+                          const metricName = item.metric_name.replace(/^\*\s*/, '');
+                          if (!acc[metricName]) {
+                            acc[metricName] = [];
+                          }
+                          acc[metricName].push(item);
+                          return acc;
+                        }, {});
+
+                        // Sort metric types by funnel order
+                        const sortedMetricTypes = Object.keys(metricsByType).sort((a, b) => {
+                          const aIndex = metricOrder.findIndex(m => a.includes(m) || m.includes(a));
+                          const bIndex = metricOrder.findIndex(m => b.includes(m) || m.includes(b));
+                          if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                          if (aIndex === -1) return 1;
+                          if (bIndex === -1) return -1;
+                          return aIndex - bIndex;
+                        });
+
+                        return (
+                          <div className="space-y-6">
+                            {sortedMetricTypes.map((metricType) => {
+                              const metrics = metricsByType[metricType];
+                              const totalValue = metrics.reduce((sum: number, m: any) => sum + (m.metric_value || 0), 0);
+                              
+                              return (
+                                <div key={metricType} className="p-4 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div className="font-bold text-teal-900 flex items-center gap-2">
+                                      <div className="w-2 h-2 rounded-full bg-teal-500"></div>
+                                      {metricType}
+                                    </div>
+                                    {metrics.length > 1 && (
+                                      <div className="text-sm font-semibold text-teal-700">
+                                        Total: {typeof totalValue === 'number' && totalValue < 100 && !metricType.toLowerCase().includes('rate')
+                                          ? totalValue.toFixed(1)
+                                          : formatNumber(totalValue)}
+                                        {metricType.toLowerCase().includes('rate') || metricType.toLowerCase().includes('%') ? '%' : ''}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="space-y-3">
+                                    {metrics.map((metric: any, idx: number) => {
                                 const currentValue = metric.metric_value;
                                 const prevWeekValue = comparisonData?.previousWeek 
                                   ? getComparisonFunnelMetric(comparisonData.previousWeek, stage, metric.metric_name)
