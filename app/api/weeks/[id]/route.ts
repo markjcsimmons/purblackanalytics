@@ -10,6 +10,8 @@ export async function GET(
   try {
     const { id } = await params;
     const weekId = parseInt(id);
+    const { searchParams } = new URL(request.url);
+    const includeComparisons = searchParams.get('comparisons') === 'true';
     
     if (isNaN(weekId)) {
       return NextResponse.json(
@@ -19,7 +21,7 @@ export async function GET(
     }
 
     // Dynamically import database functions to avoid build-time execution
-    const { getWeekData } = await import('@/lib/db');
+    const { getWeekData, findPreviousWeek, findSameWeekYearAgo } = await import('@/lib/db');
     const data = getWeekData(weekId);
     
     if (!data.week) {
@@ -27,6 +29,20 @@ export async function GET(
         { error: 'Week not found' },
         { status: 404 }
       );
+    }
+
+    // Add comparison data if requested
+    if (includeComparisons) {
+      const previousWeekData = findPreviousWeek(data.week.week_start_date);
+      const sameWeekYearAgoData = findSameWeekYearAgo(data.week.week_start_date);
+      
+      return NextResponse.json({
+        ...data,
+        comparisons: {
+          previousWeek: previousWeekData,
+          sameWeekYearAgo: sameWeekYearAgoData
+        }
+      });
     }
 
     // getWeekData already transforms insights to the correct format

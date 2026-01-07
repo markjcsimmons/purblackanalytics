@@ -46,6 +46,10 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [accessLevel, setAccessLevel] = useState<'full' | 'limited' | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [comparisonData, setComparisonData] = useState<{
+    previousWeek: any;
+    sameWeekYearAgo: any;
+  } | null>(null);
 
   const fetchWeeks = async () => {
     try {
@@ -68,6 +72,13 @@ export default function Dashboard() {
       const response = await fetch(`/api/weeks/${weekId}`);
       const data = await response.json();
       setWeekData(data);
+      
+      // Fetch comparison data for channels tab
+      const comparisonResponse = await fetch(`/api/weeks/${weekId}?comparisons=true`);
+      const comparisonResult = await comparisonResponse.json();
+      if (comparisonResult.comparisons) {
+        setComparisonData(comparisonResult.comparisons);
+      }
     } catch (error) {
       console.error('Error fetching week data:', error);
     } finally {
@@ -627,33 +638,108 @@ export default function Dashboard() {
                     acc[item.channel_name].push(item);
                     return acc;
                   }, {})
-                ).map(([channel, metrics]: [string, any]) => (
-                  <Card key={channel}>
-                    <CardHeader>
-                      <CardTitle>{channel}</CardTitle>
-                      <CardDescription>Performance metrics</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-4 md:grid-cols-3">
-                        {metrics.map((metric: any) => (
-                          <div key={metric.id} className="space-y-1">
-                            <p className="text-sm text-muted-foreground">{metric.metric_name}</p>
-                            <p className="text-2xl font-bold">
-                              {metric.metric_name.toLowerCase().includes('revenue') || 
-                               metric.metric_name.toLowerCase().includes('spend') || 
-                               metric.metric_name.toLowerCase().includes('cost')
-                                ? formatCurrency(metric.metric_value)
-                                : metric.metric_name.toLowerCase().includes('rate') ||
-                                  metric.metric_name.toLowerCase().includes('roas')
-                                ? metric.metric_value.toFixed(2)
-                                : formatNumber(metric.metric_value)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                ).map(([channel, metrics]: [string, any]) => {
+                  // Helper function to get comparison value for a metric
+                  const getComparisonValue = (metricName: string, comparisonWeek: any) => {
+                    if (!comparisonWeek || !comparisonWeek.marketingChannels) return null;
+                    const comparisonMetric = comparisonWeek.marketingChannels.find(
+                      (m: any) => m.channel_name === channel && m.metric_name === metricName
+                    );
+                    return comparisonMetric ? comparisonMetric.metric_value : null;
+                  };
+
+                  // Helper function to calculate percentage change
+                  const calculateChange = (current: number, previous: number | null) => {
+                    if (previous === null || previous === 0) return null;
+                    return ((current - previous) / previous) * 100;
+                  };
+
+                  return (
+                    <Card key={channel}>
+                      <CardHeader>
+                        <CardTitle>{channel}</CardTitle>
+                        <CardDescription>Performance metrics with comparisons</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {metrics.map((metric: any) => {
+                            const currentValue = metric.metric_value;
+                            const prevWeekValue = comparisonData?.previousWeek 
+                              ? getComparisonValue(metric.metric_name, comparisonData.previousWeek)
+                              : null;
+                            const yearAgoValue = comparisonData?.sameWeekYearAgo 
+                              ? getComparisonValue(metric.metric_name, comparisonData.sameWeekYearAgo)
+                              : null;
+                            
+                            const prevWeekChange = calculateChange(currentValue, prevWeekValue);
+                            const yearAgoChange = calculateChange(currentValue, yearAgoValue);
+
+                            const isCurrency = metric.metric_name.toLowerCase().includes('revenue') || 
+                                              metric.metric_name.toLowerCase().includes('spend') || 
+                                              metric.metric_name.toLowerCase().includes('cost');
+                            const isRate = metric.metric_name.toLowerCase().includes('rate') ||
+                                          metric.metric_name.toLowerCase().includes('roas');
+
+                            return (
+                              <div key={metric.id} className="space-y-2 p-4 border rounded-lg bg-gradient-to-br from-white to-gray-50">
+                                <p className="text-sm font-medium text-muted-foreground">{metric.metric_name}</p>
+                                <div className="space-y-1">
+                                  <p className="text-2xl font-bold">
+                                    {isCurrency
+                                      ? formatCurrency(currentValue)
+                                      : isRate
+                                      ? metric.metric_value.toFixed(2)
+                                      : formatNumber(currentValue)}
+                                  </p>
+                                  
+                                  {/* Previous Week Comparison */}
+                                  {prevWeekValue !== null && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <span className="text-muted-foreground">vs. Previous Week:</span>
+                                      {prevWeekChange !== null && (
+                                        <span className={`font-semibold flex items-center gap-1 ${
+                                          prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-gray-600'
+                                        }`}>
+                                          {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                          {Math.abs(prevWeekChange).toFixed(1)}%
+                                        </span>
+                                      )}
+                                      <span className="text-xs text-muted-foreground">
+                                        ({isCurrency ? formatCurrency(prevWeekValue) : isRate ? prevWeekValue.toFixed(2) : formatNumber(prevWeekValue)})
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Year Ago Comparison */}
+                                  {yearAgoValue !== null && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <span className="text-muted-foreground">vs. Year Ago:</span>
+                                      {yearAgoChange !== null && (
+                                        <span className={`font-semibold flex items-center gap-1 ${
+                                          yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-gray-600'
+                                        }`}>
+                                          {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                          {Math.abs(yearAgoChange).toFixed(1)}%
+                                        </span>
+                                      )}
+                                      <span className="text-xs text-muted-foreground">
+                                        ({isCurrency ? formatCurrency(yearAgoValue) : isRate ? yearAgoValue.toFixed(2) : formatNumber(yearAgoValue)})
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {prevWeekValue === null && yearAgoValue === null && (
+                                    <p className="text-xs text-muted-foreground italic">No comparison data available</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
