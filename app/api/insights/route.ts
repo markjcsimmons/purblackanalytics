@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateInsights } from '@/lib/openai';
-import { getRecommendationRules } from '@/lib/db';
 
 // Force dynamic rendering - don't try to pre-render this route
 export const dynamic = 'force-dynamic';
@@ -23,42 +22,17 @@ export async function POST(request: NextRequest) {
     // Get current week data
     const weekData = getWeekData(weekId);
     
-    // Get ALL historical weeks for pattern and seasonality analysis
+    // Get previous week for comparison (optional)
     // Weeks are ordered by week_start_date DESC (most recent first)
+    // Previous week would be the one with an earlier date (higher index in the array)
     const weeks = getWeeks();
     const currentWeekIndex = weeks.findIndex((w: any) => w.id === weekId);
-    
-    // Get all weeks except the current one for historical analysis
-    // This allows the AI to identify patterns, trends, and seasonality
-    const historicalWeeks = weeks
-      .filter((w: any, index: number) => index !== currentWeekIndex)
-      .map((w: any) => getWeekData(w.id));
-    
-    // Also keep previousWeekData for backward compatibility and quick comparison
     let previousWeekData = null;
+    
+    // Get the previous week (earlier date) - it's at a higher index since weeks are sorted DESC
     if (currentWeekIndex >= 0 && currentWeekIndex < weeks.length - 1) {
       const previousWeek = weeks[currentWeekIndex + 1] as any;
       previousWeekData = getWeekData(previousWeek.id);
-    }
-
-    // Find the same week a year earlier for YoY comparison
-    let sameWeekYearEarlierData = null;
-    if (weekData.week && typeof weekData.week === 'object' && 'week_start_date' in weekData.week) {
-      const currentWeekStart = new Date((weekData.week as any).week_start_date);
-      const yearEarlierDate = new Date(currentWeekStart);
-      yearEarlierDate.setFullYear(yearEarlierDate.getFullYear() - 1);
-      
-      // Find the week that starts closest to the same date a year earlier
-      // Allow up to 7 days difference to account for week boundaries
-      const sameWeekYearEarlier = weeks.find((w: any) => {
-        const weekStart = new Date(w.week_start_date);
-        const daysDiff = Math.abs((weekStart.getTime() - yearEarlierDate.getTime()) / (1000 * 60 * 60 * 24));
-        return daysDiff <= 7;
-      });
-      
-      if (sameWeekYearEarlier && typeof sameWeekYearEarlier === 'object' && 'id' in sameWeekYearEarlier) {
-        sameWeekYearEarlierData = getWeekData((sameWeekYearEarlier as any).id);
-      }
     }
 
     // Combine week notes and additional context
@@ -74,18 +48,11 @@ export async function POST(request: NextRequest) {
     }
     const combinedContext = contextParts.length > 0 ? contextParts.join('\n\n') : undefined;
 
-    // Fetch recommendation rules
-    const rulesData = getRecommendationRules();
-    const rules = rulesData.map((r: any) => r.rule_text);
-
-    // Generate insights using OpenAI with full historical context
+    // Generate insights using OpenAI
     const insights = await generateInsights({
       ...weekData,
       previousWeekData,
-      sameWeekYearEarlierData,
-      historicalData: historicalWeeks,
       businessContext: combinedContext,
-      recommendationRules: rules,
     });
 
     // Save insights to database
