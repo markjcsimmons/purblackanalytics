@@ -267,9 +267,50 @@ export default function Dashboard() {
                       <div className="text-4xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
                         {formatCurrency(getMetricValue(weekData.overallMetrics, 'Revenue'))}
                       </div>
-                      <p className="text-xs text-green-700 font-medium">
+                      <p className="text-xs text-green-700 font-medium mb-2">
                         {getMetricValue(weekData.overallMetrics, 'Orders')} orders
                       </p>
+                      {comparisonData && (() => {
+                        const currentValue = getMetricValue(weekData.overallMetrics, 'Revenue');
+                        const prevWeekValue = comparisonData.previousWeek 
+                          ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Revenue')
+                          : null;
+                        const yearAgoValue = comparisonData.sameWeekYearAgo 
+                          ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Revenue')
+                          : null;
+                        const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
+                          ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
+                          : null;
+                        const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
+                          ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                          : null;
+                        return (
+                          <div className="space-y-1 mt-2 pt-2 border-t border-green-200">
+                            {prevWeekValue !== null && prevWeekChange !== null && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-green-600">vs. Last Week:</span>
+                                <span className={`font-semibold flex items-center gap-1 ${
+                                  prevWeekChange > 0 ? 'text-green-700' : prevWeekChange < 0 ? 'text-red-600' : 'text-green-600'
+                                }`}>
+                                  {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                  {Math.abs(prevWeekChange).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                            {yearAgoValue !== null && yearAgoChange !== null && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-green-600">vs. Year Ago:</span>
+                                <span className={`font-semibold flex items-center gap-1 ${
+                                  yearAgoChange > 0 ? 'text-green-700' : yearAgoChange < 0 ? 'text-red-600' : 'text-green-600'
+                                }`}>
+                                  {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                  {Math.abs(yearAgoChange).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
 
@@ -285,9 +326,50 @@ export default function Dashboard() {
                       <div className="text-4xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-2">
                         {(getMetricValue(weekData.overallMetrics, 'Conversion Rate') || 0).toFixed(2)}%
                       </div>
-                      <p className="text-xs text-blue-700 font-medium">
+                      <p className="text-xs text-blue-700 font-medium mb-2">
                         of {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Sessions'))} sessions
                       </p>
+                      {comparisonData && (() => {
+                        const currentValue = getMetricValue(weekData.overallMetrics, 'Conversion Rate') || 0;
+                        const prevWeekValue = comparisonData.previousWeek 
+                          ? (getMetricValue(comparisonData.previousWeek.overallMetrics, 'Conversion Rate') || 0)
+                          : null;
+                        const yearAgoValue = comparisonData.sameWeekYearAgo 
+                          ? (getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Conversion Rate') || 0)
+                          : null;
+                        const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
+                          ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
+                          : null;
+                        const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
+                          ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                          : null;
+                        return (
+                          <div className="space-y-1 mt-2 pt-2 border-t border-blue-200">
+                            {prevWeekValue !== null && prevWeekChange !== null && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-blue-600">vs. Last Week:</span>
+                                <span className={`font-semibold flex items-center gap-1 ${
+                                  prevWeekChange > 0 ? 'text-blue-700' : prevWeekChange < 0 ? 'text-red-600' : 'text-blue-600'
+                                }`}>
+                                  {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                  {Math.abs(prevWeekChange).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                            {yearAgoValue !== null && yearAgoChange !== null && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-blue-600">vs. Year Ago:</span>
+                                <span className={`font-semibold flex items-center gap-1 ${
+                                  yearAgoChange > 0 ? 'text-blue-700' : yearAgoChange < 0 ? 'text-red-600' : 'text-blue-600'
+                                }`}>
+                                  {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                  {Math.abs(yearAgoChange).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
 
@@ -303,9 +385,50 @@ export default function Dashboard() {
                       <div className="text-4xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                         {formatCurrency(getMetricValue(weekData.overallMetrics, 'AOV'))}
                       </div>
-                      <p className="text-xs text-purple-700 font-medium">
+                      <p className="text-xs text-purple-700 font-medium mb-2">
                         per order
                       </p>
+                      {comparisonData && (() => {
+                        const currentValue = getMetricValue(weekData.overallMetrics, 'AOV');
+                        const prevWeekValue = comparisonData.previousWeek 
+                          ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'AOV')
+                          : null;
+                        const yearAgoValue = comparisonData.sameWeekYearAgo 
+                          ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'AOV')
+                          : null;
+                        const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
+                          ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
+                          : null;
+                        const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
+                          ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                          : null;
+                        return (
+                          <div className="space-y-1 mt-2 pt-2 border-t border-purple-200">
+                            {prevWeekValue !== null && prevWeekChange !== null && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-purple-600">vs. Last Week:</span>
+                                <span className={`font-semibold flex items-center gap-1 ${
+                                  prevWeekChange > 0 ? 'text-purple-700' : prevWeekChange < 0 ? 'text-red-600' : 'text-purple-600'
+                                }`}>
+                                  {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                  {Math.abs(prevWeekChange).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                            {yearAgoValue !== null && yearAgoChange !== null && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-purple-600">vs. Year Ago:</span>
+                                <span className={`font-semibold flex items-center gap-1 ${
+                                  yearAgoChange > 0 ? 'text-purple-700' : yearAgoChange < 0 ? 'text-red-600' : 'text-purple-600'
+                                }`}>
+                                  {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                  {Math.abs(yearAgoChange).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
 
@@ -321,9 +444,50 @@ export default function Dashboard() {
                       <div className="text-4xl font-black bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent mb-2">
                         {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Sessions'))}
                       </div>
-                      <p className="text-xs text-orange-700 font-medium">
+                      <p className="text-xs text-orange-700 font-medium mb-2">
                         website visitors
                       </p>
+                      {comparisonData && (() => {
+                        const currentValue = getMetricValue(weekData.overallMetrics, 'Total Sessions');
+                        const prevWeekValue = comparisonData.previousWeek 
+                          ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Total Sessions')
+                          : null;
+                        const yearAgoValue = comparisonData.sameWeekYearAgo 
+                          ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Total Sessions')
+                          : null;
+                        const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
+                          ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
+                          : null;
+                        const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
+                          ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                          : null;
+                        return (
+                          <div className="space-y-1 mt-2 pt-2 border-t border-orange-200">
+                            {prevWeekValue !== null && prevWeekChange !== null && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-orange-600">vs. Last Week:</span>
+                                <span className={`font-semibold flex items-center gap-1 ${
+                                  prevWeekChange > 0 ? 'text-orange-700' : prevWeekChange < 0 ? 'text-red-600' : 'text-orange-600'
+                                }`}>
+                                  {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                  {Math.abs(prevWeekChange).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                            {yearAgoValue !== null && yearAgoChange !== null && (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-orange-600">vs. Year Ago:</span>
+                                <span className={`font-semibold flex items-center gap-1 ${
+                                  yearAgoChange > 0 ? 'text-orange-700' : yearAgoChange < 0 ? 'text-red-600' : 'text-orange-600'
+                                }`}>
+                                  {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                  {Math.abs(yearAgoChange).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </CardContent>
                   </Card>
                 </div>
