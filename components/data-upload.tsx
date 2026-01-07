@@ -36,13 +36,15 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     const weekStartDate = row.week_start?.trim() || '';
     const weekEndDate = row.week_end?.trim() || '';
     const notes = row.week_note?.trim() || '';
-    const romansRecommendations = row.roman_recommendations?.trim() || '';
+    // Try multiple possible column name variations
+    const romansRecommendations = (row.roman_recommendations || row.romans_recommendations || row.romanRecommendations || row.romansRecommendations)?.trim() || '';
 
-    // Store week info
+    // Store week info (always store, even if empty, to ensure it's saved)
     if (weekStartDate) data.weekStartDate = weekStartDate;
     if (weekEndDate) data.weekEndDate = weekEndDate;
     if (notes) data.notes = notes;
-    if (romansRecommendations) data.romansRecommendations = romansRecommendations;
+    // Always store romansRecommendations, even if empty, so it can be updated
+    data.romansRecommendations = romansRecommendations;
 
     // Overall Metrics
       if (parseValue(row.total_revenue) > 0) {
