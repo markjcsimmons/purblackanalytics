@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DataEntryForm } from '@/components/data-entry-form';
+import { DataUpload } from '@/components/data-upload';
+import { GoogleDocsImport } from '@/components/google-docs-import';
 import { InsightsDisplay } from '@/components/insights-display';
 import { 
   TrendingUp, 
@@ -1076,6 +1078,10 @@ export default function Dashboard() {
           {/* Add Data Tab - Full Access Only */}
           {accessLevel === 'full' && (
             <TabsContent value="add-data" className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                <DataUpload onUploadSuccess={handleUploadSuccess} />
+                <GoogleDocsImport onUploadSuccess={handleUploadSuccess} />
+              </div>
               <DataEntryForm onSuccess={handleUploadSuccess} />
             </TabsContent>
           )}
