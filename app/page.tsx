@@ -483,23 +483,33 @@ export default function Dashboard() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    {weekData.week?.romans_recommendations ? (
-                      <div className="prose prose-amber max-w-none">
-                        <p 
-                          className="text-gray-800 text-xs leading-relaxed whitespace-pre-wrap"
-                          dangerouslySetInnerHTML={{
-                            __html: renderMarkdownBold(weekData.week.romans_recommendations)
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Sparkles className="h-12 w-12 mx-auto mb-3 text-amber-300 opacity-50" />
-                        <p className="text-amber-700 text-sm">
-                          No recommendations added yet. Add them in the <strong>Add Data</strong> tab under &quot;Week Information&quot;.
-                        </p>
-                      </div>
-                    )}
+                    {(() => {
+                      // Try multiple property name formats
+                      const week = weekData.week as any;
+                      const recommendations = week?.romans_recommendations || week?.romansRecommendations || week?.roman_recommendations || week?.romanRecommendations;
+                      
+                      if (recommendations && typeof recommendations === 'string' && recommendations.trim()) {
+                        return (
+                          <div className="prose prose-amber max-w-none">
+                            <p 
+                              className="text-gray-800 text-xs leading-relaxed whitespace-pre-wrap"
+                              dangerouslySetInnerHTML={{
+                                __html: renderMarkdownBold(recommendations.trim())
+                              }}
+                            />
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className="text-center py-8">
+                          <Sparkles className="h-12 w-12 mx-auto mb-3 text-amber-300 opacity-50" />
+                          <p className="text-amber-700 text-sm">
+                            No recommendations added yet. Add them in the <strong>Add Data</strong> tab under &quot;Week Information&quot;.
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
 
