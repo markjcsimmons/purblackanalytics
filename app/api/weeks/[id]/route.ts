@@ -32,9 +32,10 @@ export async function GET(
     }
 
     // Add comparison data if requested
-    if (includeComparisons) {
-      const previousWeekData = findPreviousWeek(data.week.week_start_date);
-      const sameWeekYearAgoData = findSameWeekYearAgo(data.week.week_start_date);
+    if (includeComparisons && data.week && typeof data.week === 'object' && 'week_start_date' in data.week) {
+      const weekStartDate = (data.week as any).week_start_date;
+      const previousWeekData = findPreviousWeek(weekStartDate);
+      const sameWeekYearAgoData = findSameWeekYearAgo(weekStartDate);
       
       return NextResponse.json({
         ...data,
