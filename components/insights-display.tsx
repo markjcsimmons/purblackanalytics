@@ -184,10 +184,10 @@ export function InsightsDisplay({ weekId, existingInsights = [], onGenerate }: I
           <div>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5" />
-              AI Insights & Recommendations
+              Roman&apos;s Recommendations
             </CardTitle>
             <CardDescription>
-              Actionable insights powered by AI analysis
+              Actionable recommendations based on your data input
             </CardDescription>
           </div>
           <div className="flex gap-2">
