@@ -807,7 +807,7 @@ export default function Dashboard() {
                             
                             return (
                               <div className="mt-3 pt-3 border-t border-amber-200 space-y-2">
-                                {prevWeekChange !== null && (
+                                {prevWeekChange !== null && prevWeekAbandonment !== null && (
                                   <div className="flex items-center gap-2 text-xs">
                                     <span className="text-amber-700">vs. Last Week:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
@@ -821,7 +821,7 @@ export default function Dashboard() {
                                     </span>
                                   </div>
                                 )}
-                                {yearAgoChange !== null && (
+                                {yearAgoChange !== null && yearAgoAbandonment !== null && (
                                   <div className="flex items-center gap-2 text-xs">
                                     <span className="text-amber-700">vs. Year Ago:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
