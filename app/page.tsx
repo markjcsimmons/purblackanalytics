@@ -1076,15 +1076,6 @@ export default function Dashboard() {
                               const checkout = getStageValue(metrics, 'Checkout');
                               const purchases = getStageValue(metrics, 'Purchases');
                               
-                              // Calculate max value for width scaling
-                              const maxValue = Math.max(sessions, addToCart, checkout, purchases, 1);
-                              
-                              // Calculate widths as percentages (funnel shape: wide at top, narrow at bottom)
-                              const sessionsWidth = 100;
-                              const atcWidth = maxValue > 0 ? (addToCart / maxValue) * 100 : 0;
-                              const checkoutWidth = maxValue > 0 ? (checkout / maxValue) * 100 : 0;
-                              const purchasesWidth = maxValue > 0 ? (purchases / maxValue) * 100 : 0;
-                              
                               // Get comparison data
                               const getComparisonValue = (stageName: string, comparisonWeek: any) => {
                                 if (!comparisonWeek) return null;
@@ -1098,22 +1089,22 @@ export default function Dashboard() {
                               const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
 
                               // Calculate funnel segment widths based on values
-                              const maxValue = Math.max(sessions, addToCart, checkout, purchases, 1);
+                              const funnelMaxValue = Math.max(sessions, addToCart, checkout, purchases, 1);
                               const funnelWidth = 300; // Fixed width for funnel in pixels
                               const segmentHeight = 65;
                               
                               // Calculate widths as percentages of funnel width
                               const sessionsTopWidth = funnelWidth;
-                              const sessionsBottomWidth = maxValue > 0 ? Math.max(funnelWidth * 0.7, (addToCart / maxValue) * funnelWidth) : funnelWidth * 0.7;
+                              const sessionsBottomWidth = funnelMaxValue > 0 ? Math.max(funnelWidth * 0.7, (addToCart / funnelMaxValue) * funnelWidth) : funnelWidth * 0.7;
                               
                               const atcTopWidth = sessionsBottomWidth;
-                              const atcBottomWidth = maxValue > 0 ? Math.max(funnelWidth * 0.45, (checkout / maxValue) * funnelWidth) : funnelWidth * 0.45;
+                              const atcBottomWidth = funnelMaxValue > 0 ? Math.max(funnelWidth * 0.45, (checkout / funnelMaxValue) * funnelWidth) : funnelWidth * 0.45;
                               
                               const checkoutTopWidth = atcBottomWidth;
-                              const checkoutBottomWidth = maxValue > 0 ? Math.max(funnelWidth * 0.25, (purchases / maxValue) * funnelWidth) : funnelWidth * 0.25;
+                              const checkoutBottomWidth = funnelMaxValue > 0 ? Math.max(funnelWidth * 0.25, (purchases / funnelMaxValue) * funnelWidth) : funnelWidth * 0.25;
                               
                               const purchasesTopWidth = checkoutBottomWidth;
-                              const purchasesBottomWidth = maxValue > 0 ? Math.max(funnelWidth * 0.12, (purchases / maxValue) * funnelWidth * 0.5) : funnelWidth * 0.12;
+                              const purchasesBottomWidth = funnelMaxValue > 0 ? Math.max(funnelWidth * 0.12, (purchases / funnelMaxValue) * funnelWidth * 0.5) : funnelWidth * 0.12;
 
                               // Funnel stages configuration
                               const stages = [
