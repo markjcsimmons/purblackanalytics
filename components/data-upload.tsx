@@ -88,9 +88,37 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         const metricName = metric.startsWith('*') ? metric : `* ${metric}`;
         data.funnelMetrics[stageName][metricName] = value;
       }
-      // Products (can be in any category with /products/ prefix)
+      // Products - handle different formats
+      else if (category.toLowerCase() === 'products' || category.toLowerCase() === 'product') {
+        // Products category - add /products/ prefix if not already present
+        let productMetric = metric;
+        if (!productMetric.toLowerCase().startsWith('/products/')) {
+          // Convert product name to URL-friendly format
+          const productSlug = productMetric
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+          productMetric = `/products/${productSlug}`;
+        }
+        data.overallMetrics[productMetric] = value;
+      }
+      // Products with /products/ prefix in any category
       else if (metric.toLowerCase().startsWith('/products/')) {
         data.overallMetrics[metric] = value;
+      }
+      // Products might also be in Overall/Store with product names
+      else if (category.toLowerCase() === 'overall' && subcategory.toLowerCase() === 'store') {
+        // Check if this looks like a product (not a standard metric)
+        const standardMetrics = ['revenue', 'orders', 'conversion', 'visitors', 'sessions', 'aov', 'total'];
+        const isStandardMetric = standardMetrics.some(std => metric.toLowerCase().includes(std));
+        if (!isStandardMetric && value > 0 && value < 10000) {
+          // Likely a product - add /products/ prefix
+          const productSlug = metric
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+          data.overallMetrics[`/products/${productSlug}`] = value;
+        }
       }
     });
 
