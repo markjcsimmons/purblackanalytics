@@ -901,13 +901,9 @@ export default function Dashboard() {
                             .map((product: any, idx: number) => {
                               let productName = product.metric_name;
                               
-                              // Handle /products/ prefix format
+                              // Handle /products/ prefix format - just remove the prefix to get full name
                               if (productName.startsWith('/products/')) {
-                                productName = productName
-                                  .replace('/products/', '')
-                                  .split('-')
-                                  .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                                  .join(' ');
+                                productName = productName.replace('/products/', '');
                               } else {
                                 // For other formats, just capitalize first letter of each word
                                 productName = productName

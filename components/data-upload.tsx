@@ -255,12 +255,8 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         const productUnits = parseValue(row[`top_product_${i}_units`]);
         
         if (productName && productUnits > 0) {
-          // Convert product name to URL-friendly format
-          const productSlug = productName
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '');
-          data.overallMetrics[`/products/${productSlug}`] = productUnits;
+          // Store full product name with /products/ prefix for identification
+          data.overallMetrics[`/products/${productName}`] = productUnits;
         }
       }
 
