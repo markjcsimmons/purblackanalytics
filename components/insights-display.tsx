@@ -235,7 +235,7 @@ Examples:
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-orange-600" />
-              <h4 className="font-semibold text-sm">Recommendation Rules</h4>
+              <h4 className="font-semibold text-sm">Insight Rules</h4>
               {rules.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
                   {rules.length} active
