@@ -50,25 +50,41 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
 
       // Overall Store Metrics
       if (category.toLowerCase() === 'overall' && subcategory.toLowerCase() === 'store') {
-        // Map common metric names to expected format
-        let metricName = metric;
-        if (metric.toLowerCase() === 'total revenue') {
-          metricName = '* Revenue';
-        } else if (metric.toLowerCase() === 'total orders') {
-          metricName = '* Orders';
-        } else if (metric.toLowerCase() === 'conversion rate') {
-          metricName = '* Conversion Rate';
-        } else if (metric.toLowerCase() === 'visitors' || metric.toLowerCase() === 'total sessions') {
-          metricName = '* Total Sessions';
-        } else if (metric.toLowerCase() === 'aov') {
-          metricName = '* AOV';
-        } else if (metric.toLowerCase().startsWith('/products/')) {
-          // Products are already in the correct format
-          metricName = metric;
-        } else {
-          metricName = `* ${metric}`;
+        // Check if this is a product first (before standard metric mapping)
+        const standardMetrics = ['revenue', 'orders', 'conversion', 'visitors', 'sessions', 'aov', 'total'];
+        const isStandardMetric = standardMetrics.some(std => metric.toLowerCase().includes(std));
+        
+        // If it's a product (not a standard metric and reasonable order count)
+        if (!isStandardMetric && value > 0 && value < 100000 && !metric.toLowerCase().startsWith('/products/')) {
+          // Likely a product - add /products/ prefix
+          const productSlug = metric
+            .toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-]/g, '');
+          data.overallMetrics[`/products/${productSlug}`] = value;
+        } 
+        // Handle products with /products/ prefix already
+        else if (metric.toLowerCase().startsWith('/products/')) {
+          data.overallMetrics[metric] = value;
         }
-        data.overallMetrics[metricName] = value;
+        // Otherwise, map to standard metric format
+        else {
+          let metricName = metric;
+          if (metric.toLowerCase() === 'total revenue') {
+            metricName = '* Revenue';
+          } else if (metric.toLowerCase() === 'total orders') {
+            metricName = '* Orders';
+          } else if (metric.toLowerCase() === 'conversion rate') {
+            metricName = '* Conversion Rate';
+          } else if (metric.toLowerCase() === 'visitors' || metric.toLowerCase() === 'total sessions') {
+            metricName = '* Total Sessions';
+          } else if (metric.toLowerCase() === 'aov') {
+            metricName = '* AOV';
+          } else {
+            metricName = `* ${metric}`;
+          }
+          data.overallMetrics[metricName] = value;
+        }
       }
       // Marketing Channels
       else if (category.toLowerCase() === 'marketing') {
@@ -102,23 +118,9 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         }
         data.overallMetrics[productMetric] = value;
       }
-      // Products with /products/ prefix in any category
+      // Products with /products/ prefix in any category (except Overall/Store which is handled above)
       else if (metric.toLowerCase().startsWith('/products/')) {
         data.overallMetrics[metric] = value;
-      }
-      // Products might also be in Overall/Store with product names
-      else if (category.toLowerCase() === 'overall' && subcategory.toLowerCase() === 'store') {
-        // Check if this looks like a product (not a standard metric)
-        const standardMetrics = ['revenue', 'orders', 'conversion', 'visitors', 'sessions', 'aov', 'total'];
-        const isStandardMetric = standardMetrics.some(std => metric.toLowerCase().includes(std));
-        if (!isStandardMetric && value > 0 && value < 10000) {
-          // Likely a product - add /products/ prefix
-          const productSlug = metric
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[^a-z0-9-]/g, '');
-          data.overallMetrics[`/products/${productSlug}`] = value;
-        }
       }
     });
 
