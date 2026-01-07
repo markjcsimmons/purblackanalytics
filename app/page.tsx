@@ -894,7 +894,7 @@ export default function Dashboard() {
                       }
                       
                       return (
-                        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2">
                           {products
                             .sort((a: any, b: any) => b.metric_value - a.metric_value)
                             .slice(0, 6)
@@ -913,13 +913,13 @@ export default function Dashboard() {
                               }
                               
                               return (
-                                <div key={idx} className="flex items-center gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
+                                <div key={idx} className="flex items-start gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
                                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
                                     {idx + 1}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-semibold text-sm truncate">{productName}</div>
-                                    <div className="text-xs text-muted-foreground">{formatNumber(product.metric_value)} orders</div>
+                                    <div className="font-semibold text-sm leading-relaxed break-words">{productName}</div>
+                                    <div className="text-xs text-muted-foreground mt-1">{formatNumber(product.metric_value)} orders</div>
                                   </div>
                                 </div>
                               );
