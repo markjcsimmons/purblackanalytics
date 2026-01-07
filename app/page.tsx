@@ -633,8 +633,11 @@ export default function Dashboard() {
                           <div className="font-semibold text-amber-900 text-sm mb-1">Cart Abandonment</div>
                           <div className="text-sm text-amber-700">
                             <span className="font-bold text-lg">
-                              {(100 - ((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
-                                (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 1)) * 100)).toFixed(1)}%
+                              {(() => {
+                                const totalCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                                const totalATC = getTotalAddToCart(weekData.funnelMetrics);
+                                return totalATC > 0 ? (100 - ((totalCheckout / totalATC) * 100)).toFixed(1) : '0.0';
+                              })()}%
                             </span>
                             {' '}of users who added to cart didn't checkout
                           </div>
