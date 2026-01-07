@@ -598,7 +598,48 @@ export default function Dashboard() {
                           <div className="text-3xl font-bold text-slate-900">
                             {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Sessions'))}
                           </div>
-                          <div className="text-xs text-slate-500 mt-2">Starting point</div>
+                          <div className="text-xs text-slate-500 mt-2 mb-2">Starting point</div>
+                          {comparisonData && (() => {
+                            const currentValue = getMetricValue(weekData.overallMetrics, 'Total Sessions');
+                            const prevWeekValue = comparisonData.previousWeek 
+                              ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Total Sessions')
+                              : null;
+                            const yearAgoValue = comparisonData.sameWeekYearAgo 
+                              ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Total Sessions')
+                              : null;
+                            const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
+                              ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
+                              : null;
+                            const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
+                              ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                              : null;
+                            return (
+                              <div className="space-y-1 mt-2 pt-2 border-t border-slate-200">
+                                {prevWeekValue !== null && prevWeekChange !== null && (
+                                  <div className="flex items-center justify-center gap-1 text-xs">
+                                    <span className="text-slate-600">LW:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-slate-600'
+                                    }`}>
+                                      {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(prevWeekChange).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                )}
+                                {yearAgoValue !== null && yearAgoChange !== null && (
+                                  <div className="flex items-center justify-center gap-1 text-xs">
+                                    <span className="text-slate-600">YoY:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-slate-600'
+                                    }`}>
+                                      {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(yearAgoChange).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
                           <ArrowUpRight className="h-6 w-6" />
@@ -614,9 +655,56 @@ export default function Dashboard() {
                               getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
                               getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100)}
                           </div>
-                          <div className="text-xs font-semibold text-blue-700 mt-2">
+                          <div className="text-xs font-semibold text-blue-700 mt-2 mb-2">
                             {(getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') || 0).toFixed(1)}% rate
                           </div>
+                          {comparisonData && (() => {
+                            const currentValue = getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
+                              getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
+                              getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100;
+                            const prevWeekATC = comparisonData.previousWeek 
+                              ? (getMetricValue(comparisonData.previousWeek.funnelMetrics, 'Sessions → Add to Cart') || 
+                                 getMetricValue(comparisonData.previousWeek.funnelMetrics, 'Add-to-cart rate') * 
+                                 getMetricValue(comparisonData.previousWeek.overallMetrics, 'Total Sessions') / 100)
+                              : null;
+                            const yearAgoATC = comparisonData.sameWeekYearAgo 
+                              ? (getMetricValue(comparisonData.sameWeekYearAgo.funnelMetrics, 'Sessions → Add to Cart') || 
+                                 getMetricValue(comparisonData.sameWeekYearAgo.funnelMetrics, 'Add-to-cart rate') * 
+                                 getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Total Sessions') / 100)
+                              : null;
+                            const prevWeekChange = prevWeekATC !== null && prevWeekATC !== 0 
+                              ? ((currentValue - prevWeekATC) / prevWeekATC) * 100 
+                              : null;
+                            const yearAgoChange = yearAgoATC !== null && yearAgoATC !== 0 
+                              ? ((currentValue - yearAgoATC) / yearAgoATC) * 100 
+                              : null;
+                            return (
+                              <div className="space-y-1 mt-2 pt-2 border-t border-blue-200">
+                                {prevWeekChange !== null && (
+                                  <div className="flex items-center justify-center gap-1 text-xs">
+                                    <span className="text-blue-600">LW:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-blue-600'
+                                    }`}>
+                                      {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(prevWeekChange).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                )}
+                                {yearAgoChange !== null && (
+                                  <div className="flex items-center justify-center gap-1 text-xs">
+                                    <span className="text-blue-600">YoY:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-blue-600'
+                                    }`}>
+                                      {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(yearAgoChange).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-blue-400">
                           <ArrowUpRight className="h-6 w-6" />
@@ -630,13 +718,54 @@ export default function Dashboard() {
                           <div className="text-3xl font-bold text-purple-900">
                             {formatNumber(getFunnelMetricSum(weekData.funnelMetrics, 'Checkout'))}
                           </div>
-                          <div className="text-xs font-semibold text-purple-700 mt-2">
+                          <div className="text-xs font-semibold text-purple-700 mt-2 mb-2">
                             {(() => {
                               const totalCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                               const totalATC = getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics);
                               return totalATC > 0 ? ((totalCheckout / totalATC) * 100).toFixed(1) : '0.0';
                             })()}% from cart
                           </div>
+                          {comparisonData && (() => {
+                            const currentValue = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                            const prevWeekValue = comparisonData.previousWeek 
+                              ? getFunnelMetricSum(comparisonData.previousWeek.funnelMetrics, 'Checkout')
+                              : null;
+                            const yearAgoValue = comparisonData.sameWeekYearAgo 
+                              ? getFunnelMetricSum(comparisonData.sameWeekYearAgo.funnelMetrics, 'Checkout')
+                              : null;
+                            const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
+                              ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
+                              : null;
+                            const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
+                              ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                              : null;
+                            return (
+                              <div className="space-y-1 mt-2 pt-2 border-t border-purple-200">
+                                {prevWeekChange !== null && (
+                                  <div className="flex items-center justify-center gap-1 text-xs">
+                                    <span className="text-purple-600">LW:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-purple-600'
+                                    }`}>
+                                      {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(prevWeekChange).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                )}
+                                {yearAgoChange !== null && (
+                                  <div className="flex items-center justify-center gap-1 text-xs">
+                                    <span className="text-purple-600">YoY:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-purple-600'
+                                    }`}>
+                                      {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(yearAgoChange).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-purple-400">
                           <ArrowUpRight className="h-6 w-6" />
@@ -650,9 +779,50 @@ export default function Dashboard() {
                           <div className="text-3xl font-bold text-green-900">
                             {formatNumber(getMetricValue(weekData.overallMetrics, 'Orders'))}
                           </div>
-                          <div className="text-xs font-semibold text-green-700 mt-2">
+                          <div className="text-xs font-semibold text-green-700 mt-2 mb-2">
                             {((getMetricValue(weekData.funnelMetrics, 'Checkout → Purchase') || 0)).toFixed(1)}% checkout rate
                           </div>
+                          {comparisonData && (() => {
+                            const currentValue = getMetricValue(weekData.overallMetrics, 'Orders');
+                            const prevWeekValue = comparisonData.previousWeek 
+                              ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Orders')
+                              : null;
+                            const yearAgoValue = comparisonData.sameWeekYearAgo 
+                              ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Orders')
+                              : null;
+                            const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
+                              ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
+                              : null;
+                            const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
+                              ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                              : null;
+                            return (
+                              <div className="space-y-1 mt-2 pt-2 border-t border-green-200">
+                                {prevWeekChange !== null && (
+                                  <div className="flex items-center justify-center gap-1 text-xs">
+                                    <span className="text-green-600">LW:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      prevWeekChange > 0 ? 'text-green-700' : prevWeekChange < 0 ? 'text-red-600' : 'text-green-600'
+                                    }`}>
+                                      {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(prevWeekChange).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                )}
+                                {yearAgoChange !== null && (
+                                  <div className="flex items-center justify-center gap-1 text-xs">
+                                    <span className="text-green-600">YoY:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      yearAgoChange > 0 ? 'text-green-700' : yearAgoChange < 0 ? 'text-red-600' : 'text-green-600'
+                                    }`}>
+                                      {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(yearAgoChange).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
