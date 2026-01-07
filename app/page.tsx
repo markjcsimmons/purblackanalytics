@@ -617,7 +617,7 @@ export default function Dashboard() {
                               <div className="space-y-1 mt-2 pt-2 border-t border-slate-200">
                                 {prevWeekValue !== null && prevWeekChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
-                                    <span className="text-slate-600">LW:</span>
+                                    <span className="text-slate-600">Last Week:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
                                       prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-slate-600'
                                     }`}>
@@ -628,7 +628,7 @@ export default function Dashboard() {
                                 )}
                                 {yearAgoValue !== null && yearAgoChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
-                                    <span className="text-slate-600">YoY:</span>
+                                    <span className="text-slate-600">Year Ago:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
                                       yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-slate-600'
                                     }`}>
@@ -682,7 +682,7 @@ export default function Dashboard() {
                               <div className="space-y-1 mt-2 pt-2 border-t border-blue-200">
                                 {prevWeekChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
-                                    <span className="text-blue-600">LW:</span>
+                                    <span className="text-blue-600">Last Week:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
                                       prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-blue-600'
                                     }`}>
@@ -693,7 +693,7 @@ export default function Dashboard() {
                                 )}
                                 {yearAgoChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
-                                    <span className="text-blue-600">YoY:</span>
+                                    <span className="text-blue-600">Year Ago:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
                                       yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-blue-600'
                                     }`}>
@@ -743,7 +743,7 @@ export default function Dashboard() {
                               <div className="space-y-1 mt-2 pt-2 border-t border-purple-200">
                                 {prevWeekChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
-                                    <span className="text-purple-600">LW:</span>
+                                    <span className="text-purple-600">Last Week:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
                                       prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-purple-600'
                                     }`}>
@@ -754,7 +754,7 @@ export default function Dashboard() {
                                 )}
                                 {yearAgoChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
-                                    <span className="text-purple-600">YoY:</span>
+                                    <span className="text-purple-600">Year Ago:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
                                       yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-purple-600'
                                     }`}>
@@ -800,7 +800,7 @@ export default function Dashboard() {
                               <div className="space-y-1 mt-2 pt-2 border-t border-green-200">
                                 {prevWeekChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
-                                    <span className="text-green-600">LW:</span>
+                                    <span className="text-green-600">Last Week:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
                                       prevWeekChange > 0 ? 'text-green-700' : prevWeekChange < 0 ? 'text-red-600' : 'text-green-600'
                                     }`}>
@@ -811,7 +811,7 @@ export default function Dashboard() {
                                 )}
                                 {yearAgoChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
-                                    <span className="text-green-600">YoY:</span>
+                                    <span className="text-green-600">Year Ago:</span>
                                     <span className={`font-semibold flex items-center gap-1 ${
                                       yearAgoChange > 0 ? 'text-green-700' : yearAgoChange < 0 ? 'text-red-600' : 'text-green-600'
                                     }`}>
@@ -1096,7 +1096,7 @@ export default function Dashboard() {
                                             prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-teal-600'
                                           }`}>
                                             {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                            <span className="font-medium">LW: {Math.abs(prevWeekChange).toFixed(1)}%</span>
+                                            <span className="font-medium">Last Week: {Math.abs(prevWeekChange).toFixed(1)}%</span>
                                           </span>
                                         )}
                                         {yearAgoChange !== null && (
@@ -1104,7 +1104,7 @@ export default function Dashboard() {
                                             yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-teal-600'
                                           }`}>
                                             {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                            <span className="font-medium">YoY: {Math.abs(yearAgoChange).toFixed(1)}%</span>
+                                            <span className="font-medium">Year Ago: {Math.abs(yearAgoChange).toFixed(1)}%</span>
                                           </span>
                                         )}
                                       </div>
@@ -1232,7 +1232,7 @@ export default function Dashboard() {
                                   {/* Previous Week Comparison */}
                                   {prevWeekValue !== null && (
                                     <div className="flex items-center gap-2 text-sm">
-                                      <span className="text-muted-foreground">vs. Previous Week:</span>
+                                      <span className="text-muted-foreground">vs. Last Week:</span>
                                       {prevWeekChange !== null && (
                                         <span className={`font-semibold flex items-center gap-1 ${
                                           prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-gray-600'
