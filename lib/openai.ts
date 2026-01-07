@@ -24,7 +24,7 @@ function getOpenAIClient(): OpenAI {
       throw new Error('Invalid OpenAI API key format. Key should start with "sk-". Please check the key value in Render.');
     }
     
-    console.log('OpenAI client initialized successfully');
+    // OpenAI client initialized successfully');
     openai = new OpenAI({
       apiKey: apiKey,
     });
@@ -636,7 +636,7 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
   try {
     // Log if context is being used for debugging
     if (businessContext) {
-      console.log('Business context being used in insights generation:', businessContext.substring(0, 100) + '...');
+      // Business context included in insights generation
     }
     
     const client = getOpenAIClient();
