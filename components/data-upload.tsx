@@ -230,6 +230,10 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         </CardTitle>
         <CardDescription>
           Upload your weekly data from a CSV file. Format: Category, Subcategory, Metric, Value
+          <br />
+          <span className="text-xs text-muted-foreground mt-1 block">
+            For products, use Category: &quot;Products&quot; or &quot;Overall&quot; with product name as Metric (e.g., &quot;Product Name&quot; or &quot;/products/product-name&quot;)
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
