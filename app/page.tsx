@@ -148,6 +148,19 @@ export default function Dashboard() {
     return new Intl.NumberFormat('en-US').format(value);
   };
 
+  const renderMarkdownBold = (text: string) => {
+    if (!text) return '';
+    // Escape HTML first to prevent XSS
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+    // Convert **text** to <strong>text</strong> and newlines to <br />
+    return escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />');
+  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -314,6 +327,40 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* ROMAN'S RECOMMENDATIONS */}
+                <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50">
+                  <CardHeader className="bg-gradient-to-r from-amber-100 to-yellow-100">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-amber-500 rounded-lg">
+                        <Sparkles className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl text-amber-900">Roman&apos;s Recommendations</CardTitle>
+                        <CardDescription className="text-amber-700">Expert insights and actionable recommendations</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    {weekData.week?.romans_recommendations ? (
+                      <div className="prose prose-amber max-w-none">
+                        <p 
+                          className="text-gray-800 text-xs leading-relaxed whitespace-pre-wrap"
+                          dangerouslySetInnerHTML={{
+                            __html: renderMarkdownBold(weekData.week.romans_recommendations)
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Sparkles className="h-12 w-12 mx-auto mb-3 text-amber-300 opacity-50" />
+                        <p className="text-amber-700 text-sm">
+                          No recommendations added yet. Add them in the <strong>Add Data</strong> tab under &quot;Week Information&quot;.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* CONVERSION FUNNEL - Detailed Breakdown */}
                 <Card className="border-2 border-indigo-100">
