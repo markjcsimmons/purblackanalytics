@@ -772,6 +772,72 @@ export default function Dashboard() {
                             </span>
                             {' '}of users who added to cart didn't checkout
                           </div>
+                          {comparisonData && (() => {
+                            const currentCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                            const currentATC = getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics);
+                            const currentAbandonment = currentATC > 0 ? (100 - ((currentCheckout / currentATC) * 100)) : 0;
+                            
+                            const prevWeekCheckout = comparisonData.previousWeek 
+                              ? getFunnelMetricSum(comparisonData.previousWeek.funnelMetrics, 'Checkout')
+                              : null;
+                            const prevWeekATC = comparisonData.previousWeek 
+                              ? getTotalAddToCart(comparisonData.previousWeek.funnelMetrics, comparisonData.previousWeek.overallMetrics)
+                              : null;
+                            const prevWeekAbandonment = prevWeekATC && prevWeekATC > 0 
+                              ? (100 - ((prevWeekCheckout! / prevWeekATC) * 100))
+                              : null;
+                            
+                            const yearAgoCheckout = comparisonData.sameWeekYearAgo 
+                              ? getFunnelMetricSum(comparisonData.sameWeekYearAgo.funnelMetrics, 'Checkout')
+                              : null;
+                            const yearAgoATC = comparisonData.sameWeekYearAgo 
+                              ? getTotalAddToCart(comparisonData.sameWeekYearAgo.funnelMetrics, comparisonData.sameWeekYearAgo.overallMetrics)
+                              : null;
+                            const yearAgoAbandonment = yearAgoATC && yearAgoATC > 0 
+                              ? (100 - ((yearAgoCheckout! / yearAgoATC) * 100))
+                              : null;
+                            
+                            // For abandonment, increase is BAD (red), decrease is GOOD (green)
+                            const prevWeekChange = prevWeekAbandonment !== null 
+                              ? currentAbandonment - prevWeekAbandonment
+                              : null;
+                            const yearAgoChange = yearAgoAbandonment !== null 
+                              ? currentAbandonment - yearAgoAbandonment
+                              : null;
+                            
+                            return (
+                              <div className="mt-3 pt-3 border-t border-amber-200 space-y-2">
+                                {prevWeekChange !== null && (
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="text-amber-700">vs. Last Week:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      prevWeekChange > 0 ? 'text-red-600' : prevWeekChange < 0 ? 'text-green-600' : 'text-amber-700'
+                                    }`}>
+                                      {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(prevWeekChange).toFixed(1)}%
+                                    </span>
+                                    <span className="text-xs text-amber-600">
+                                      ({prevWeekAbandonment.toFixed(1)}%)
+                                    </span>
+                                  </div>
+                                )}
+                                {yearAgoChange !== null && (
+                                  <div className="flex items-center gap-2 text-xs">
+                                    <span className="text-amber-700">vs. Year Ago:</span>
+                                    <span className={`font-semibold flex items-center gap-1 ${
+                                      yearAgoChange > 0 ? 'text-red-600' : yearAgoChange < 0 ? 'text-green-600' : 'text-amber-700'
+                                    }`}>
+                                      {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                      {Math.abs(yearAgoChange).toFixed(1)}%
+                                    </span>
+                                    <span className="text-xs text-amber-600">
+                                      ({yearAgoAbandonment.toFixed(1)}%)
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
