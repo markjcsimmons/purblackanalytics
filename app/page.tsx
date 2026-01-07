@@ -1097,35 +1097,39 @@ export default function Dashboard() {
                               const prevCheckout = getComparisonValue('Checkout', comparisonData?.previousWeek);
                               const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
 
-                              // Funnel stages configuration
+                              // Funnel stages configuration with proper widths
                               const stages = [
                                 { 
                                   name: 'Sessions', 
                                   value: sessions, 
-                                  width: sessionsWidth,
+                                  topWidth: 100,
+                                  bottomWidth: maxValue > 0 ? Math.max(70, (addToCart / maxValue) * 100) : 70,
                                   prevValue: prevSessions,
-                                  color: 'from-lime-400 to-lime-500'
+                                  color: 'bg-lime-400'
                                 },
                                 { 
                                   name: 'Add to Cart', 
                                   value: addToCart, 
-                                  width: Math.max(30, atcWidth),
+                                  topWidth: maxValue > 0 ? Math.max(70, (addToCart / maxValue) * 100) : 70,
+                                  bottomWidth: maxValue > 0 ? Math.max(50, (checkout / maxValue) * 100) : 50,
                                   prevValue: prevATC,
-                                  color: 'from-lime-400 to-lime-500'
+                                  color: 'bg-lime-400'
                                 },
                                 { 
                                   name: 'Checkout', 
                                   value: checkout, 
-                                  width: Math.max(20, checkoutWidth),
+                                  topWidth: maxValue > 0 ? Math.max(50, (checkout / maxValue) * 100) : 50,
+                                  bottomWidth: maxValue > 0 ? Math.max(30, (purchases / maxValue) * 100) : 30,
                                   prevValue: prevCheckout,
-                                  color: 'from-lime-400 to-lime-500'
+                                  color: 'bg-lime-400'
                                 },
                                 { 
                                   name: 'Purchases', 
                                   value: purchases, 
-                                  width: Math.max(10, purchasesWidth),
+                                  topWidth: maxValue > 0 ? Math.max(30, (purchases / maxValue) * 100) : 30,
+                                  bottomWidth: maxValue > 0 ? Math.max(15, (purchases / maxValue) * 80) : 15,
                                   prevValue: prevPurchases,
-                                  color: 'from-lime-400 to-lime-500'
+                                  color: 'bg-lime-400'
                                 }
                               ];
 
@@ -1136,98 +1140,95 @@ export default function Dashboard() {
                                   </div>
                                   
                                   {/* Funnel Visualization */}
-                                  <div className="relative" style={{ minHeight: '400px' }}>
-                                    {stages.map((stage, index) => {
-                                      const isFirst = index === 0;
-                                      const isLast = index === stages.length - 1;
-                                      const prevStage = index > 0 ? stages[index - 1] : null;
-                                      
-                                      // Calculate position and dimensions for funnel segment
-                                      const topOffset = index * 80; // Vertical spacing between segments
-                                      const leftOffset = (100 - stage.width) / 2; // Center the segment
-                                      
-                                      // Calculate conversion rate
-                                      const conversionRate = prevStage && prevStage.value > 0 
-                                        ? calculatePercentage(stage.value, prevStage.value)
-                                        : 0;
-                                      
-                                      // Calculate comparison change
-                                      const change = stage.prevValue !== null && stage.prevValue !== 0
-                                        ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
-                                        : null;
+                                  <div className="relative flex items-center justify-center" style={{ minHeight: '350px', paddingLeft: '140px', paddingRight: '160px' }}>
+                                    <div className="relative" style={{ width: '100%', maxWidth: '400px' }}>
+                                      {stages.map((stage, index) => {
+                                        const prevStage = index > 0 ? stages[index - 1] : null;
+                                        const nextStage = index < stages.length - 1 ? stages[index + 1] : null;
+                                        
+                                        // Calculate conversion rate
+                                        const conversionRate = prevStage && prevStage.value > 0 
+                                          ? calculatePercentage(stage.value, prevStage.value)
+                                          : 0;
+                                        
+                                        // Calculate comparison change
+                                        const change = stage.prevValue !== null && stage.prevValue !== 0
+                                          ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
+                                          : null;
 
-                                      return (
-                                        <div key={stage.name} className="absolute w-full" style={{ top: `${topOffset}px` }}>
-                                          {/* Left Label */}
-                                          <div className="absolute left-0 top-0 bottom-0 flex items-center pr-4" style={{ width: '120px' }}>
-                                            <div className="text-sm font-semibold text-teal-900 text-right w-full">
-                                              {stage.name}
-                                            </div>
-                                          </div>
-                                          
-                                          {/* Funnel Segment */}
-                                          <div 
-                                            className={`absolute bg-gradient-to-r ${stage.color} border-2 border-teal-600`}
-                                            style={{
-                                              left: `calc(120px + ${leftOffset}%)`,
-                                              width: `${stage.width}%`,
-                                              height: '70px',
-                                              clipPath: isFirst 
-                                                ? `polygon(0 0, 100% 0, ${100 - (prevStage ? (prevStage.width - stage.width) / 2 : 0)}% 100%, ${prevStage ? (prevStage.width - stage.width) / 2 : 0}% 100%)`
-                                                : isLast
-                                                ? `polygon(${(stages[index - 1].width - stage.width) / 2}% 0, ${100 - (stages[index - 1].width - stage.width) / 2}% 0, 100% 100%, 0% 100%)`
-                                                : `polygon(${(prevStage!.width - stage.width) / 2}% 0, ${100 - (prevStage!.width - stage.width) / 2}% 0, ${100 - (stages[index + 1] ? (stage.width - stages[index + 1].width) / 2 : 0)}% 100%, ${stages[index + 1] ? (stage.width - stages[index + 1].width) / 2 : 0}% 100%)`
-                                            }}
-                                          >
-                                            <div className="h-full flex items-center justify-center text-white">
-                                              <div className="text-center">
-                                                <div className="font-bold text-lg">{formatNumber(stage.value)}</div>
-                                                {prevStage && (
-                                                  <div className="text-xs opacity-90 mt-1">
-                                                    {conversionRate.toFixed(1)}%
-                                                  </div>
-                                                )}
+                                        // Calculate trapezoid points for funnel segment
+                                        const segmentHeight = 70;
+                                        const topLeft = (100 - stage.topWidth) / 2;
+                                        const topRight = topLeft + stage.topWidth;
+                                        const bottomLeft = nextStage ? (100 - stage.bottomWidth) / 2 : (100 - stage.bottomWidth) / 2;
+                                        const bottomRight = bottomLeft + stage.bottomWidth;
+
+                                        return (
+                                          <div key={stage.name} className="relative mb-0" style={{ height: `${segmentHeight}px` }}>
+                                            {/* Left Label */}
+                                            <div className="absolute left-0 top-0 bottom-0 flex items-center" style={{ width: '130px', marginLeft: '-150px' }}>
+                                              <div className="text-sm font-semibold text-teal-900 text-right w-full">
+                                                {stage.name}
                                               </div>
                                             </div>
-                                          </div>
-                                          
-                                          {/* Right Data */}
-                                          <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center" style={{ width: '140px' }}>
-                                            <div className="text-sm font-semibold text-teal-900">
-                                              {formatNumber(stage.value)}
-                                            </div>
-                                            {prevStage && (
-                                              <div className="text-xs text-teal-600 mt-1">
-                                                {conversionRate.toFixed(1)}% of {prevStage.name}
-                                              </div>
-                                            )}
-                                            {change !== null && (
-                                              <div className={`text-xs mt-1 font-medium ${
-                                                change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-teal-600'
-                                              }`}>
-                                                {change > 0 ? '↑' : change < 0 ? '↓' : '→'} {Math.abs(change).toFixed(1)}% vs. Last Week
-                                              </div>
-                                            )}
-                                          </div>
-                                          
-                                          {/* Separator Line (except for first segment) */}
-                                          {!isFirst && (
+                                            
+                                            {/* Funnel Segment - Trapezoid */}
                                             <div 
-                                              className="absolute border-t-2 border-teal-600"
+                                              className={`absolute ${stage.color} border-2 border-teal-600`}
                                               style={{
-                                                left: `calc(120px + ${(100 - prevStage!.width) / 2}%)`,
-                                                width: `${prevStage!.width}%`,
-                                                top: '-2px'
+                                                left: `${topLeft}%`,
+                                                width: `${stage.topWidth}%`,
+                                                height: `${segmentHeight}px`,
+                                                clipPath: `polygon(0 0, 100% 0, ${((bottomRight - topRight) / stage.topWidth) * 100}% 100%, ${((bottomLeft - topLeft) / stage.topWidth) * 100}% 100%)`,
+                                                transform: `translateX(${((bottomLeft - topLeft) / stage.topWidth) * -100}%)`
                                               }}
-                                            />
-                                          )}
-                                        </div>
-                                      );
-                                    })}
+                                            >
+                                              <div className="h-full flex items-center justify-center text-white">
+                                                <div className="text-center px-2">
+                                                  <div className="font-bold text-base">{formatNumber(stage.value)}</div>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Right Data */}
+                                            <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center" style={{ width: '150px', marginRight: '-170px' }}>
+                                              <div className="text-sm font-semibold text-teal-900">
+                                                {formatNumber(stage.value)}
+                                              </div>
+                                              {prevStage && (
+                                                <div className="text-xs text-teal-600 mt-1">
+                                                  {conversionRate.toFixed(1)}% of {prevStage.name}
+                                                </div>
+                                              )}
+                                              {change !== null && (
+                                                <div className={`text-xs mt-1 font-medium ${
+                                                  change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-teal-600'
+                                                }`}>
+                                                  {change > 0 ? '↑' : change < 0 ? '↓' : '→'} {Math.abs(change).toFixed(1)}%
+                                                </div>
+                                              )}
+                                            </div>
+                                            
+                                            {/* Separator Line (dark teal border between segments) */}
+                                            {index < stages.length - 1 && (
+                                              <div 
+                                                className="absolute border-t-2 border-teal-600 z-10"
+                                                style={{
+                                                  left: `${bottomLeft}%`,
+                                                  width: `${stage.bottomWidth}%`,
+                                                  bottom: '0',
+                                                  transform: 'translateY(2px)'
+                                                }}
+                                              />
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
                                   
                                   {/* Overall Conversion Rate */}
-                                  <div className="mt-8 pt-4 border-t-2 border-teal-300 text-center">
+                                  <div className="mt-6 pt-4 border-t-2 border-teal-300 text-center">
                                     <div className="text-sm text-teal-600 mb-1">Overall Conversion Rate</div>
                                     <div className="text-2xl font-bold text-teal-900">
                                       {sessions > 0 ? calculatePercentage(purchases, sessions).toFixed(2) : '0.00'}%
