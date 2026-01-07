@@ -184,7 +184,8 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || `Upload failed with status ${response.status}`);
       }
 
       const result = await response.json();

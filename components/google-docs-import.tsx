@@ -343,7 +343,8 @@ export function GoogleDocsImport({ onUploadSuccess }: { onUploadSuccess?: () => 
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || `Upload failed with status ${response.status}`);
       }
 
       const result = await response.json();
@@ -362,10 +363,11 @@ export function GoogleDocsImport({ onUploadSuccess }: { onUploadSuccess?: () => 
       if (onUploadSuccess) {
         onUploadSuccess();
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Upload error:', error);
       setStatus({ 
         type: 'error', 
-        message: 'Failed to upload data. Please check your format.' 
+        message: error.message || 'Failed to upload data. Please check your format.' 
       });
     } finally {
       setIsUploading(false);

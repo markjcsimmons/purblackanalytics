@@ -25,10 +25,10 @@ export async function POST(request: NextRequest) {
       weekId,
       message: 'Data uploaded successfully' 
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Failed to upload data' },
+      { error: error.message || 'Failed to upload data' },
       { status: 500 }
     );
   }

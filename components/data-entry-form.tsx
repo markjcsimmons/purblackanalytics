@@ -287,8 +287,8 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Upload failed');
+        const data = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(data.error || `Upload failed with status ${response.status}`);
       }
 
       setSuccess('Data saved successfully! 🎉');
