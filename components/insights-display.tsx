@@ -187,7 +187,7 @@ export function InsightsDisplay({ weekId, existingInsights = [], onGenerate }: I
               Roman&apos;s Recommendations
             </CardTitle>
             <CardDescription>
-              Actionable recommendations based on your data input
+              Actionable insights powered by AI analysis
             </CardDescription>
           </div>
           <div className="flex gap-2">
