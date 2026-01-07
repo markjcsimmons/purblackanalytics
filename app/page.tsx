@@ -1066,35 +1066,63 @@ export default function Dashboard() {
                                   : null;
 
                                 return (
-                                  <div key={idx} className="space-y-1">
-                                    <div className="flex justify-between items-start text-sm">
-                                      <span className="text-muted-foreground text-xs flex-1">
+                                  <div key={idx} className="border-b border-teal-100 last:border-0 pb-2 last:pb-0">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <span className="text-muted-foreground text-xs font-medium flex-1">
                                         {metric.metric_name.replace(/^\*\s*/, '')}
                                       </span>
-                                      <span className="font-semibold ml-2 text-teal-900">
-                                        {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
-                                          ? metric.metric_value.toFixed(1)
-                                          : formatNumber(metric.metric_value)}
-                                        {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''}
-                                      </span>
+                                      <div className="text-right ml-3">
+                                        <div className="font-bold text-sm text-teal-900">
+                                          {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
+                                            ? metric.metric_value.toFixed(1)
+                                            : formatNumber(metric.metric_value)}
+                                          {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''}
+                                        </div>
+                                      </div>
                                     </div>
                                     {(prevWeekChange !== null || yearAgoChange !== null) && (
-                                      <div className="flex gap-3 text-xs ml-1">
+                                      <div className="mt-2 pt-2 border-t border-teal-50 space-y-1.5">
                                         {prevWeekChange !== null && (
-                                          <span className={`flex items-center gap-1 ${
-                                            prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-teal-600'
-                                          }`}>
-                                            {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                            <span className="font-medium">Last Week: {Math.abs(prevWeekChange).toFixed(1)}%</span>
-                                          </span>
+                                          <div className="flex items-center justify-between text-xs">
+                                            <span className="text-teal-600 font-medium">vs. Last Week</span>
+                                            <div className="flex items-center gap-1.5">
+                                              <span className={`font-semibold flex items-center gap-1 ${
+                                                prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-teal-600'
+                                              }`}>
+                                                {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                                {Math.abs(prevWeekChange).toFixed(1)}%
+                                              </span>
+                                              {prevWeekValue !== null && (
+                                                <span className="text-teal-500 text-[10px]">
+                                                  ({typeof prevWeekValue === 'number' && prevWeekValue < 100 && !metric.metric_name.toLowerCase().includes('rate')
+                                                    ? prevWeekValue.toFixed(1)
+                                                    : formatNumber(prevWeekValue)}
+                                                  {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''})
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
                                         )}
                                         {yearAgoChange !== null && (
-                                          <span className={`flex items-center gap-1 ${
-                                            yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-teal-600'
-                                          }`}>
-                                            {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                            <span className="font-medium">Year Ago: {Math.abs(yearAgoChange).toFixed(1)}%</span>
-                                          </span>
+                                          <div className="flex items-center justify-between text-xs">
+                                            <span className="text-teal-600 font-medium">vs. Year Ago</span>
+                                            <div className="flex items-center gap-1.5">
+                                              <span className={`font-semibold flex items-center gap-1 ${
+                                                yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-teal-600'
+                                              }`}>
+                                                {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                                {Math.abs(yearAgoChange).toFixed(1)}%
+                                              </span>
+                                              {yearAgoValue !== null && (
+                                                <span className="text-teal-500 text-[10px]">
+                                                  ({typeof yearAgoValue === 'number' && yearAgoValue < 100 && !metric.metric_name.toLowerCase().includes('rate')
+                                                    ? yearAgoValue.toFixed(1)
+                                                    : formatNumber(yearAgoValue)}
+                                                  {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''})
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
                                         )}
                                       </div>
                                     )}
