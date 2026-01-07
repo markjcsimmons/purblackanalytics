@@ -1044,148 +1044,156 @@ export default function Dashboard() {
                   <CardContent className="pt-6">
                     {weekData && weekData.funnelMetrics && weekData.funnelMetrics.length > 0 ? (
                       (() => {
-                        // Define funnel flow order
-                        const funnelOrder = ['Sessions', 'Add to Cart', 'Sessions → Add to Cart', 'Checkout', 'Purchases'];
-                        const metricOrder = [
-                          'Sessions',
-                          'Add to Cart',
-                          'Sessions → Add to Cart',
-                          'Add-to-cart rate',
-                          'Checkout',
-                          'Purchases',
-                          'Time on page',
-                          'Scroll depth',
-                          'Abandonment rate',
-                          'Shipping issues'
-                        ];
-
-                        // Group metrics by metric name instead of stage
-                        const metricsByType = weekData.funnelMetrics.reduce((acc: any, item: any) => {
-                          const metricName = item.metric_name.replace(/^\*\s*/, '');
-                          if (!acc[metricName]) {
-                            acc[metricName] = [];
+                        // Group metrics by channel/stage
+                        const channels = weekData.funnelMetrics.reduce((acc: any, item: any) => {
+                          if (!acc[item.stage_name]) {
+                            acc[item.stage_name] = [];
                           }
-                          acc[metricName].push(item);
+                          acc[item.stage_name].push(item);
                           return acc;
                         }, {});
 
-                        // Sort metric types by funnel order
-                        const sortedMetricTypes = Object.keys(metricsByType).sort((a, b) => {
-                          const aIndex = metricOrder.findIndex(m => a.includes(m) || m.includes(a));
-                          const bIndex = metricOrder.findIndex(m => b.includes(m) || m.includes(b));
-                          if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-                          if (aIndex === -1) return 1;
-                          if (bIndex === -1) return -1;
-                          return aIndex - bIndex;
-                        });
+                        // Helper to get metric value for a stage
+                        const getStageValue = (metrics: any[], stageName: string) => {
+                          const metric = metrics.find((m: any) => 
+                            m.metric_name === stageName || 
+                            m.metric_name === `* ${stageName}` ||
+                            m.metric_name.replace(/^\*\s*/, '') === stageName
+                          );
+                          return metric ? metric.metric_value : 0;
+                        };
+
+                        // Helper to calculate percentage
+                        const calculatePercentage = (value: number, total: number) => {
+                          return total > 0 ? (value / total) * 100 : 0;
+                        };
 
                         return (
-                          <div className="space-y-6">
-                            {sortedMetricTypes.map((metricType) => {
-                              const metrics = metricsByType[metricType];
-                              const totalValue = metrics.reduce((sum: number, m: any) => sum + (m.metric_value || 0), 0);
+                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {Object.entries(channels).map(([channelName, metrics]: [string, any]) => {
+                              const sessions = getStageValue(metrics, 'Sessions');
+                              const addToCart = getStageValue(metrics, 'Add to Cart');
+                              const checkout = getStageValue(metrics, 'Checkout');
+                              const purchases = getStageValue(metrics, 'Purchases');
                               
-                              return (
-                                <div key={metricType} className="p-4 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
-                                  <div className="flex items-center justify-between mb-4">
-                                    <div className="font-bold text-teal-900 flex items-center gap-2">
-                                      <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                                      {metricType}
-                                    </div>
-                                    {metrics.length > 1 && (
-                                      <div className="text-sm font-semibold text-teal-700">
-                                        Total: {typeof totalValue === 'number' && totalValue < 100 && !metricType.toLowerCase().includes('rate')
-                                          ? totalValue.toFixed(1)
-                                          : formatNumber(totalValue)}
-                                        {metricType.toLowerCase().includes('rate') || metricType.toLowerCase().includes('%') ? '%' : ''}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="space-y-3">
-                                    {metrics.map((metric: any, idx: number) => {
-                                const currentValue = metric.metric_value;
-                                const prevWeekValue = comparisonData?.previousWeek 
-                                  ? getComparisonFunnelMetric(comparisonData.previousWeek, stage, metric.metric_name)
-                                  : null;
-                                const yearAgoValue = comparisonData?.sameWeekYearAgo 
-                                  ? getComparisonFunnelMetric(comparisonData.sameWeekYearAgo, stage, metric.metric_name)
-                                  : null;
-                                
-                                const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
-                                  ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
-                                  : null;
-                                const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
-                                  ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
-                                  : null;
+                              // Calculate max value for width scaling
+                              const maxValue = Math.max(sessions, addToCart, checkout, purchases, 1);
+                              
+                              // Get comparison data
+                              const getComparisonValue = (stageName: string, comparisonWeek: any) => {
+                                if (!comparisonWeek) return null;
+                                return getComparisonFunnelMetric(comparisonWeek, channelName, stageName) || 
+                                       getComparisonFunnelMetric(comparisonWeek, channelName, `* ${stageName}`);
+                              };
 
-                                return (
-                                  <div key={idx} className="border-b border-teal-100 last:border-0 pb-2 last:pb-0">
-                                    <div className="flex justify-between items-start mb-2">
-                                      <span className="text-muted-foreground text-xs font-medium flex-1">
-                                        {metric.metric_name.replace(/^\*\s*/, '')}
-                                      </span>
-                                      <div className="text-right ml-3">
-                                        <div className="font-bold text-sm text-teal-900">
-                                          {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
-                                            ? metric.metric_value.toFixed(1)
-                                            : formatNumber(metric.metric_value)}
-                                          {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''}
+                              const prevSessions = getComparisonValue('Sessions', comparisonData?.previousWeek);
+                              const prevATC = getComparisonValue('Add to Cart', comparisonData?.previousWeek);
+                              const prevCheckout = getComparisonValue('Checkout', comparisonData?.previousWeek);
+                              const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
+
+                              return (
+                                <div key={channelName} className="p-4 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
+                                  <div className="font-bold mb-4 text-teal-900 text-center">
+                                    {channelName}
+                                  </div>
+                                  
+                                  {/* Visual Funnel */}
+                                  <div className="space-y-1">
+                                    {/* Sessions - Top (Widest) */}
+                                    <div className="relative">
+                                      <div 
+                                        className="bg-gradient-to-r from-teal-400 to-teal-500 text-white text-center py-3 rounded-t-lg transition-all"
+                                        style={{ width: `${Math.max(20, (sessions / maxValue) * 100)}%`, margin: '0 auto' }}
+                                      >
+                                        <div className="font-bold text-sm">Sessions</div>
+                                        <div className="text-xs mt-1">{formatNumber(sessions)}</div>
+                                      </div>
+                                      {prevSessions !== null && prevSessions !== 0 && (
+                                        <div className="text-xs text-center mt-1 text-teal-600">
+                                          <span className={sessions > prevSessions ? 'text-green-600' : sessions < prevSessions ? 'text-red-600' : ''}>
+                                            {sessions > prevSessions ? '↑' : sessions < prevSessions ? '↓' : '→'} {Math.abs(((sessions - prevSessions) / prevSessions) * 100).toFixed(1)}%
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Add to Cart */}
+                                    <div className="relative">
+                                      <div 
+                                        className="bg-gradient-to-r from-teal-500 to-teal-600 text-white text-center py-3 transition-all"
+                                        style={{ width: `${Math.max(15, (addToCart / maxValue) * 100)}%`, margin: '0 auto' }}
+                                      >
+                                        <div className="font-bold text-sm">Add to Cart</div>
+                                        <div className="text-xs mt-1">{formatNumber(addToCart)}</div>
+                                        <div className="text-xs mt-1 opacity-75">
+                                          {calculatePercentage(addToCart, sessions).toFixed(1)}% of sessions
                                         </div>
                                       </div>
+                                      {prevATC !== null && prevATC !== 0 && (
+                                        <div className="text-xs text-center mt-1 text-teal-600">
+                                          <span className={addToCart > prevATC ? 'text-green-600' : addToCart < prevATC ? 'text-red-600' : ''}>
+                                            {addToCart > prevATC ? '↑' : addToCart < prevATC ? '↓' : '→'} {Math.abs(((addToCart - prevATC) / prevATC) * 100).toFixed(1)}%
+                                          </span>
+                                        </div>
+                                      )}
                                     </div>
-                                    {(prevWeekChange !== null || yearAgoChange !== null) && (
-                                      <div className="mt-2 pt-2 border-t border-teal-50 space-y-1.5">
-                                        {prevWeekChange !== null && (
-                                          <div className="flex items-center justify-between text-xs">
-                                            <span className="text-teal-600 font-medium">vs. Last Week</span>
-                                            <div className="flex items-center gap-1.5">
-                                              <span className={`font-semibold flex items-center gap-1 ${
-                                                prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-teal-600'
-                                              }`}>
-                                                {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                                {Math.abs(prevWeekChange).toFixed(1)}%
-                                              </span>
-                                              {prevWeekValue !== null && (
-                                                <span className="text-teal-500 text-[10px]">
-                                                  ({typeof prevWeekValue === 'number' && prevWeekValue < 100 && !metric.metric_name.toLowerCase().includes('rate')
-                                                    ? prevWeekValue.toFixed(1)
-                                                    : formatNumber(prevWeekValue)}
-                                                  {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''})
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        )}
-                                        {yearAgoChange !== null && (
-                                          <div className="flex items-center justify-between text-xs">
-                                            <span className="text-teal-600 font-medium">vs. Year Ago</span>
-                                            <div className="flex items-center gap-1.5">
-                                              <span className={`font-semibold flex items-center gap-1 ${
-                                                yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-teal-600'
-                                              }`}>
-                                                {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                                {Math.abs(yearAgoChange).toFixed(1)}%
-                                              </span>
-                                              {yearAgoValue !== null && (
-                                                <span className="text-teal-500 text-[10px]">
-                                                  ({typeof yearAgoValue === 'number' && yearAgoValue < 100 && !metric.metric_name.toLowerCase().includes('rate')
-                                                    ? yearAgoValue.toFixed(1)
-                                                    : formatNumber(yearAgoValue)}
-                                                  {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''})
-                                                </span>
-                                              )}
-                                            </div>
-                                          </div>
-                                        )}
+
+                                    {/* Checkout */}
+                                    <div className="relative">
+                                      <div 
+                                        className="bg-gradient-to-r from-teal-600 to-teal-700 text-white text-center py-3 transition-all"
+                                        style={{ width: `${Math.max(10, (checkout / maxValue) * 100)}%`, margin: '0 auto' }}
+                                      >
+                                        <div className="font-bold text-sm">Checkout</div>
+                                        <div className="text-xs mt-1">{formatNumber(checkout)}</div>
+                                        <div className="text-xs mt-1 opacity-75">
+                                          {calculatePercentage(checkout, addToCart).toFixed(1)}% of add to cart
+                                        </div>
                                       </div>
-                                    )}
+                                      {prevCheckout !== null && prevCheckout !== 0 && (
+                                        <div className="text-xs text-center mt-1 text-teal-600">
+                                          <span className={checkout > prevCheckout ? 'text-green-600' : checkout < prevCheckout ? 'text-red-600' : ''}>
+                                            {checkout > prevCheckout ? '↑' : checkout < prevCheckout ? '↓' : '→'} {Math.abs(((checkout - prevCheckout) / prevCheckout) * 100).toFixed(1)}%
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Purchases - Bottom (Narrowest) */}
+                                    <div className="relative">
+                                      <div 
+                                        className="bg-gradient-to-r from-teal-700 to-teal-800 text-white text-center py-3 rounded-b-lg transition-all"
+                                        style={{ width: `${Math.max(5, (purchases / maxValue) * 100)}%`, margin: '0 auto' }}
+                                      >
+                                        <div className="font-bold text-sm">Purchases</div>
+                                        <div className="text-xs mt-1">{formatNumber(purchases)}</div>
+                                        <div className="text-xs mt-1 opacity-75">
+                                          {calculatePercentage(purchases, checkout).toFixed(1)}% of checkout
+                                        </div>
+                                      </div>
+                                      {prevPurchases !== null && prevPurchases !== 0 && (
+                                        <div className="text-xs text-center mt-1 text-teal-600">
+                                          <span className={purchases > prevPurchases ? 'text-green-600' : purchases < prevPurchases ? 'text-red-600' : ''}>
+                                            {purchases > prevPurchases ? '↑' : purchases < prevPurchases ? '↓' : '→'} {Math.abs(((purchases - prevPurchases) / prevPurchases) * 100).toFixed(1)}%
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                );
-                              })}
-                            </div>
+
+                                  {/* Conversion Rate Summary */}
+                                  <div className="mt-4 pt-4 border-t border-teal-200 text-center">
+                                    <div className="text-xs text-teal-600 mb-1">Overall Conversion Rate</div>
+                                    <div className="text-lg font-bold text-teal-900">
+                                      {sessions > 0 ? calculatePercentage(purchases, sessions).toFixed(2) : '0.00'}%
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })()
                     ) : (
                       <div className="text-center py-8 text-muted-foreground">
                         <Target className="h-12 w-12 mx-auto mb-3 opacity-30" />
