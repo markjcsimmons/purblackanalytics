@@ -175,12 +175,12 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         { metric: '* Conversion Rate', value: parseFloat(formData.conversionRate) || 0 },
         { metric: '* Total Sessions', value: parseFloat(formData.sessions) || 0 },
         // Add top selling products
-        ...formData.products
-          .filter(p => p.name.trim() && parseFloat(p.orders) > 0)
-          .map(p => ({
-            metric: `/products/${p.name.trim().toLowerCase().replace(/\s+/g, '-')}`,
-            value: parseFloat(p.orders) || 0
-          })),
+          ...formData.products
+            .filter(p => p.name.trim() && parseFloat(p.orders) > 0)
+            .map(p => ({
+              metric: `/products/${p.name.trim()}`,
+              value: parseFloat(p.orders) || 0
+            })),
       ];
       overallMetricsArray.forEach(item => {
         if (item.value > 0) {
