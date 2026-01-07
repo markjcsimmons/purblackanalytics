@@ -151,6 +151,15 @@ export default function Dashboard() {
       .reduce((sum, m) => sum + (m.metric_value || 0), 0);
   };
 
+  // Helper function to find a funnel metric in comparison data
+  const getComparisonFunnelMetric = (comparisonData: any, stageName: string, metricName: string): number | null => {
+    if (!comparisonData || !comparisonData.funnelMetrics) return null;
+    const metric = comparisonData.funnelMetrics.find(
+      (m: any) => m.stage_name === stageName && m.metric_name === metricName
+    );
+    return metric ? metric.metric_value : null;
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -805,19 +814,58 @@ export default function Dashboard() {
                               {stage}
                             </div>
                             <div className="space-y-2">
-                              {metrics.map((metric: any, idx: number) => (
-                                <div key={idx} className="flex justify-between items-start text-sm">
-                                  <span className="text-muted-foreground text-xs flex-1">
-                                    {metric.metric_name.replace(/^\*\s*/, '')}
-                                  </span>
-                                  <span className="font-semibold ml-2 text-teal-900">
-                                    {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
-                                      ? metric.metric_value.toFixed(1)
-                                      : formatNumber(metric.metric_value)}
-                                    {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''}
-                                  </span>
-                                </div>
-                              ))}
+                              {metrics.map((metric: any, idx: number) => {
+                                const currentValue = metric.metric_value;
+                                const prevWeekValue = comparisonData?.previousWeek 
+                                  ? getComparisonFunnelMetric(comparisonData.previousWeek, stage, metric.metric_name)
+                                  : null;
+                                const yearAgoValue = comparisonData?.sameWeekYearAgo 
+                                  ? getComparisonFunnelMetric(comparisonData.sameWeekYearAgo, stage, metric.metric_name)
+                                  : null;
+                                
+                                const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
+                                  ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
+                                  : null;
+                                const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
+                                  ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                                  : null;
+
+                                return (
+                                  <div key={idx} className="space-y-1">
+                                    <div className="flex justify-between items-start text-sm">
+                                      <span className="text-muted-foreground text-xs flex-1">
+                                        {metric.metric_name.replace(/^\*\s*/, '')}
+                                      </span>
+                                      <span className="font-semibold ml-2 text-teal-900">
+                                        {typeof metric.metric_value === 'number' && metric.metric_value < 100 && !metric.metric_name.toLowerCase().includes('rate')
+                                          ? metric.metric_value.toFixed(1)
+                                          : formatNumber(metric.metric_value)}
+                                        {metric.metric_name.toLowerCase().includes('rate') || metric.metric_name.toLowerCase().includes('%') ? '%' : ''}
+                                      </span>
+                                    </div>
+                                    {(prevWeekChange !== null || yearAgoChange !== null) && (
+                                      <div className="flex gap-3 text-xs ml-1">
+                                        {prevWeekChange !== null && (
+                                          <span className={`flex items-center gap-1 ${
+                                            prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-teal-600'
+                                          }`}>
+                                            {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                            <span className="font-medium">LW: {Math.abs(prevWeekChange).toFixed(1)}%</span>
+                                          </span>
+                                        )}
+                                        {yearAgoChange !== null && (
+                                          <span className={`flex items-center gap-1 ${
+                                            yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-teal-600'
+                                          }`}>
+                                            {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                            <span className="font-medium">YoY: {Math.abs(yearAgoChange).toFixed(1)}%</span>
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}
