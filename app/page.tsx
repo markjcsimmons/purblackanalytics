@@ -1004,17 +1004,21 @@ export default function Dashboard() {
                                   <span className="text-muted-foreground">Revenue:</span>
                                   <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Spend:</span>
-                                  <span className="text-red-600">{formatCurrency(data.spend)}</span>
-                                </div>
-                                <div className="flex justify-between items-center pt-2 border-t">
-                                  <span className="text-muted-foreground font-semibold">ROI:</span>
-                                  <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : roi < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                    {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : roi < 0 ? <ArrowDownRight className="h-4 w-4" /> : null}
-                                    {roi.toFixed(0)}%
-                                  </span>
-                                </div>
+                                {channel === 'Google Ads' && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Spend:</span>
+                                    <span className="text-red-600">{formatCurrency(data.spend)}</span>
+                                  </div>
+                                )}
+                                {channel === 'Google Ads' && (
+                                  <div className="flex justify-between items-center pt-2 border-t">
+                                    <span className="text-muted-foreground font-semibold">ROI:</span>
+                                    <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : roi < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                      {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : roi < 0 ? <ArrowDownRight className="h-4 w-4" /> : null}
+                                      {roi.toFixed(0)}%
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
@@ -1185,7 +1189,17 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent>
                         <div className="grid gap-4 md:grid-cols-3">
-                          {metrics.map((metric: any) => {
+                          {metrics
+                            .filter((metric: any) => {
+                              // Hide spend metrics for all channels except Google Ads
+                              const metricLower = metric.metric_name.toLowerCase();
+                              const isSpend = metricLower.includes('spend') || metricLower.includes('cost');
+                              if (isSpend && channel !== 'Google Ads') {
+                                return false;
+                              }
+                              return true;
+                            })
+                            .map((metric: any) => {
                             const currentValue = metric.metric_value;
                             const prevWeekValue = comparisonData?.previousWeek 
                               ? getComparisonValue(metric.metric_name, comparisonData.previousWeek)
