@@ -1097,22 +1097,23 @@ export default function Dashboard() {
                               const prevCheckout = getComparisonValue('Checkout', comparisonData?.previousWeek);
                               const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
 
-                              // Calculate funnel segment widths (proportional to values, but ensuring visible funnel shape)
-                              const totalValue = sessions;
-                              const segmentHeight = 60;
+                              // Calculate funnel segment widths based on values
+                              const maxValue = Math.max(sessions, addToCart, checkout, purchases, 1);
+                              const funnelWidth = 300; // Fixed width for funnel in pixels
+                              const segmentHeight = 65;
                               
-                              // Calculate widths as percentages - ensure minimum widths for visibility
-                              const sessionsTopWidth = 100;
-                              const sessionsBottomWidth = totalValue > 0 ? Math.max(75, (addToCart / totalValue) * 100) : 75;
+                              // Calculate widths as percentages of funnel width
+                              const sessionsTopWidth = funnelWidth;
+                              const sessionsBottomWidth = maxValue > 0 ? Math.max(funnelWidth * 0.7, (addToCart / maxValue) * funnelWidth) : funnelWidth * 0.7;
                               
                               const atcTopWidth = sessionsBottomWidth;
-                              const atcBottomWidth = totalValue > 0 ? Math.max(50, (checkout / totalValue) * 100) : 50;
+                              const atcBottomWidth = maxValue > 0 ? Math.max(funnelWidth * 0.45, (checkout / maxValue) * funnelWidth) : funnelWidth * 0.45;
                               
                               const checkoutTopWidth = atcBottomWidth;
-                              const checkoutBottomWidth = totalValue > 0 ? Math.max(30, (purchases / totalValue) * 100) : 30;
+                              const checkoutBottomWidth = maxValue > 0 ? Math.max(funnelWidth * 0.25, (purchases / maxValue) * funnelWidth) : funnelWidth * 0.25;
                               
                               const purchasesTopWidth = checkoutBottomWidth;
-                              const purchasesBottomWidth = totalValue > 0 ? Math.max(15, (purchases / totalValue) * 60) : 15;
+                              const purchasesBottomWidth = maxValue > 0 ? Math.max(funnelWidth * 0.12, (purchases / maxValue) * funnelWidth * 0.5) : funnelWidth * 0.12;
 
                               // Funnel stages configuration
                               const stages = [
@@ -1153,20 +1154,90 @@ export default function Dashboard() {
                                   </div>
                                   
                                   {/* Funnel Visualization */}
-                                  <div className="relative" style={{ minHeight: '320px', paddingLeft: '140px', paddingRight: '180px' }}>
-                                    <div className="relative mx-auto" style={{ width: '100%', maxWidth: '500px' }}>
-                                      {/* Dark Teal Top Rim */}
-                                      <div 
-                                        className="absolute bg-teal-600"
-                                        style={{
-                                          left: '0%',
-                                          width: '100%',
-                                          height: '4px',
-                                          top: '0px',
-                                          zIndex: 20
-                                        }}
-                                      />
-                                      
+                                  <div className="flex items-start justify-center gap-8" style={{ minHeight: '320px' }}>
+                                    {/* Left Labels Column */}
+                                    <div className="flex flex-col gap-0" style={{ width: '120px', paddingTop: '2px' }}>
+                                      {stages.map((stage, index) => (
+                                        <div key={stage.name} className="flex items-center justify-end h-16 pr-4">
+                                          <div className="text-sm font-semibold text-teal-900 text-right">
+                                            {stage.name}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    
+                                    {/* Funnel SVG */}
+                                    <div className="relative" style={{ width: `${funnelWidth}px` }}>
+                                      <svg width={funnelWidth} height={stages.length * segmentHeight + 4} className="overflow-visible">
+                                        {/* Dark Teal Top Rim */}
+                                        <rect 
+                                          x="0" 
+                                          y="0" 
+                                          width={funnelWidth} 
+                                          height="4" 
+                                          fill="#0d9488" 
+                                        />
+                                        
+                                        {stages.map((stage, index) => {
+                                          const prevStage = index > 0 ? stages[index - 1] : null;
+                                          const y = index * segmentHeight + 4;
+                                          
+                                          // Calculate trapezoid points
+                                          const topLeft = (funnelWidth - stage.topWidth) / 2;
+                                          const topRight = topLeft + stage.topWidth;
+                                          const bottomLeft = (funnelWidth - stage.bottomWidth) / 2;
+                                          const bottomRight = bottomLeft + stage.bottomWidth;
+                                          
+                                          // Calculate conversion rate
+                                          const conversionRate = prevStage && prevStage.value > 0 
+                                            ? calculatePercentage(stage.value, prevStage.value)
+                                            : 0;
+                                          
+                                          // Calculate comparison change
+                                          const change = stage.prevValue !== null && stage.prevValue !== 0
+                                            ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
+                                            : null;
+
+                                          return (
+                                            <g key={stage.name}>
+                                              {/* Lime Green Funnel Segment */}
+                                              <polygon
+                                                points={`${topLeft},${y} ${topRight},${y} ${bottomRight},${y + segmentHeight} ${bottomLeft},${y + segmentHeight}`}
+                                                fill="#84cc16"
+                                                stroke="#0d9488"
+                                                strokeWidth="2"
+                                              />
+                                              
+                                              {/* Dark Teal Separator Line (except for first segment) */}
+                                              {index > 0 && (
+                                                <>
+                                                  <line
+                                                    x1={bottomLeft}
+                                                    y1={y}
+                                                    x2={bottomRight}
+                                                    y2={y}
+                                                    stroke="#0d9488"
+                                                    strokeWidth="2"
+                                                  />
+                                                  {/* Light Teal Horizontal Line Extending Right */}
+                                                  <line
+                                                    x1={topRight}
+                                                    y1={y}
+                                                    x2={topRight + 100}
+                                                    y2={y}
+                                                    stroke="#5eead4"
+                                                    strokeWidth="1"
+                                                  />
+                                                </>
+                                              )}
+                                            </g>
+                                          );
+                                        })}
+                                      </svg>
+                                    </div>
+                                    
+                                    {/* Right Data Column */}
+                                    <div className="flex flex-col gap-0" style={{ width: '180px', paddingTop: '2px' }}>
                                       {stages.map((stage, index) => {
                                         const prevStage = index > 0 ? stages[index - 1] : null;
                                         
@@ -1180,90 +1251,24 @@ export default function Dashboard() {
                                           ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
                                           : null;
 
-                                        // Calculate positions for trapezoid
-                                        const topLeftPercent = (100 - stage.topWidth) / 2;
-                                        const topRightPercent = topLeftPercent + stage.topWidth;
-                                        const bottomLeftPercent = (100 - stage.bottomWidth) / 2;
-                                        const bottomRightPercent = bottomLeftPercent + stage.bottomWidth;
-                                        
-                                        // Calculate clip-path for trapezoid
-                                        const clipPathTopLeft = 0;
-                                        const clipPathTopRight = 100;
-                                        const clipPathBottomRight = ((bottomRightPercent - topRightPercent) / stage.topWidth) * 100;
-                                        const clipPathBottomLeft = ((bottomLeftPercent - topLeftPercent) / stage.topWidth) * 100;
-
                                         return (
-                                          <div key={stage.name} className="absolute" style={{ 
-                                            top: `${index * segmentHeight + 4}px`,
-                                            left: `${topLeftPercent}%`,
-                                            width: `${stage.topWidth}%`,
-                                            height: `${segmentHeight}px`
-                                          }}>
-                                            {/* Left Label */}
-                                            <div className="absolute left-0 top-0 bottom-0 flex items-center" style={{ width: '130px', marginLeft: '-150px' }}>
-                                              <div className="text-sm font-semibold text-teal-900 text-right w-full">
-                                                {stage.name}
-                                              </div>
+                                          <div key={stage.name} className="flex flex-col justify-center h-16 pl-4">
+                                            <div className="text-sm font-semibold text-teal-900">
+                                              {formatNumber(stage.value)}
                                             </div>
-                                            
-                                            {/* Lime Green Funnel Segment */}
-                                            <div 
-                                              className="absolute bg-lime-400"
-                                              style={{
-                                                left: '0',
-                                                width: '100%',
-                                                height: '100%',
-                                                clipPath: `polygon(${clipPathTopLeft}% 0%, ${clipPathTopRight}% 0%, ${clipPathTopRight + clipPathBottomRight}% 100%, ${clipPathTopLeft + clipPathBottomLeft}% 100%)`,
-                                                transform: `translateX(${clipPathBottomLeft}%)`
-                                              }}
-                                            />
-                                            
-                                            {/* Dark Teal Separator Line (except for first segment) */}
-                                            {index > 0 && (
-                                              <>
-                                                <div 
-                                                  className="absolute bg-teal-600"
-                                                  style={{
-                                                    left: `${((bottomLeftPercent - topLeftPercent) / stage.topWidth) * 100}%`,
-                                                    width: `${(stage.bottomWidth / stage.topWidth) * 100}%`,
-                                                    height: '2px',
-                                                    top: '0',
-                                                    transform: `translateX(${((bottomLeftPercent - topLeftPercent) / stage.topWidth) * 100}%)`,
-                                                    zIndex: 10
-                                                  }}
-                                                />
-                                                {/* Light Teal Horizontal Line Extending Right */}
-                                                <div 
-                                                  className="absolute bg-teal-300"
-                                                  style={{
-                                                    left: `${topRightPercent}%`,
-                                                    width: '200px',
-                                                    height: '1px',
-                                                    top: '0',
-                                                    zIndex: 5
-                                                  }}
-                                                />
-                                              </>
+                                            {prevStage && (
+                                              <div className="text-xs text-teal-600 mt-1">
+                                                {conversionRate.toFixed(1)}% of {prevStage.name}
+                                              </div>
                                             )}
-                                            
-                                            {/* Right Data */}
-                                            <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center" style={{ width: '170px', marginRight: '-190px' }}>
-                                              <div className="text-sm font-semibold text-teal-900">
-                                                {formatNumber(stage.value)}
+                                            {change !== null && (
+                                              <div className={`text-xs mt-1 font-medium flex items-center gap-1 ${
+                                                change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-teal-600'
+                                              }`}>
+                                                {change > 0 ? <ArrowUpRight className="h-3 w-3" /> : change < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                                {Math.abs(change).toFixed(1)}%
                                               </div>
-                                              {prevStage && (
-                                                <div className="text-xs text-teal-600 mt-1">
-                                                  {conversionRate.toFixed(1)}% of {prevStage.name}
-                                                </div>
-                                              )}
-                                              {change !== null && (
-                                                <div className={`text-xs mt-1 font-medium ${
-                                                  change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-teal-600'
-                                                }`}>
-                                                  {change > 0 ? '↑' : change < 0 ? '↓' : '→'} {Math.abs(change).toFixed(1)}%
-                                                </div>
-                                              )}
-                                            </div>
+                                            )}
                                           </div>
                                         );
                                       })}
