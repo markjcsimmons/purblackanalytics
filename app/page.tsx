@@ -670,32 +670,79 @@ export default function Dashboard() {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                      {weekData.overallMetrics
-                        .filter((m: any) => m.metric_name.startsWith('/products/') && m.metric_name !== '/products/')
-                        .sort((a: any, b: any) => b.metric_value - a.metric_value)
-                        .slice(0, 6)
-                        .map((product: any, idx: number) => {
-                          const productName = product.metric_name
-                            .replace('/products/', '')
-                            .split('-')
-                            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                          return (
-                            <div key={idx} className="flex items-center gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
-                                {idx + 1}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-sm truncate">{productName}</div>
-                                <div className="text-xs text-muted-foreground">{product.metric_value} orders</div>
-                              </div>
-
-                            </div>
-                          );
-                        })
+                    {(() => {
+                      // Look for products with /products/ prefix first
+                      let products = weekData.overallMetrics
+                        .filter((m: any) => m.metric_name.startsWith('/products/') && m.metric_name !== '/products/');
+                      
+                      // If no products found, try alternative formats
+                      if (products.length === 0) {
+                        // Try looking for metrics that might be products (e.g., product names without prefix)
+                        products = weekData.overallMetrics
+                          .filter((m: any) => {
+                            const name = m.metric_name.toLowerCase();
+                            // Exclude known non-product metrics
+                            return !name.includes('revenue') && 
+                                   !name.includes('orders') && 
+                                   !name.includes('aov') && 
+                                   !name.includes('conversion') && 
+                                   !name.includes('sessions') &&
+                                   !name.includes('spend') &&
+                                   !name.includes('clicks') &&
+                                   !name.startsWith('*') &&
+                                   m.metric_value > 0 &&
+                                   m.metric_value < 10000; // Reasonable order count range
+                          });
                       }
-                    </div>
+                      
+                      if (products.length === 0) {
+                        return (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                            <p>No product data available</p>
+                            <p className="text-xs mt-2">Products should be uploaded with metric names starting with &quot;/products/&quot;</p>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                          {products
+                            .sort((a: any, b: any) => b.metric_value - a.metric_value)
+                            .slice(0, 6)
+                            .map((product: any, idx: number) => {
+                              let productName = product.metric_name;
+                              
+                              // Handle /products/ prefix format
+                              if (productName.startsWith('/products/')) {
+                                productName = productName
+                                  .replace('/products/', '')
+                                  .split('-')
+                                  .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                                  .join(' ');
+                              } else {
+                                // For other formats, just capitalize first letter of each word
+                                productName = productName
+                                  .split(/[-_\s]/)
+                                  .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                  .join(' ');
+                              }
+                              
+                              return (
+                                <div key={idx} className="flex items-center gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
+                                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
+                                    {idx + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-sm truncate">{productName}</div>
+                                    <div className="text-xs text-muted-foreground">{formatNumber(product.metric_value)} orders</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
 
