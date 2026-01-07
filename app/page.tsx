@@ -135,6 +135,22 @@ export default function Dashboard() {
     return metric ? metric.metric_value : 0;
   };
 
+  // Helper function to sum funnel metrics across all stages
+  const getFunnelMetricSum = (funnelMetrics: any[], metricName: string): number => {
+    if (!funnelMetrics || !Array.isArray(funnelMetrics)) return 0;
+    return funnelMetrics
+      .filter(m => m.metric_name === metricName)
+      .reduce((sum, m) => sum + (m.metric_value || 0), 0);
+  };
+
+  // Helper function to get total Add to Cart across all stages
+  const getTotalAddToCart = (funnelMetrics: any[]): number => {
+    if (!funnelMetrics || !Array.isArray(funnelMetrics)) return 0;
+    return funnelMetrics
+      .filter(m => m.metric_name === 'Add to Cart')
+      .reduce((sum, m) => sum + (m.metric_value || 0), 0);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -578,11 +594,14 @@ export default function Dashboard() {
                         <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-100 rounded-lg border-2 border-purple-200">
                           <div className="text-sm text-purple-600 mb-2">Checkout</div>
                           <div className="text-3xl font-bold text-purple-900">
-                            {formatNumber(getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') || 0)}
+                            {formatNumber(getFunnelMetricSum(weekData.funnelMetrics, 'Checkout'))}
                           </div>
                           <div className="text-xs font-semibold text-purple-700 mt-2">
-                            {((getMetricValue(weekData.funnelMetrics, 'ATC → Checkout') / 
-                              (getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 1)) * 100).toFixed(1)}% from cart
+                            {(() => {
+                              const totalCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                              const totalATC = getTotalAddToCart(weekData.funnelMetrics);
+                              return totalATC > 0 ? ((totalCheckout / totalATC) * 100).toFixed(1) : '0.0';
+                            })()}% from cart
                           </div>
                         </div>
                         <div className="hidden lg:block absolute -right-3 top-1/2 transform -translate-y-1/2 text-purple-400">
