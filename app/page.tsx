@@ -1069,7 +1069,7 @@ export default function Dashboard() {
                         };
 
                         return (
-                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                             {Object.entries(channels).map(([channelName, metrics]: [string, any]) => {
                               const sessions = getStageValue(metrics, 'Sessions');
                               const addToCart = getStageValue(metrics, 'Add to Cart');
@@ -1078,6 +1078,12 @@ export default function Dashboard() {
                               
                               // Calculate max value for width scaling
                               const maxValue = Math.max(sessions, addToCart, checkout, purchases, 1);
+                              
+                              // Calculate widths as percentages (funnel shape: wide at top, narrow at bottom)
+                              const sessionsWidth = 100;
+                              const atcWidth = maxValue > 0 ? (addToCart / maxValue) * 100 : 0;
+                              const checkoutWidth = maxValue > 0 ? (checkout / maxValue) * 100 : 0;
+                              const purchasesWidth = maxValue > 0 ? (purchases / maxValue) * 100 : 0;
                               
                               // Get comparison data
                               const getComparisonValue = (stageName: string, comparisonWeek: any) => {
@@ -1091,100 +1097,139 @@ export default function Dashboard() {
                               const prevCheckout = getComparisonValue('Checkout', comparisonData?.previousWeek);
                               const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
 
+                              // Funnel stages configuration
+                              const stages = [
+                                { 
+                                  name: 'Sessions', 
+                                  value: sessions, 
+                                  width: sessionsWidth,
+                                  prevValue: prevSessions,
+                                  color: 'from-lime-400 to-lime-500'
+                                },
+                                { 
+                                  name: 'Add to Cart', 
+                                  value: addToCart, 
+                                  width: Math.max(30, atcWidth),
+                                  prevValue: prevATC,
+                                  color: 'from-lime-400 to-lime-500'
+                                },
+                                { 
+                                  name: 'Checkout', 
+                                  value: checkout, 
+                                  width: Math.max(20, checkoutWidth),
+                                  prevValue: prevCheckout,
+                                  color: 'from-lime-400 to-lime-500'
+                                },
+                                { 
+                                  name: 'Purchases', 
+                                  value: purchases, 
+                                  width: Math.max(10, purchasesWidth),
+                                  prevValue: prevPurchases,
+                                  color: 'from-lime-400 to-lime-500'
+                                }
+                              ];
+
                               return (
-                                <div key={channelName} className="p-4 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
-                                  <div className="font-bold mb-4 text-teal-900 text-center">
+                                <div key={channelName} className="p-6 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
+                                  <div className="font-bold mb-6 text-teal-900 text-center text-lg">
                                     {channelName}
                                   </div>
                                   
-                                  {/* Visual Funnel */}
-                                  <div className="space-y-1">
-                                    {/* Sessions - Top (Widest) */}
-                                    <div className="relative">
-                                      <div 
-                                        className="bg-gradient-to-r from-teal-400 to-teal-500 text-white text-center py-3 rounded-t-lg transition-all"
-                                        style={{ width: `${Math.max(20, (sessions / maxValue) * 100)}%`, margin: '0 auto' }}
-                                      >
-                                        <div className="font-bold text-sm">Sessions</div>
-                                        <div className="text-xs mt-1">{formatNumber(sessions)}</div>
-                                      </div>
-                                      {prevSessions !== null && prevSessions !== 0 && (
-                                        <div className="text-xs text-center mt-1 text-teal-600">
-                                          <span className={sessions > prevSessions ? 'text-green-600' : sessions < prevSessions ? 'text-red-600' : ''}>
-                                            {sessions > prevSessions ? '↑' : sessions < prevSessions ? '↓' : '→'} {Math.abs(((sessions - prevSessions) / prevSessions) * 100).toFixed(1)}%
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
+                                  {/* Funnel Visualization */}
+                                  <div className="relative" style={{ minHeight: '400px' }}>
+                                    {stages.map((stage, index) => {
+                                      const isFirst = index === 0;
+                                      const isLast = index === stages.length - 1;
+                                      const prevStage = index > 0 ? stages[index - 1] : null;
+                                      
+                                      // Calculate position and dimensions for funnel segment
+                                      const topOffset = index * 80; // Vertical spacing between segments
+                                      const leftOffset = (100 - stage.width) / 2; // Center the segment
+                                      
+                                      // Calculate conversion rate
+                                      const conversionRate = prevStage && prevStage.value > 0 
+                                        ? calculatePercentage(stage.value, prevStage.value)
+                                        : 0;
+                                      
+                                      // Calculate comparison change
+                                      const change = stage.prevValue !== null && stage.prevValue !== 0
+                                        ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
+                                        : null;
 
-                                    {/* Add to Cart */}
-                                    <div className="relative">
-                                      <div 
-                                        className="bg-gradient-to-r from-teal-500 to-teal-600 text-white text-center py-3 transition-all"
-                                        style={{ width: `${Math.max(15, (addToCart / maxValue) * 100)}%`, margin: '0 auto' }}
-                                      >
-                                        <div className="font-bold text-sm">Add to Cart</div>
-                                        <div className="text-xs mt-1">{formatNumber(addToCart)}</div>
-                                        <div className="text-xs mt-1 opacity-75">
-                                          {calculatePercentage(addToCart, sessions).toFixed(1)}% of sessions
+                                      return (
+                                        <div key={stage.name} className="absolute w-full" style={{ top: `${topOffset}px` }}>
+                                          {/* Left Label */}
+                                          <div className="absolute left-0 top-0 bottom-0 flex items-center pr-4" style={{ width: '120px' }}>
+                                            <div className="text-sm font-semibold text-teal-900 text-right w-full">
+                                              {stage.name}
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Funnel Segment */}
+                                          <div 
+                                            className={`absolute bg-gradient-to-r ${stage.color} border-2 border-teal-600`}
+                                            style={{
+                                              left: `calc(120px + ${leftOffset}%)`,
+                                              width: `${stage.width}%`,
+                                              height: '70px',
+                                              clipPath: isFirst 
+                                                ? `polygon(0 0, 100% 0, ${100 - (prevStage ? (prevStage.width - stage.width) / 2 : 0)}% 100%, ${prevStage ? (prevStage.width - stage.width) / 2 : 0}% 100%)`
+                                                : isLast
+                                                ? `polygon(${(stages[index - 1].width - stage.width) / 2}% 0, ${100 - (stages[index - 1].width - stage.width) / 2}% 0, 100% 100%, 0% 100%)`
+                                                : `polygon(${(prevStage!.width - stage.width) / 2}% 0, ${100 - (prevStage!.width - stage.width) / 2}% 0, ${100 - (stages[index + 1] ? (stage.width - stages[index + 1].width) / 2 : 0)}% 100%, ${stages[index + 1] ? (stage.width - stages[index + 1].width) / 2 : 0}% 100%)`
+                                            }}
+                                          >
+                                            <div className="h-full flex items-center justify-center text-white">
+                                              <div className="text-center">
+                                                <div className="font-bold text-lg">{formatNumber(stage.value)}</div>
+                                                {prevStage && (
+                                                  <div className="text-xs opacity-90 mt-1">
+                                                    {conversionRate.toFixed(1)}%
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Right Data */}
+                                          <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center" style={{ width: '140px' }}>
+                                            <div className="text-sm font-semibold text-teal-900">
+                                              {formatNumber(stage.value)}
+                                            </div>
+                                            {prevStage && (
+                                              <div className="text-xs text-teal-600 mt-1">
+                                                {conversionRate.toFixed(1)}% of {prevStage.name}
+                                              </div>
+                                            )}
+                                            {change !== null && (
+                                              <div className={`text-xs mt-1 font-medium ${
+                                                change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-teal-600'
+                                              }`}>
+                                                {change > 0 ? '↑' : change < 0 ? '↓' : '→'} {Math.abs(change).toFixed(1)}% vs. Last Week
+                                              </div>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Separator Line (except for first segment) */}
+                                          {!isFirst && (
+                                            <div 
+                                              className="absolute border-t-2 border-teal-600"
+                                              style={{
+                                                left: `calc(120px + ${(100 - prevStage!.width) / 2}%)`,
+                                                width: `${prevStage!.width}%`,
+                                                top: '-2px'
+                                              }}
+                                            />
+                                          )}
                                         </div>
-                                      </div>
-                                      {prevATC !== null && prevATC !== 0 && (
-                                        <div className="text-xs text-center mt-1 text-teal-600">
-                                          <span className={addToCart > prevATC ? 'text-green-600' : addToCart < prevATC ? 'text-red-600' : ''}>
-                                            {addToCart > prevATC ? '↑' : addToCart < prevATC ? '↓' : '→'} {Math.abs(((addToCart - prevATC) / prevATC) * 100).toFixed(1)}%
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Checkout */}
-                                    <div className="relative">
-                                      <div 
-                                        className="bg-gradient-to-r from-teal-600 to-teal-700 text-white text-center py-3 transition-all"
-                                        style={{ width: `${Math.max(10, (checkout / maxValue) * 100)}%`, margin: '0 auto' }}
-                                      >
-                                        <div className="font-bold text-sm">Checkout</div>
-                                        <div className="text-xs mt-1">{formatNumber(checkout)}</div>
-                                        <div className="text-xs mt-1 opacity-75">
-                                          {calculatePercentage(checkout, addToCart).toFixed(1)}% of add to cart
-                                        </div>
-                                      </div>
-                                      {prevCheckout !== null && prevCheckout !== 0 && (
-                                        <div className="text-xs text-center mt-1 text-teal-600">
-                                          <span className={checkout > prevCheckout ? 'text-green-600' : checkout < prevCheckout ? 'text-red-600' : ''}>
-                                            {checkout > prevCheckout ? '↑' : checkout < prevCheckout ? '↓' : '→'} {Math.abs(((checkout - prevCheckout) / prevCheckout) * 100).toFixed(1)}%
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-
-                                    {/* Purchases - Bottom (Narrowest) */}
-                                    <div className="relative">
-                                      <div 
-                                        className="bg-gradient-to-r from-teal-700 to-teal-800 text-white text-center py-3 rounded-b-lg transition-all"
-                                        style={{ width: `${Math.max(5, (purchases / maxValue) * 100)}%`, margin: '0 auto' }}
-                                      >
-                                        <div className="font-bold text-sm">Purchases</div>
-                                        <div className="text-xs mt-1">{formatNumber(purchases)}</div>
-                                        <div className="text-xs mt-1 opacity-75">
-                                          {calculatePercentage(purchases, checkout).toFixed(1)}% of checkout
-                                        </div>
-                                      </div>
-                                      {prevPurchases !== null && prevPurchases !== 0 && (
-                                        <div className="text-xs text-center mt-1 text-teal-600">
-                                          <span className={purchases > prevPurchases ? 'text-green-600' : purchases < prevPurchases ? 'text-red-600' : ''}>
-                                            {purchases > prevPurchases ? '↑' : purchases < prevPurchases ? '↓' : '→'} {Math.abs(((purchases - prevPurchases) / prevPurchases) * 100).toFixed(1)}%
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
+                                      );
+                                    })}
                                   </div>
-
-                                  {/* Conversion Rate Summary */}
-                                  <div className="mt-4 pt-4 border-t border-teal-200 text-center">
-                                    <div className="text-xs text-teal-600 mb-1">Overall Conversion Rate</div>
-                                    <div className="text-lg font-bold text-teal-900">
+                                  
+                                  {/* Overall Conversion Rate */}
+                                  <div className="mt-8 pt-4 border-t-2 border-teal-300 text-center">
+                                    <div className="text-sm text-teal-600 mb-1">Overall Conversion Rate</div>
+                                    <div className="text-2xl font-bold text-teal-900">
                                       {sessions > 0 ? calculatePercentage(purchases, sessions).toFixed(2) : '0.00'}%
                                     </div>
                                   </div>
