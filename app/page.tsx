@@ -1091,11 +1091,26 @@ export default function Dashboard() {
                               <thead>
                                 <tr className="border-b-2 border-teal-200">
                                   <th className="text-left py-3 px-4 font-semibold text-teal-900">Channel</th>
-                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Sessions</th>
-                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Add to Cart</th>
-                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Checkout</th>
-                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Purchases</th>
-                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Conv. Rate</th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">
+                                    <div>Sessions</div>
+                                    <div className="text-xs font-normal text-teal-600 mt-1">vs Last Week | vs Year Ago</div>
+                                  </th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">
+                                    <div>Add to Cart</div>
+                                    <div className="text-xs font-normal text-teal-600 mt-1">vs Last Week | vs Year Ago</div>
+                                  </th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">
+                                    <div>Checkout</div>
+                                    <div className="text-xs font-normal text-teal-600 mt-1">vs Last Week | vs Year Ago</div>
+                                  </th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">
+                                    <div>Purchases</div>
+                                    <div className="text-xs font-normal text-teal-600 mt-1">vs Last Week | vs Year Ago</div>
+                                  </th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">
+                                    <div>Conv. Rate</div>
+                                    <div className="text-xs font-normal text-teal-600 mt-1">vs Last Week | vs Year Ago</div>
+                                  </th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1117,22 +1132,79 @@ export default function Dashboard() {
                                   const prevCheckout = getComparisonValue('Checkout', comparisonData?.previousWeek);
                                   const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
 
-                                  const conversionRate = sessions > 0 ? calculatePercentage(purchases, sessions) : 0;
+                                  const yearAgoSessions = getComparisonValue('Sessions', comparisonData?.sameWeekYearAgo);
+                                  const yearAgoATC = getComparisonValue('Add to Cart', comparisonData?.sameWeekYearAgo);
+                                  const yearAgoCheckout = getComparisonValue('Checkout', comparisonData?.sameWeekYearAgo);
+                                  const yearAgoPurchases = getComparisonValue('Purchases', comparisonData?.sameWeekYearAgo);
 
-                                  const renderValueWithComparison = (value: number, prevValue: number | null) => {
-                                    if (prevValue === null || prevValue === 0) {
-                                      return <span className="font-medium">{formatNumber(value)}</span>;
-                                    }
-                                    const change = ((value - prevValue) / prevValue) * 100;
+                                  const conversionRate = sessions > 0 ? calculatePercentage(purchases, sessions) : 0;
+                                  const prevConversionRate = prevSessions && prevSessions > 0 ? calculatePercentage(prevPurchases || 0, prevSessions) : null;
+                                  const yearAgoConversionRate = yearAgoSessions && yearAgoSessions > 0 ? calculatePercentage(yearAgoPurchases || 0, yearAgoSessions) : null;
+
+                                  const renderValueWithComparisons = (value: number, prevValue: number | null, yearAgoValue: number | null) => {
+                                    const prevChange = prevValue !== null && prevValue !== 0 ? ((value - prevValue) / prevValue) * 100 : null;
+                                    const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 ? ((value - yearAgoValue) / yearAgoValue) * 100 : null;
+
                                     return (
                                       <div className="flex flex-col items-end">
                                         <span className="font-medium">{formatNumber(value)}</span>
-                                        <span className={`text-xs flex items-center gap-1 ${
-                                          change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-500'
-                                        }`}>
-                                          {change > 0 ? <ArrowUpRight className="h-3 w-3" /> : change < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                          {Math.abs(change).toFixed(1)}%
-                                        </span>
+                                        <div className="flex items-center gap-2 text-xs mt-1">
+                                          {prevChange !== null ? (
+                                            <span className={`flex items-center gap-1 ${
+                                              prevChange > 0 ? 'text-green-600' : prevChange < 0 ? 'text-red-600' : 'text-gray-500'
+                                            }`}>
+                                              {prevChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                              {Math.abs(prevChange).toFixed(1)}%
+                                            </span>
+                                          ) : (
+                                            <span className="text-gray-400">-</span>
+                                          )}
+                                          <span className="text-gray-300">|</span>
+                                          {yearAgoChange !== null ? (
+                                            <span className={`flex items-center gap-1 ${
+                                              yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-gray-500'
+                                            }`}>
+                                              {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                              {Math.abs(yearAgoChange).toFixed(1)}%
+                                            </span>
+                                          ) : (
+                                            <span className="text-gray-400">-</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  };
+
+                                  const renderConversionRateWithComparisons = (rate: number, prevRate: number | null, yearAgoRate: number | null) => {
+                                    const prevChange = prevRate !== null ? rate - prevRate : null;
+                                    const yearAgoChange = yearAgoRate !== null ? rate - yearAgoRate : null;
+
+                                    return (
+                                      <div className="flex flex-col items-end">
+                                        <span className="font-semibold text-teal-900">{rate.toFixed(2)}%</span>
+                                        <div className="flex items-center gap-2 text-xs mt-1">
+                                          {prevChange !== null ? (
+                                            <span className={`flex items-center gap-1 ${
+                                              prevChange > 0 ? 'text-green-600' : prevChange < 0 ? 'text-red-600' : 'text-gray-500'
+                                            }`}>
+                                              {prevChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                              {Math.abs(prevChange).toFixed(2)}pp
+                                            </span>
+                                          ) : (
+                                            <span className="text-gray-400">-</span>
+                                          )}
+                                          <span className="text-gray-300">|</span>
+                                          {yearAgoChange !== null ? (
+                                            <span className={`flex items-center gap-1 ${
+                                              yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-gray-500'
+                                            }`}>
+                                              {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                              {Math.abs(yearAgoChange).toFixed(2)}pp
+                                            </span>
+                                          ) : (
+                                            <span className="text-gray-400">-</span>
+                                          )}
+                                        </div>
                                       </div>
                                     );
                                   };
@@ -1140,13 +1212,11 @@ export default function Dashboard() {
                                   return (
                                     <tr key={channelName} className="border-b border-teal-100 hover:bg-teal-50/50 transition-colors">
                                       <td className="py-4 px-4 font-medium text-teal-900">{channelName}</td>
-                                      <td className="py-4 px-4 text-right">{renderValueWithComparison(sessions, prevSessions)}</td>
-                                      <td className="py-4 px-4 text-right">{renderValueWithComparison(addToCart, prevATC)}</td>
-                                      <td className="py-4 px-4 text-right">{renderValueWithComparison(checkout, prevCheckout)}</td>
-                                      <td className="py-4 px-4 text-right">{renderValueWithComparison(purchases, prevPurchases)}</td>
-                                      <td className="py-4 px-4 text-right">
-                                        <span className="font-semibold text-teal-900">{conversionRate.toFixed(2)}%</span>
-                                      </td>
+                                      <td className="py-4 px-4 text-right">{renderValueWithComparisons(sessions, prevSessions, yearAgoSessions)}</td>
+                                      <td className="py-4 px-4 text-right">{renderValueWithComparisons(addToCart, prevATC, yearAgoATC)}</td>
+                                      <td className="py-4 px-4 text-right">{renderValueWithComparisons(checkout, prevCheckout, yearAgoCheckout)}</td>
+                                      <td className="py-4 px-4 text-right">{renderValueWithComparisons(purchases, prevPurchases, yearAgoPurchases)}</td>
+                                      <td className="py-4 px-4 text-right">{renderConversionRateWithComparisons(conversionRate, prevConversionRate, yearAgoConversionRate)}</td>
                                     </tr>
                                   );
                                 })}
