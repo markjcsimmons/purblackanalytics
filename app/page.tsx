@@ -1037,19 +1037,25 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <CardTitle className="text-xl">Detailed Funnel Metrics</CardTitle>
-                        <CardDescription>Page-level insights and user behavior</CardDescription>
+                        <CardDescription>Channel performance through the funnel</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-6">
                     {weekData && weekData.funnelMetrics && weekData.funnelMetrics.length > 0 ? (
                       (() => {
+                        // Define actual marketing channels (exclude stages like "Cart", "Product Page")
+                        const marketingChannels = ['Google Ads', 'Email & SMS', 'Affiliates', 'SEO', 'Social'];
+                        
                         // Group metrics by channel/stage
                         const channels = weekData.funnelMetrics.reduce((acc: any, item: any) => {
-                            if (!acc[item.stage_name]) {
-                              acc[item.stage_name] = [];
+                            // Only include actual marketing channels
+                            if (marketingChannels.includes(item.stage_name)) {
+                              if (!acc[item.stage_name]) {
+                                acc[item.stage_name] = [];
+                              }
+                              acc[item.stage_name].push(item);
                             }
-                            acc[item.stage_name].push(item);
                             return acc;
                         }, {});
 
@@ -1068,127 +1074,84 @@ export default function Dashboard() {
                           return total > 0 ? (value / total) * 100 : 0;
                         };
 
+                        const channelEntries = Object.entries(channels);
+                        
+                        if (channelEntries.length === 0) {
+                          return (
+                            <div className="text-center py-8 text-muted-foreground">
+                              <Target className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                              <p>No channel funnel data available</p>
+                            </div>
+                          );
+                        }
+
                         return (
-                          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                            {Object.entries(channels).map(([channelName, metrics]: [string, any]) => {
-                              const sessions = getStageValue(metrics, 'Sessions');
-                              const addToCart = getStageValue(metrics, 'Add to Cart');
-                              const checkout = getStageValue(metrics, 'Checkout');
-                              const purchases = getStageValue(metrics, 'Purchases');
-                              
-                              // Get comparison data
-                              const getComparisonValue = (stageName: string, comparisonWeek: any) => {
-                                if (!comparisonWeek) return null;
-                                return getComparisonFunnelMetric(comparisonWeek, channelName, stageName) || 
-                                       getComparisonFunnelMetric(comparisonWeek, channelName, `* ${stageName}`);
-                              };
-
-                              const prevSessions = getComparisonValue('Sessions', comparisonData?.previousWeek);
-                              const prevATC = getComparisonValue('Add to Cart', comparisonData?.previousWeek);
-                              const prevCheckout = getComparisonValue('Checkout', comparisonData?.previousWeek);
-                              const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
-
-                              // Funnel stages in order
-                              const stages = [
-                                { 
-                                  name: 'Sessions', 
-                                  value: sessions, 
-                                  prevValue: prevSessions,
-                                  icon: Users
-                                },
-                                { 
-                                  name: 'Add to Cart', 
-                                  value: addToCart, 
-                                  prevValue: prevATC,
-                                  icon: ShoppingCart
-                                },
-                                { 
-                                  name: 'Checkout', 
-                                  value: checkout, 
-                                  prevValue: prevCheckout,
-                                  icon: Target
-                                },
-                                { 
-                                  name: 'Purchases', 
-                                  value: purchases, 
-                                  prevValue: prevPurchases,
-                                  icon: DollarSign
-                                }
-                              ];
-
-                              return (
-                                <div key={channelName} className="p-6 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
-                                  <div className="font-bold mb-4 text-teal-900 text-lg">
-                                    {channelName}
-                            </div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b-2 border-teal-200">
+                                  <th className="text-left py-3 px-4 font-semibold text-teal-900">Channel</th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Sessions</th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Add to Cart</th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Checkout</th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Purchases</th>
+                                  <th className="text-right py-3 px-4 font-semibold text-teal-900">Conv. Rate</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {channelEntries.map(([channelName, metrics]: [string, any]) => {
+                                  const sessions = getStageValue(metrics, 'Sessions');
+                                  const addToCart = getStageValue(metrics, 'Add to Cart');
+                                  const checkout = getStageValue(metrics, 'Checkout');
+                                  const purchases = getStageValue(metrics, 'Purchases');
                                   
-                                  {/* Funnel Stages Table */}
-                                  <div className="space-y-3">
-                                    {stages.map((stage, index) => {
-                                      const prevStage = index > 0 ? stages[index - 1] : null;
-                                      const StageIcon = stage.icon;
-                                      
-                                      // Calculate conversion rate
-                                      const conversionRate = prevStage && prevStage.value > 0 
-                                        ? calculatePercentage(stage.value, prevStage.value)
-                                        : null;
-                                      
-                                      // Calculate comparison change
-                                      const change = stage.prevValue !== null && stage.prevValue !== 0
-                                        ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
-                                        : null;
+                                  // Get comparison data
+                                  const getComparisonValue = (stageName: string, comparisonWeek: any) => {
+                                    if (!comparisonWeek) return null;
+                                    return getComparisonFunnelMetric(comparisonWeek, channelName, stageName) || 
+                                           getComparisonFunnelMetric(comparisonWeek, channelName, `* ${stageName}`);
+                                  };
 
-                                      return (
-                                        <div key={stage.name} className="border-l-4 border-teal-500 bg-white rounded-r-lg p-4 shadow-sm">
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3 flex-1">
-                                              <div className="p-2 bg-teal-100 rounded-lg">
-                                                <StageIcon className="h-4 w-4 text-teal-600" />
-                                              </div>
-                                              <div>
-                                                <div className="font-semibold text-teal-900 text-sm">{stage.name}</div>
-                                                {conversionRate !== null && (
-                                                  <div className="text-xs text-teal-600 mt-0.5">
-                                                    {conversionRate.toFixed(1)}% of {prevStage?.name}
-                                                  </div>
-                                                )}
-                                              </div>
-                                            </div>
-                                            
-                                            <div className="text-right">
-                                              <div className="font-bold text-lg text-teal-900">
-                                                {formatNumber(stage.value)}
-                                              </div>
-                                              {change !== null && (
-                                                <div className={`text-xs mt-1 font-medium flex items-center justify-end gap-1 ${
-                                                  change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-teal-600'
-                                                }`}>
-                                                  {change > 0 ? <ArrowUpRight className="h-3 w-3" /> : change < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                                  {Math.abs(change).toFixed(1)}% vs. Last Week
-                                                  {stage.prevValue !== null && (
-                                                    <span className="text-teal-500 ml-2">
-                                                      ({formatNumber(stage.prevValue)})
-                                  </span>
-                                                  )}
-                                </div>
-                                              )}
-                            </div>
-                          </div>
-                      </div>
-                                      );
-                                    })}
-                                  </div>
-                                  
-                                  {/* Overall Conversion Rate */}
-                                  <div className="mt-4 pt-4 border-t-2 border-teal-200 text-center">
-                                    <div className="text-xs text-teal-600 mb-1">Overall Conversion Rate</div>
-                                    <div className="text-xl font-bold text-teal-900">
-                                      {sessions > 0 ? calculatePercentage(purchases, sessions).toFixed(2) : '0.00'}%
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                                  const prevSessions = getComparisonValue('Sessions', comparisonData?.previousWeek);
+                                  const prevATC = getComparisonValue('Add to Cart', comparisonData?.previousWeek);
+                                  const prevCheckout = getComparisonValue('Checkout', comparisonData?.previousWeek);
+                                  const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
+
+                                  const conversionRate = sessions > 0 ? calculatePercentage(purchases, sessions) : 0;
+
+                                  const renderValueWithComparison = (value: number, prevValue: number | null) => {
+                                    if (prevValue === null || prevValue === 0) {
+                                      return <span className="font-medium">{formatNumber(value)}</span>;
+                                    }
+                                    const change = ((value - prevValue) / prevValue) * 100;
+                                    return (
+                                      <div className="flex flex-col items-end">
+                                        <span className="font-medium">{formatNumber(value)}</span>
+                                        <span className={`text-xs flex items-center gap-1 ${
+                                          change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-500'
+                                        }`}>
+                                          {change > 0 ? <ArrowUpRight className="h-3 w-3" /> : change < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                          {Math.abs(change).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    );
+                                  };
+
+                                  return (
+                                    <tr key={channelName} className="border-b border-teal-100 hover:bg-teal-50/50 transition-colors">
+                                      <td className="py-4 px-4 font-medium text-teal-900">{channelName}</td>
+                                      <td className="py-4 px-4 text-right">{renderValueWithComparison(sessions, prevSessions)}</td>
+                                      <td className="py-4 px-4 text-right">{renderValueWithComparison(addToCart, prevATC)}</td>
+                                      <td className="py-4 px-4 text-right">{renderValueWithComparison(checkout, prevCheckout)}</td>
+                                      <td className="py-4 px-4 text-right">{renderValueWithComparison(purchases, prevPurchases)}</td>
+                                      <td className="py-4 px-4 text-right">
+                                        <span className="font-semibold text-teal-900">{conversionRate.toFixed(2)}%</span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         );
                       })()
