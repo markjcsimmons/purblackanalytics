@@ -269,6 +269,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     const parsed = Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
+      encoding: 'UTF-8',
     });
 
     if (parsed.errors.length > 0) {

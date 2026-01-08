@@ -36,6 +36,8 @@ export function getDb() {
     const dbPath = getDbPath();
     // TypeScript doesn't understand that Database is not null after the check
     db = new (Database as typeof Database)(dbPath);
+    // Ensure UTF-8 encoding for text data
+    db.pragma('encoding = "UTF-8"');
     initializeDatabase(db);
   }
   return db;
