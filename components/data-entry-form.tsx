@@ -1,19 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Store, 
   Megaphone, 
   Target, 
   Sparkles,
   Save,
-  Calendar
+  Calendar,
+  Edit
 } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface FormData {
   // Week Info
@@ -93,6 +102,9 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [weeks, setWeeks] = useState<any[]>([]);
+  const [selectedWeekId, setSelectedWeekId] = useState<number | null>(null);
+  const [isLoadingWeek, setIsLoadingWeek] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     weekStartDate: '',
@@ -149,151 +161,152 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     products: [{ name: '', orders: '' }],
   });
 
-  const handleChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  // Fetch weeks on mount
+  useEffect(() => {
+    fetch('/api/weeks')
+      .then(res => res.json())
+      .then(data => setWeeks(data.weeks || []))
+      .catch(err => console.error('Error fetching weeks:', err));
+  }, []);
+
+  // Load week data when selected
+  const loadWeekData = async (weekId: number) => {
+    setIsLoadingWeek(true);
+    try {
+      const response = await fetch(`/api/weeks/${weekId}`);
+      const data = await response.json();
+      
+      if (data.week) {
+        // Populate week info
+        setFormData(prev => ({
+          ...prev,
+          weekStartDate: data.week.week_start_date || '',
+          weekEndDate: data.week.week_end_date || '',
+          notes: data.week.notes || '',
+          romansRecommendations: data.week.romans_recommendations || data.week.romansRecommendations || '',
+        }));
+
+        // Populate overall metrics
+        if (data.overallMetrics) {
+          const metrics = data.overallMetrics.reduce((acc: any, m: any) => {
+            acc[m.metric_name] = m.metric_value;
+            return acc;
+          }, {});
+          
+          setFormData(prev => ({
+            ...prev,
+            revenue: metrics['* Revenue']?.toString() || '',
+            orders: metrics['* Orders']?.toString() || '',
+            aov: metrics['* AOV']?.toString() || '',
+            conversionRate: metrics['* Conversion Rate']?.toString() || '',
+            sessions: metrics['* Total Sessions']?.toString() || '',
+          }));
+
+          // Extract products
+          const products = Object.entries(metrics)
+            .filter(([key]) => key.startsWith('/products/'))
+            .map(([key, value]) => ({
+              name: key.replace('/products/', ''),
+              orders: (value as number).toString()
+            }));
+          
+          if (products.length > 0) {
+            setFormData(prev => ({ ...prev, products }));
+          }
+        }
+
+        // Populate marketing channels
+        if (data.marketingChannels) {
+          const channels = data.marketingChannels.reduce((acc: any, m: any) => {
+            if (!acc[m.channel_name]) acc[m.channel_name] = {};
+            acc[m.channel_name][m.metric_name] = m.metric_value;
+            return acc;
+          }, {});
+
+          setFormData(prev => ({
+            ...prev,
+            // Google Ads
+            googleAdsRevenue: channels['Google Ads']?.['* Sales']?.toString() || '',
+            googleAdsSpend: channels['Google Ads']?.['* Spend']?.toString() || '',
+            googleAdsClicks: channels['Google Ads']?.['* Clicks']?.toString() || '',
+            googleAdsConversions: channels['Google Ads']?.['* Conversions']?.toString() || '',
+            googleAdsSessions: channels['Google Ads']?.['* Sessions']?.toString() || '',
+            // Email & SMS
+            emailRevenue: channels['Email & SMS']?.['* Revenue']?.toString() || '',
+            emailSpend: channels['Email & SMS']?.['* Spend']?.toString() || '',
+            emailOpenRate: channels['Email & SMS']?.['* Email open rate']?.toString() || '',
+            emailCTR: channels['Email & SMS']?.['* CTR']?.toString() || '',
+            // Affiliates
+            affiliatesRevenue: channels['Affiliates']?.['* Revenue']?.toString() || '',
+            affiliatesSpend: channels['Affiliates']?.['* Spend']?.toString() || '',
+            affiliatesClicks: channels['Affiliates']?.['* Clicks']?.toString() || '',
+            affiliatesConversions: channels['Affiliates']?.['* Conversions']?.toString() || '',
+            // SEO
+            seoImpressions: channels['SEO']?.['* Impressions']?.toString() || '',
+            seoClicks: channels['SEO']?.['* Clicks']?.toString() || '',
+            seoSessions: channels['SEO']?.['* Sessions']?.toString() || '',
+            seoSpend: channels['SEO']?.['* Spend']?.toString() || '',
+            // Social
+            socialRevenue: channels['Social']?.['* Revenue']?.toString() || '',
+            socialSpend: channels['Social']?.['* Spend']?.toString() || '',
+          }));
+        }
+
+        // Populate funnel metrics
+        if (data.funnelMetrics) {
+          const funnels = data.funnelMetrics.reduce((acc: any, m: any) => {
+            if (!acc[m.stage_name]) acc[m.stage_name] = {};
+            acc[m.stage_name][m.metric_name] = m.metric_value;
+            return acc;
+          }, {});
+
+          setFormData(prev => ({
+            ...prev,
+            // Google Ads Funnel
+            googleAdsSessions: funnels['Google Ads']?.['Sessions']?.toString() || '',
+            googleAdsATC: funnels['Google Ads']?.['Add to Cart']?.toString() || '',
+            googleAdsCheckout: funnels['Google Ads']?.['Checkout']?.toString() || '',
+            googleAdsPurchases: funnels['Google Ads']?.['Purchases']?.toString() || '',
+            // Email Funnel
+            emailSessions: funnels['Email & SMS']?.['Sessions']?.toString() || '',
+            emailATC: funnels['Email & SMS']?.['Add to Cart']?.toString() || '',
+            emailCheckout: funnels['Email & SMS']?.['Checkout']?.toString() || '',
+            emailPurchases: funnels['Email & SMS']?.['Purchases']?.toString() || '',
+            // Affiliates Funnel
+            affiliatesSessions: funnels['Affiliates']?.['Sessions']?.toString() || '',
+            affiliatesATC: funnels['Affiliates']?.['Add to Cart']?.toString() || '',
+            affiliatesCheckout: funnels['Affiliates']?.['Checkout']?.toString() || '',
+            affiliatesPurchases: funnels['Affiliates']?.['Purchases']?.toString() || '',
+            // SEO Funnel
+            seoSessions: funnels['SEO']?.['Sessions']?.toString() || '',
+            seoATC: funnels['SEO']?.['Add to Cart']?.toString() || '',
+            seoCheckout: funnels['SEO']?.['Checkout']?.toString() || '',
+            seoPurchases: funnels['SEO']?.['Purchases']?.toString() || '',
+            // Social Funnel
+            socialSessions: funnels['Social']?.['Sessions']?.toString() || '',
+            socialATC: funnels['Social']?.['Add to Cart']?.toString() || '',
+            socialCheckout: funnels['Social']?.['Checkout']?.toString() || '',
+            socialPurchases: funnels['Social']?.['Purchases']?.toString() || '',
+            // Product Page
+            productPageATCRate: funnels['Product Page']?.['* Add-to-cart rate']?.toString() || '',
+            productPageTimeOnPage: funnels['Product Page']?.['* Time on page']?.toString() || '',
+            productPageScrollDepth: funnels['Product Page']?.['* Scroll depth']?.toString() || '',
+            // Cart
+            cartAbandonment: funnels['Cart']?.['* Abandonment rate']?.toString() || '',
+          }));
+        }
+      }
+    } catch (err: any) {
+      setError(`Failed to load week data: ${err.message}`);
+    } finally {
+      setIsLoadingWeek(false);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      // Validate required fields
-      if (!formData.weekStartDate || !formData.weekEndDate) {
-        throw new Error('Week dates are required');
-      }
-
-      // Build data structure matching your database schema
-      // Transform arrays to objects as expected by saveWeekData
-      const overallMetricsObj: { [key: string]: number } = {};
-      const overallMetricsArray = [
-        { metric: '* Revenue', value: parseFloat(formData.revenue) || 0 },
-        { metric: '* Orders', value: parseFloat(formData.orders) || 0 },
-        { metric: '* AOV', value: parseFloat(formData.aov) || 0 },
-        { metric: '* Conversion Rate', value: parseFloat(formData.conversionRate) || 0 },
-        { metric: '* Total Sessions', value: parseFloat(formData.sessions) || 0 },
-        // Add top selling products
-          ...formData.products
-            .filter(p => p.name.trim() && parseFloat(p.orders) > 0)
-            .map(p => ({
-              metric: `/products/${p.name.trim()}`,
-              value: parseFloat(p.orders) || 0
-            })),
-      ];
-      overallMetricsArray.forEach(item => {
-        if (item.value > 0) {
-          overallMetricsObj[item.metric] = item.value;
-        }
-      });
-
-      const marketingChannelsObj: { [channel: string]: { [metric: string]: number } } = {};
-      const marketingChannelsArray = [
-        // Google Ads
-        { channel: 'Google Ads', metric: '* Sales', value: parseFloat(formData.googleAdsRevenue) || 0 },
-        { channel: 'Google Ads', metric: '* Spend', value: parseFloat(formData.googleAdsSpend) || 0 },
-        { channel: 'Google Ads', metric: '* Clicks', value: parseFloat(formData.googleAdsClicks) || 0 },
-        { channel: 'Google Ads', metric: '* Conversions', value: parseFloat(formData.googleAdsConversions) || 0 },
-        { channel: 'Google Ads', metric: '* Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
-        // Email & SMS
-        { channel: 'Email & SMS', metric: '* Revenue', value: parseFloat(formData.emailRevenue) || 0 },
-        { channel: 'Email & SMS', metric: '* Spend', value: parseFloat(formData.emailSpend) || 0 },
-        { channel: 'Email & SMS', metric: '* Email open rate', value: parseFloat(formData.emailOpenRate) || 0 },
-        { channel: 'Email & SMS', metric: '* CTR', value: parseFloat(formData.emailCTR) || 0 },
-        // Affiliates
-        { channel: 'Affiliates', metric: '* Revenue', value: parseFloat(formData.affiliatesRevenue) || 0 },
-        { channel: 'Affiliates', metric: '* Spend', value: parseFloat(formData.affiliatesSpend) || 0 },
-        { channel: 'Affiliates', metric: '* Clicks', value: parseFloat(formData.affiliatesClicks) || 0 },
-        { channel: 'Affiliates', metric: '* Conversions', value: parseFloat(formData.affiliatesConversions) || 0 },
-        // Social
-        { channel: 'Social', metric: '* Revenue', value: parseFloat(formData.socialRevenue) || 0 },
-        { channel: 'Social', metric: '* Spend', value: parseFloat(formData.socialSpend) || 0 },
-        // SEO
-        { channel: 'SEO', metric: '* Revenue', value: (parseFloat(formData.seoPurchases) || 0) * (parseFloat(formData.aov) || 0) },
-        { channel: 'SEO', metric: '* Spend', value: parseFloat(formData.seoSpend) || 0 },
-        { channel: 'SEO', metric: '* Impressions', value: parseFloat(formData.seoImpressions) || 0 },
-        { channel: 'SEO', metric: '* Clicks', value: parseFloat(formData.seoClicks) || 0 },
-        { channel: 'SEO', metric: '* Sessions', value: parseFloat(formData.seoSessions) || 0 },
-        { channel: 'SEO', metric: '* Conversions', value: parseFloat(formData.seoPurchases) || 0 },
-      ];
-      marketingChannelsArray.forEach(item => {
-        if (item.value > 0) {
-          if (!marketingChannelsObj[item.channel]) {
-            marketingChannelsObj[item.channel] = {};
-          }
-          marketingChannelsObj[item.channel][item.metric] = item.value;
-        }
-      });
-
-      const funnelMetricsObj: { [stage: string]: { [metric: string]: number } } = {};
-      const funnelMetricsArray = [
-        // Google Ads Funnel
-        { stage: 'Google Ads', metric: 'Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
-        { stage: 'Google Ads', metric: 'Add to Cart', value: parseFloat(formData.googleAdsATC) || 0 },
-        { stage: 'Google Ads', metric: 'Checkout', value: parseFloat(formData.googleAdsCheckout) || 0 },
-        { stage: 'Google Ads', metric: 'Purchases', value: parseFloat(formData.googleAdsPurchases) || 0 },
-        // Email Funnel
-        { stage: 'Email & SMS', metric: 'Sessions', value: parseFloat(formData.emailSessions) || 0 },
-        { stage: 'Email & SMS', metric: 'Add to Cart', value: parseFloat(formData.emailATC) || 0 },
-        { stage: 'Email & SMS', metric: 'Checkout', value: parseFloat(formData.emailCheckout) || 0 },
-        { stage: 'Email & SMS', metric: 'Purchases', value: parseFloat(formData.emailPurchases) || 0 },
-        // Affiliates Funnel
-        { stage: 'Affiliates', metric: 'Sessions', value: parseFloat(formData.affiliatesSessions) || 0 },
-        { stage: 'Affiliates', metric: 'Add to Cart', value: parseFloat(formData.affiliatesATC) || 0 },
-        { stage: 'Affiliates', metric: 'Checkout', value: parseFloat(formData.affiliatesCheckout) || 0 },
-        { stage: 'Affiliates', metric: 'Purchases', value: parseFloat(formData.affiliatesPurchases) || 0 },
-        // SEO Funnel
-        { stage: 'SEO', metric: 'Sessions', value: parseFloat(formData.seoSessions) || 0 },
-        { stage: 'SEO', metric: 'Add to Cart', value: parseFloat(formData.seoATC) || 0 },
-        { stage: 'SEO', metric: 'Checkout', value: parseFloat(formData.seoCheckout) || 0 },
-        { stage: 'SEO', metric: 'Purchases', value: parseFloat(formData.seoPurchases) || 0 },
-        // Social Funnel
-        { stage: 'Social', metric: 'Sessions', value: parseFloat(formData.socialSessions) || 0 },
-        { stage: 'Social', metric: 'Add to Cart', value: parseFloat(formData.socialATC) || 0 },
-        { stage: 'Social', metric: 'Checkout', value: parseFloat(formData.socialCheckout) || 0 },
-        { stage: 'Social', metric: 'Purchases', value: parseFloat(formData.socialPurchases) || 0 },
-        // Product Page
-        { stage: 'Product Page', metric: '* Add-to-cart rate', value: parseFloat(formData.productPageATCRate) || 0 },
-        { stage: 'Product Page', metric: '* Time on page', value: parseFloat(formData.productPageTimeOnPage) || 0 },
-        { stage: 'Product Page', metric: '* Scroll depth', value: parseFloat(formData.productPageScrollDepth) || 0 },
-        // Cart
-        { stage: 'Cart', metric: '* Shipping issues', value: parseFloat(formData.cartShippingIssues) || 0 },
-        { stage: 'Cart', metric: '* Abandonment rate', value: parseFloat(formData.cartAbandonment) || 0 },
-      ];
-      funnelMetricsArray.forEach(item => {
-        if (item.value > 0) {
-          if (!funnelMetricsObj[item.stage]) {
-            funnelMetricsObj[item.stage] = {};
-          }
-          funnelMetricsObj[item.stage][item.metric] = item.value;
-        }
-      });
-
-      const uploadData = {
-        weekStartDate: formData.weekStartDate,
-        weekEndDate: formData.weekEndDate,
-        notes: formData.notes,
-        romansRecommendations: formData.romansRecommendations,
-        overallMetrics: overallMetricsObj,
-        marketingChannels: marketingChannelsObj,
-        funnelMetrics: funnelMetricsObj,
-      };
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(uploadData),
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({ error: 'Upload failed' }));
-        throw new Error(data.error || `Upload failed with status ${response.status}`);
-      }
-
-      setSuccess('Data saved successfully! 🎉');
-      
-      // Reset form
+  const handleWeekChange = (weekId: string) => {
+    if (weekId === 'new') {
+      setSelectedWeekId(null);
+      // Reset form to empty
       setFormData({
         weekStartDate: '',
         weekEndDate: '',
@@ -348,6 +361,216 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         cartAbandonment: '',
         products: [{ name: '', orders: '' }],
       });
+    } else {
+      const id = parseInt(weekId);
+      setSelectedWeekId(id);
+      loadWeekData(id);
+    }
+  };
+
+  const handleChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      // Validate required fields
+      if (!formData.weekStartDate || !formData.weekEndDate) {
+        throw new Error('Week dates are required');
+      }
+
+      // Build data structure matching your database schema
+      // Transform arrays to objects as expected by saveWeekData
+      const overallMetricsObj: { [key: string]: number } = {};
+      const overallMetricsArray = [
+          { metric: '* Revenue', value: parseFloat(formData.revenue) || 0 },
+          { metric: '* Orders', value: parseFloat(formData.orders) || 0 },
+          { metric: '* AOV', value: parseFloat(formData.aov) || 0 },
+          { metric: '* Conversion Rate', value: parseFloat(formData.conversionRate) || 0 },
+          { metric: '* Total Sessions', value: parseFloat(formData.sessions) || 0 },
+        // Add top selling products
+          ...formData.products
+            .filter(p => p.name.trim() && parseFloat(p.orders) > 0)
+            .map(p => ({
+              metric: `/products/${p.name.trim()}`,
+              value: parseFloat(p.orders) || 0
+            })),
+      ];
+      overallMetricsArray.forEach(item => {
+        if (item.value > 0) {
+          overallMetricsObj[item.metric] = item.value;
+        }
+      });
+
+      const marketingChannelsObj: { [channel: string]: { [metric: string]: number } } = {};
+      const marketingChannelsArray = [
+          // Google Ads
+          { channel: 'Google Ads', metric: '* Sales', value: parseFloat(formData.googleAdsRevenue) || 0 },
+          { channel: 'Google Ads', metric: '* Spend', value: parseFloat(formData.googleAdsSpend) || 0 },
+          { channel: 'Google Ads', metric: '* Clicks', value: parseFloat(formData.googleAdsClicks) || 0 },
+          { channel: 'Google Ads', metric: '* Conversions', value: parseFloat(formData.googleAdsConversions) || 0 },
+          { channel: 'Google Ads', metric: '* Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
+          // Email & SMS
+          { channel: 'Email & SMS', metric: '* Revenue', value: parseFloat(formData.emailRevenue) || 0 },
+          { channel: 'Email & SMS', metric: '* Spend', value: parseFloat(formData.emailSpend) || 0 },
+          { channel: 'Email & SMS', metric: '* Email open rate', value: parseFloat(formData.emailOpenRate) || 0 },
+          { channel: 'Email & SMS', metric: '* CTR', value: parseFloat(formData.emailCTR) || 0 },
+          // Affiliates
+          { channel: 'Affiliates', metric: '* Revenue', value: parseFloat(formData.affiliatesRevenue) || 0 },
+          { channel: 'Affiliates', metric: '* Spend', value: parseFloat(formData.affiliatesSpend) || 0 },
+          { channel: 'Affiliates', metric: '* Clicks', value: parseFloat(formData.affiliatesClicks) || 0 },
+          { channel: 'Affiliates', metric: '* Conversions', value: parseFloat(formData.affiliatesConversions) || 0 },
+          // Social
+          { channel: 'Social', metric: '* Revenue', value: parseFloat(formData.socialRevenue) || 0 },
+          { channel: 'Social', metric: '* Spend', value: parseFloat(formData.socialSpend) || 0 },
+          // SEO
+          { channel: 'SEO', metric: '* Revenue', value: (parseFloat(formData.seoPurchases) || 0) * (parseFloat(formData.aov) || 0) },
+          { channel: 'SEO', metric: '* Spend', value: parseFloat(formData.seoSpend) || 0 },
+          { channel: 'SEO', metric: '* Impressions', value: parseFloat(formData.seoImpressions) || 0 },
+          { channel: 'SEO', metric: '* Clicks', value: parseFloat(formData.seoClicks) || 0 },
+          { channel: 'SEO', metric: '* Sessions', value: parseFloat(formData.seoSessions) || 0 },
+          { channel: 'SEO', metric: '* Conversions', value: parseFloat(formData.seoPurchases) || 0 },
+      ];
+      marketingChannelsArray.forEach(item => {
+        if (item.value > 0) {
+          if (!marketingChannelsObj[item.channel]) {
+            marketingChannelsObj[item.channel] = {};
+          }
+          marketingChannelsObj[item.channel][item.metric] = item.value;
+        }
+      });
+
+      const funnelMetricsObj: { [stage: string]: { [metric: string]: number } } = {};
+      const funnelMetricsArray = [
+          // Google Ads Funnel
+          { stage: 'Google Ads', metric: 'Sessions', value: parseFloat(formData.googleAdsSessions) || 0 },
+          { stage: 'Google Ads', metric: 'Add to Cart', value: parseFloat(formData.googleAdsATC) || 0 },
+          { stage: 'Google Ads', metric: 'Checkout', value: parseFloat(formData.googleAdsCheckout) || 0 },
+          { stage: 'Google Ads', metric: 'Purchases', value: parseFloat(formData.googleAdsPurchases) || 0 },
+          // Email Funnel
+          { stage: 'Email & SMS', metric: 'Sessions', value: parseFloat(formData.emailSessions) || 0 },
+          { stage: 'Email & SMS', metric: 'Add to Cart', value: parseFloat(formData.emailATC) || 0 },
+          { stage: 'Email & SMS', metric: 'Checkout', value: parseFloat(formData.emailCheckout) || 0 },
+          { stage: 'Email & SMS', metric: 'Purchases', value: parseFloat(formData.emailPurchases) || 0 },
+          // Affiliates Funnel
+          { stage: 'Affiliates', metric: 'Sessions', value: parseFloat(formData.affiliatesSessions) || 0 },
+          { stage: 'Affiliates', metric: 'Add to Cart', value: parseFloat(formData.affiliatesATC) || 0 },
+          { stage: 'Affiliates', metric: 'Checkout', value: parseFloat(formData.affiliatesCheckout) || 0 },
+          { stage: 'Affiliates', metric: 'Purchases', value: parseFloat(formData.affiliatesPurchases) || 0 },
+          // SEO Funnel
+          { stage: 'SEO', metric: 'Sessions', value: parseFloat(formData.seoSessions) || 0 },
+          { stage: 'SEO', metric: 'Add to Cart', value: parseFloat(formData.seoATC) || 0 },
+          { stage: 'SEO', metric: 'Checkout', value: parseFloat(formData.seoCheckout) || 0 },
+          { stage: 'SEO', metric: 'Purchases', value: parseFloat(formData.seoPurchases) || 0 },
+          // Social Funnel
+          { stage: 'Social', metric: 'Sessions', value: parseFloat(formData.socialSessions) || 0 },
+          { stage: 'Social', metric: 'Add to Cart', value: parseFloat(formData.socialATC) || 0 },
+          { stage: 'Social', metric: 'Checkout', value: parseFloat(formData.socialCheckout) || 0 },
+          { stage: 'Social', metric: 'Purchases', value: parseFloat(formData.socialPurchases) || 0 },
+          // Product Page
+          { stage: 'Product Page', metric: '* Add-to-cart rate', value: parseFloat(formData.productPageATCRate) || 0 },
+          { stage: 'Product Page', metric: '* Time on page', value: parseFloat(formData.productPageTimeOnPage) || 0 },
+          { stage: 'Product Page', metric: '* Scroll depth', value: parseFloat(formData.productPageScrollDepth) || 0 },
+          // Cart
+          { stage: 'Cart', metric: '* Shipping issues', value: parseFloat(formData.cartShippingIssues) || 0 },
+          { stage: 'Cart', metric: '* Abandonment rate', value: parseFloat(formData.cartAbandonment) || 0 },
+      ];
+      funnelMetricsArray.forEach(item => {
+        if (item.value > 0) {
+          if (!funnelMetricsObj[item.stage]) {
+            funnelMetricsObj[item.stage] = {};
+          }
+          funnelMetricsObj[item.stage][item.metric] = item.value;
+        }
+      });
+
+        const uploadData = {
+          weekStartDate: formData.weekStartDate,
+          weekEndDate: formData.weekEndDate,
+          notes: formData.notes,
+          romansRecommendations: formData.romansRecommendations,
+          overallMetrics: overallMetricsObj,
+          marketingChannels: marketingChannelsObj,
+          funnelMetrics: funnelMetricsObj,
+          weekId: selectedWeekId || undefined,
+      };
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(uploadData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(data.error || `Upload failed with status ${response.status}`);
+      }
+
+      setSuccess(selectedWeekId ? 'Week updated successfully! 🎉' : 'Data saved successfully! 🎉');
+      
+      // Reset form only if creating new week
+      if (!selectedWeekId) {
+      setFormData({
+        weekStartDate: '',
+        weekEndDate: '',
+        notes: '',
+        romansRecommendations: '',
+        revenue: '',
+        orders: '',
+        aov: '',
+        conversionRate: '',
+        sessions: '',
+        googleAdsRevenue: '',
+        googleAdsSpend: '',
+        googleAdsClicks: '',
+        googleAdsConversions: '',
+        googleAdsSessions: '',
+        googleAdsATC: '',
+        googleAdsCheckout: '',
+        googleAdsPurchases: '',
+        emailRevenue: '',
+        emailSpend: '',
+        emailOpenRate: '',
+        emailCTR: '',
+        emailSessions: '',
+        emailATC: '',
+        emailCheckout: '',
+        emailPurchases: '',
+        affiliatesRevenue: '',
+        affiliatesSpend: '',
+        affiliatesClicks: '',
+        affiliatesConversions: '',
+        affiliatesSessions: '',
+        affiliatesATC: '',
+        affiliatesCheckout: '',
+        affiliatesPurchases: '',
+        seoImpressions: '',
+        seoClicks: '',
+        seoSessions: '',
+        seoSpend: '',
+        seoATC: '',
+        seoCheckout: '',
+        seoPurchases: '',
+        socialRevenue: '',
+        socialSpend: '',
+        socialSessions: '',
+        socialATC: '',
+        socialCheckout: '',
+        socialPurchases: '',
+        productPageATCRate: '',
+        productPageTimeOnPage: '',
+        productPageScrollDepth: '',
+        cartShippingIssues: '',
+        cartAbandonment: '',
+        products: [{ name: '', orders: '' }],
+      });
+        setSelectedWeekId(null);
+      }
 
       if (onSuccess) {
         onSuccess();
@@ -361,6 +584,44 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Week Selector */}
+      <Card>
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50">
+          <div className="flex items-center gap-3">
+            <Edit className="h-5 w-5 text-purple-600" />
+            <div>
+              <CardTitle>Select Week to Edit</CardTitle>
+              <CardDescription>Choose an existing week to edit, or select "Create New Week" to add a new week</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="space-y-2">
+            <Label htmlFor="week-selector">Week</Label>
+            <Select
+              value={selectedWeekId?.toString() || 'new'}
+              onValueChange={handleWeekChange}
+              disabled={isLoadingWeek}
+            >
+              <SelectTrigger id="week-selector" className="w-full">
+                <SelectValue placeholder="Select a week" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">➕ Create New Week</SelectItem>
+                {weeks.map((week) => (
+                  <SelectItem key={week.id} value={week.id.toString()}>
+                    {format(new Date(week.week_start_date), 'MMM d')} - {format(new Date(week.week_end_date), 'MMM d, yyyy')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isLoadingWeek && (
+              <p className="text-xs text-muted-foreground">Loading week data...</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Week Info */}
       <Card>
         <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100">

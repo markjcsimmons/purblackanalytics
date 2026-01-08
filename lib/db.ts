@@ -137,26 +137,60 @@ export interface WeekData {
   funnelMetrics: { [stage: string]: { [metric: string]: number } };
 }
 
-export function saveWeekData(data: WeekData) {
+export function saveWeekData(data: WeekData, weekId?: number) {
   const database = getDb();
   
-  // Start transaction
-  const insertWeek = database.prepare(
-    'INSERT OR REPLACE INTO weeks (week_start_date, week_end_date, notes, romans_recommendations) VALUES (?, ?, ?, ?)'
-  );
+  let finalWeekId: number;
   
-  const info = insertWeek.run(
-    data.weekStartDate, 
-    data.weekEndDate, 
-    data.notes || null,
-    data.romansRecommendations || null
-  );
-  const weekId = info.lastInsertRowid;
+  if (weekId) {
+    // Update existing week
+    const updateWeek = database.prepare(
+      'UPDATE weeks SET week_end_date = ?, notes = ?, romans_recommendations = ? WHERE id = ?'
+    );
+    updateWeek.run(
+      data.weekEndDate,
+      data.notes || null,
+      data.romansRecommendations || null,
+      weekId
+    );
+    finalWeekId = weekId;
+  } else {
+    // Check if week with this start date already exists
+    const existingWeek = database.prepare(
+      'SELECT id FROM weeks WHERE week_start_date = ?'
+    ).get(data.weekStartDate) as { id: number } | undefined;
+    
+    if (existingWeek) {
+      // Update existing week
+      const updateWeek = database.prepare(
+        'UPDATE weeks SET week_end_date = ?, notes = ?, romans_recommendations = ? WHERE id = ?'
+      );
+      updateWeek.run(
+        data.weekEndDate,
+        data.notes || null,
+        data.romansRecommendations || null,
+        existingWeek.id
+      );
+      finalWeekId = existingWeek.id;
+    } else {
+      // Insert new week
+      const insertWeek = database.prepare(
+        'INSERT INTO weeks (week_start_date, week_end_date, notes, romans_recommendations) VALUES (?, ?, ?, ?)'
+      );
+      const info = insertWeek.run(
+        data.weekStartDate, 
+        data.weekEndDate, 
+        data.notes || null,
+        data.romansRecommendations || null
+      );
+      finalWeekId = info.lastInsertRowid as number;
+    }
+  }
 
   // Delete existing metrics for this week
-  database.prepare('DELETE FROM overall_metrics WHERE week_id = ?').run(weekId);
-  database.prepare('DELETE FROM marketing_channels WHERE week_id = ?').run(weekId);
-  database.prepare('DELETE FROM funnel_metrics WHERE week_id = ?').run(weekId);
+  database.prepare('DELETE FROM overall_metrics WHERE week_id = ?').run(finalWeekId);
+  database.prepare('DELETE FROM marketing_channels WHERE week_id = ?').run(finalWeekId);
+  database.prepare('DELETE FROM funnel_metrics WHERE week_id = ?').run(finalWeekId);
 
   // Insert overall metrics
   const insertOverallMetric = database.prepare(
@@ -164,7 +198,7 @@ export function saveWeekData(data: WeekData) {
   );
   
   for (const [name, value] of Object.entries(data.overallMetrics)) {
-    insertOverallMetric.run(weekId, name, value);
+    insertOverallMetric.run(finalWeekId, name, value);
   }
 
   // Insert marketing channel metrics
@@ -174,7 +208,7 @@ export function saveWeekData(data: WeekData) {
   
   for (const [channel, metrics] of Object.entries(data.marketingChannels)) {
     for (const [metric, value] of Object.entries(metrics)) {
-      insertChannelMetric.run(weekId, channel, metric, value);
+      insertChannelMetric.run(finalWeekId, channel, metric, value);
     }
   }
 
@@ -185,11 +219,11 @@ export function saveWeekData(data: WeekData) {
   
   for (const [stage, metrics] of Object.entries(data.funnelMetrics)) {
     for (const [metric, value] of Object.entries(metrics)) {
-      insertFunnelMetric.run(weekId, stage, metric, value);
+      insertFunnelMetric.run(finalWeekId, stage, metric, value);
     }
   }
 
-  return weekId;
+  return finalWeekId;
 }
 
 export function getWeeks() {

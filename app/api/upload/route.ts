@@ -6,7 +6,7 @@ export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    const data: WeekData = await request.json();
+    const data: WeekData & { weekId?: number } = await request.json();
 
     // Validate required fields
     if (!data.weekStartDate || !data.weekEndDate) {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
 
     // Dynamically import database functions to avoid build-time execution
     const { saveWeekData } = await import('@/lib/db');
-    const weekId = saveWeekData(data);
+    const weekId = saveWeekData(data, data.weekId);
 
     return NextResponse.json({ 
       success: true, 
