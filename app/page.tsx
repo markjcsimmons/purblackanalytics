@@ -981,6 +981,34 @@ export default function Dashboard() {
                         ).map(([channel, data]: [string, any]) => {
                           const roi = data.spend > 0 ? ((data.revenue - data.spend) / data.spend * 100) : 0;
                           const isAffiliate = channel.toLowerCase().includes('affiliate');
+                          
+                          // Get revenue comparison data
+                          const getChannelRevenue = (comparisonWeek: any, channelName: string) => {
+                            if (!comparisonWeek || !comparisonWeek.marketingChannels) return null;
+                            const channelData = comparisonWeek.marketingChannels.filter((m: any) => m.channel_name === channelName);
+                            for (const metric of channelData) {
+                              const metricLower = metric.metric_name.toLowerCase();
+                              if (metricLower.includes('revenue') || metricLower.includes('sales') || metricLower.includes('total $') || metricLower.includes('attributed')) {
+                                return metric.metric_value;
+                              }
+                            }
+                            return null;
+                          };
+
+                          const prevWeekRevenue = comparisonData?.previousWeek 
+                            ? getChannelRevenue(comparisonData.previousWeek, channel)
+                            : null;
+                          const yearAgoRevenue = comparisonData?.sameWeekYearAgo 
+                            ? getChannelRevenue(comparisonData.sameWeekYearAgo, channel)
+                            : null;
+
+                          const prevWeekChange = prevWeekRevenue !== null && prevWeekRevenue !== 0 
+                            ? ((data.revenue - prevWeekRevenue) / prevWeekRevenue) * 100 
+                            : null;
+                          const yearAgoChange = yearAgoRevenue !== null && yearAgoRevenue !== 0 
+                            ? ((data.revenue - yearAgoRevenue) / yearAgoRevenue) * 100 
+                            : null;
+
                           return (
                             <div 
                               key={channel} 
@@ -1003,6 +1031,32 @@ export default function Dashboard() {
                                   <span className="text-muted-foreground">Revenue:</span>
                                   <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
                                 </div>
+                                {(prevWeekChange !== null || yearAgoChange !== null) && (
+                                  <div className="space-y-1 pt-2 border-t border-gray-200">
+                                    {prevWeekChange !== null && (
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-gray-600">vs Last Week:</span>
+                                        <span className={`font-semibold flex items-center gap-1 ${
+                                          prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-gray-600'
+                                        }`}>
+                                          {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                          {Math.abs(prevWeekChange).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    )}
+                                    {yearAgoChange !== null && (
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-gray-600">vs Year Ago:</span>
+                                        <span className={`font-semibold flex items-center gap-1 ${
+                                          yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-gray-600'
+                                        }`}>
+                                          {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                          {Math.abs(yearAgoChange).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                                 {channel === 'Google Ads' && (
                                 <div className="flex justify-between">
                                   <span className="text-muted-foreground">Spend:</span>
