@@ -220,8 +220,8 @@ export default function Dashboard() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             {accessLevel === 'full' && (
               <>
-                <TabsTrigger value="channels">Channels</TabsTrigger>
-                <TabsTrigger value="add-data">Add Data</TabsTrigger>
+            <TabsTrigger value="channels">Channels</TabsTrigger>
+            <TabsTrigger value="add-data">Add Data</TabsTrigger>
               </>
             )}
           </TabsList>
@@ -744,7 +744,7 @@ export default function Dashboard() {
                                       {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
                                       {Math.abs(prevWeekChange).toFixed(1)}%
                                     </span>
-                                  </div>
+                        </div>
                                 )}
                                 {yearAgoChange !== null && (
                                   <div className="flex items-center justify-center gap-1 text-xs">
@@ -829,7 +829,7 @@ export default function Dashboard() {
                                     <span className="text-xs text-amber-600">
                                       ({prevWeekAbandonment.toFixed(1)}%)
                                     </span>
-                                  </div>
+                        </div>
                                 )}
                                 {yearAgoChange !== null && yearAgoAbandonment !== null && (
                                   <div className="flex items-center gap-2 text-xs">
@@ -906,9 +906,9 @@ export default function Dashboard() {
                       return (
                         <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2">
                           {products
-                            .sort((a: any, b: any) => b.metric_value - a.metric_value)
-                            .slice(0, 6)
-                            .map((product: any, idx: number) => {
+                        .sort((a: any, b: any) => b.metric_value - a.metric_value)
+                        .slice(0, 6)
+                        .map((product: any, idx: number) => {
                               let productName = product.metric_name;
                               
                               // Handle /products/ prefix format - just remove the prefix to get full name
@@ -919,22 +919,22 @@ export default function Dashboard() {
                                 productName = productName
                                   .split(/[-_\s]/)
                                   .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                                  .join(' ');
+                            .join(' ');
                               }
                               
-                              return (
+                          return (
                                 <div key={idx} className="flex items-start gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
-                                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
-                                    {idx + 1}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
+                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
+                                {idx + 1}
+                              </div>
+                              <div className="flex-1 min-w-0">
                                     <div className="font-semibold text-sm leading-relaxed break-words">{productName}</div>
                                     <div className="text-xs text-muted-foreground mt-1">{formatNumber(product.metric_value)} orders</div>
-                                  </div>
-                                </div>
-                              );
+                              </div>
+                            </div>
+                          );
                             })}
-                        </div>
+                    </div>
                       );
                     })()}
                   </CardContent>
@@ -1004,19 +1004,19 @@ export default function Dashboard() {
                                   <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
                                 </div>
                                 {channel === 'Google Ads' && (
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Spend:</span>
-                                    <span className="text-red-600">{formatCurrency(data.spend)}</span>
-                                  </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Spend:</span>
+                                  <span className="text-red-600">{formatCurrency(data.spend)}</span>
+                                </div>
                                 )}
                                 {channel === 'Google Ads' && (
-                                  <div className="flex justify-between items-center pt-2 border-t">
-                                    <span className="text-muted-foreground font-semibold">ROI:</span>
-                                    <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : roi < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                      {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : roi < 0 ? <ArrowDownRight className="h-4 w-4" /> : null}
-                                      {roi.toFixed(0)}%
-                                    </span>
-                                  </div>
+                                <div className="flex justify-between items-center pt-2 border-t">
+                                  <span className="text-muted-foreground font-semibold">ROI:</span>
+                                  <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : roi < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                    {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : roi < 0 ? <ArrowDownRight className="h-4 w-4" /> : null}
+                                    {roi.toFixed(0)}%
+                                  </span>
+                                </div>
                                 )}
                               </div>
                             </div>
@@ -1046,11 +1046,11 @@ export default function Dashboard() {
                       (() => {
                         // Group metrics by channel/stage
                         const channels = weekData.funnelMetrics.reduce((acc: any, item: any) => {
-                          if (!acc[item.stage_name]) {
-                            acc[item.stage_name] = [];
-                          }
-                          acc[item.stage_name].push(item);
-                          return acc;
+                            if (!acc[item.stage_name]) {
+                              acc[item.stage_name] = [];
+                            }
+                            acc[item.stage_name].push(item);
+                            return acc;
                         }, {});
 
                         // Helper to get metric value for a stage
@@ -1088,188 +1088,101 @@ export default function Dashboard() {
                               const prevCheckout = getComparisonValue('Checkout', comparisonData?.previousWeek);
                               const prevPurchases = getComparisonValue('Purchases', comparisonData?.previousWeek);
 
-                              // Calculate funnel segment widths based on values
-                              const funnelMaxValue = Math.max(sessions, addToCart, checkout, purchases, 1);
-                              const funnelWidth = 300; // Fixed width for funnel in pixels
-                              const segmentHeight = 65;
-                              
-                              // Calculate widths as percentages of funnel width
-                              const sessionsTopWidth = funnelWidth;
-                              const sessionsBottomWidth = funnelMaxValue > 0 ? Math.max(funnelWidth * 0.7, (addToCart / funnelMaxValue) * funnelWidth) : funnelWidth * 0.7;
-                              
-                              const atcTopWidth = sessionsBottomWidth;
-                              const atcBottomWidth = funnelMaxValue > 0 ? Math.max(funnelWidth * 0.45, (checkout / funnelMaxValue) * funnelWidth) : funnelWidth * 0.45;
-                              
-                              const checkoutTopWidth = atcBottomWidth;
-                              const checkoutBottomWidth = funnelMaxValue > 0 ? Math.max(funnelWidth * 0.25, (purchases / funnelMaxValue) * funnelWidth) : funnelWidth * 0.25;
-                              
-                              const purchasesTopWidth = checkoutBottomWidth;
-                              const purchasesBottomWidth = funnelMaxValue > 0 ? Math.max(funnelWidth * 0.12, (purchases / funnelMaxValue) * funnelWidth * 0.5) : funnelWidth * 0.12;
-
-                              // Funnel stages configuration
+                              // Funnel stages in order
                               const stages = [
                                 { 
                                   name: 'Sessions', 
                                   value: sessions, 
-                                  topWidth: sessionsTopWidth,
-                                  bottomWidth: sessionsBottomWidth,
-                                  prevValue: prevSessions
+                                  prevValue: prevSessions,
+                                  icon: Users
                                 },
                                 { 
                                   name: 'Add to Cart', 
                                   value: addToCart, 
-                                  topWidth: atcTopWidth,
-                                  bottomWidth: atcBottomWidth,
-                                  prevValue: prevATC
+                                  prevValue: prevATC,
+                                  icon: ShoppingCart
                                 },
                                 { 
                                   name: 'Checkout', 
                                   value: checkout, 
-                                  topWidth: checkoutTopWidth,
-                                  bottomWidth: checkoutBottomWidth,
-                                  prevValue: prevCheckout
+                                  prevValue: prevCheckout,
+                                  icon: Target
                                 },
                                 { 
                                   name: 'Purchases', 
                                   value: purchases, 
-                                  topWidth: purchasesTopWidth,
-                                  bottomWidth: purchasesBottomWidth,
-                                  prevValue: prevPurchases
+                                  prevValue: prevPurchases,
+                                  icon: DollarSign
                                 }
                               ];
 
                               return (
-                                <div key={channelName} className="p-6 border-2 border-teal-200 rounded-lg bg-white">
-                                  <div className="font-bold mb-6 text-teal-900 text-center text-lg">
+                                <div key={channelName} className="p-6 border-2 border-teal-200 rounded-lg bg-gradient-to-br from-white to-teal-50/30">
+                                  <div className="font-bold mb-4 text-teal-900 text-lg">
                                     {channelName}
-                                  </div>
+                            </div>
                                   
-                                  {/* Funnel Visualization */}
-                                  <div className="flex items-start justify-center gap-8" style={{ minHeight: '320px' }}>
-                                    {/* Left Labels Column */}
-                                    <div className="flex flex-col gap-0" style={{ width: '120px', paddingTop: '2px' }}>
-                                      {stages.map((stage, index) => (
-                                        <div key={stage.name} className="flex items-center justify-end h-16 pr-4">
-                                          <div className="text-sm font-semibold text-teal-900 text-right">
-                                            {stage.name}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    
-                                    {/* Funnel SVG */}
-                                    <div className="relative" style={{ width: `${funnelWidth}px` }}>
-                                      <svg width={funnelWidth} height={stages.length * segmentHeight + 4} className="overflow-visible">
-                                        {/* Dark Teal Top Rim */}
-                                        <rect 
-                                          x="0" 
-                                          y="0" 
-                                          width={funnelWidth} 
-                                          height="4" 
-                                          fill="#0d9488" 
-                                        />
-                                        
-                                        {stages.map((stage, index) => {
-                                          const prevStage = index > 0 ? stages[index - 1] : null;
-                                          const y = index * segmentHeight + 4;
-                                          
-                                          // Calculate trapezoid points
-                                          const topLeft = (funnelWidth - stage.topWidth) / 2;
-                                          const topRight = topLeft + stage.topWidth;
-                                          const bottomLeft = (funnelWidth - stage.bottomWidth) / 2;
-                                          const bottomRight = bottomLeft + stage.bottomWidth;
-                                          
-                                          // Calculate conversion rate
-                                          const conversionRate = prevStage && prevStage.value > 0 
-                                            ? calculatePercentage(stage.value, prevStage.value)
-                                            : 0;
-                                          
-                                          // Calculate comparison change
-                                          const change = stage.prevValue !== null && stage.prevValue !== 0
-                                            ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
-                                            : null;
+                                  {/* Funnel Stages Table */}
+                                  <div className="space-y-3">
+                                    {stages.map((stage, index) => {
+                                      const prevStage = index > 0 ? stages[index - 1] : null;
+                                      const StageIcon = stage.icon;
+                                      
+                                      // Calculate conversion rate
+                                      const conversionRate = prevStage && prevStage.value > 0 
+                                        ? calculatePercentage(stage.value, prevStage.value)
+                                        : null;
+                                      
+                                      // Calculate comparison change
+                                      const change = stage.prevValue !== null && stage.prevValue !== 0
+                                        ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
+                                        : null;
 
-                                          return (
-                                            <g key={stage.name}>
-                                              {/* Lime Green Funnel Segment */}
-                                              <polygon
-                                                points={`${topLeft},${y} ${topRight},${y} ${bottomRight},${y + segmentHeight} ${bottomLeft},${y + segmentHeight}`}
-                                                fill="#84cc16"
-                                                stroke="#0d9488"
-                                                strokeWidth="2"
-                                              />
-                                              
-                                              {/* Dark Teal Separator Line (except for first segment) */}
-                                              {index > 0 && (
-                                                <>
-                                                  <line
-                                                    x1={bottomLeft}
-                                                    y1={y}
-                                                    x2={bottomRight}
-                                                    y2={y}
-                                                    stroke="#0d9488"
-                                                    strokeWidth="2"
-                                                  />
-                                                  {/* Light Teal Horizontal Line Extending Right */}
-                                                  <line
-                                                    x1={topRight}
-                                                    y1={y}
-                                                    x2={topRight + 100}
-                                                    y2={y}
-                                                    stroke="#5eead4"
-                                                    strokeWidth="1"
-                                                  />
-                                                </>
-                                              )}
-                                            </g>
-                                          );
-                                        })}
-                                      </svg>
-                                    </div>
-                                    
-                                    {/* Right Data Column */}
-                                    <div className="flex flex-col gap-0" style={{ width: '180px', paddingTop: '2px' }}>
-                                      {stages.map((stage, index) => {
-                                        const prevStage = index > 0 ? stages[index - 1] : null;
-                                        
-                                        // Calculate conversion rate
-                                        const conversionRate = prevStage && prevStage.value > 0 
-                                          ? calculatePercentage(stage.value, prevStage.value)
-                                          : 0;
-                                        
-                                        // Calculate comparison change
-                                        const change = stage.prevValue !== null && stage.prevValue !== 0
-                                          ? ((stage.value - stage.prevValue) / stage.prevValue) * 100
-                                          : null;
-
-                                        return (
-                                          <div key={stage.name} className="flex flex-col justify-center h-16 pl-4">
-                                            <div className="text-sm font-semibold text-teal-900">
-                                              {formatNumber(stage.value)}
+                                      return (
+                                        <div key={stage.name} className="border-l-4 border-teal-500 bg-white rounded-r-lg p-4 shadow-sm">
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3 flex-1">
+                                              <div className="p-2 bg-teal-100 rounded-lg">
+                                                <StageIcon className="h-4 w-4 text-teal-600" />
+                                              </div>
+                                              <div>
+                                                <div className="font-semibold text-teal-900 text-sm">{stage.name}</div>
+                                                {conversionRate !== null && (
+                                                  <div className="text-xs text-teal-600 mt-0.5">
+                                                    {conversionRate.toFixed(1)}% of {prevStage?.name}
+                                                  </div>
+                                                )}
+                                              </div>
                                             </div>
-                                            {prevStage && (
-                                              <div className="text-xs text-teal-600 mt-1">
-                                                {conversionRate.toFixed(1)}% of {prevStage.name}
+                                            
+                                            <div className="text-right">
+                                              <div className="font-bold text-lg text-teal-900">
+                                                {formatNumber(stage.value)}
                                               </div>
-                                            )}
-                                            {change !== null && (
-                                              <div className={`text-xs mt-1 font-medium flex items-center gap-1 ${
-                                                change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-teal-600'
-                                              }`}>
-                                                {change > 0 ? <ArrowUpRight className="h-3 w-3" /> : change < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                                {Math.abs(change).toFixed(1)}%
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
+                                              {change !== null && (
+                                                <div className={`text-xs mt-1 font-medium flex items-center justify-end gap-1 ${
+                                                  change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-teal-600'
+                                                }`}>
+                                                  {change > 0 ? <ArrowUpRight className="h-3 w-3" /> : change < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                                  {Math.abs(change).toFixed(1)}% vs. Last Week
+                                                  {stage.prevValue !== null && (
+                                                    <span className="text-teal-500 ml-2">
+                                                      ({formatNumber(stage.prevValue)})
+                                  </span>
+                                                  )}
+                                </div>
+                                              )}
+                            </div>
+                          </div>
+                      </div>
+                                      );
+                                    })}
                                   </div>
                                   
                                   {/* Overall Conversion Rate */}
-                                  <div className="mt-6 pt-4 border-t-2 border-teal-300 text-center">
-                                    <div className="text-sm text-teal-600 mb-1">Overall Conversion Rate</div>
-                                    <div className="text-2xl font-bold text-teal-900">
+                                  <div className="mt-4 pt-4 border-t-2 border-teal-200 text-center">
+                                    <div className="text-xs text-teal-600 mb-1">Overall Conversion Rate</div>
+                                    <div className="text-xl font-bold text-teal-900">
                                       {sessions > 0 ? calculatePercentage(purchases, sessions).toFixed(2) : '0.00'}%
                                     </div>
                                   </div>
@@ -1317,7 +1230,7 @@ export default function Dashboard() {
 
           {/* Channels Tab - Full Access Only */}
           {accessLevel === 'full' && (
-            <TabsContent value="channels" className="space-y-6">
+          <TabsContent value="channels" className="space-y-6">
             {weekData && (
               <div className="grid gap-6">
                 {weekData && weekData.marketingChannels && Array.isArray(weekData.marketingChannels) && Object.entries(
@@ -1345,13 +1258,13 @@ export default function Dashboard() {
                   };
 
                   return (
-                    <Card key={channel}>
-                      <CardHeader>
-                        <CardTitle>{channel}</CardTitle>
+                  <Card key={channel}>
+                    <CardHeader>
+                      <CardTitle>{channel}</CardTitle>
                         <CardDescription>Performance metrics with comparisons</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid gap-4 md:grid-cols-3">
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 md:grid-cols-3">
                           {metrics
                             .filter((metric: any) => {
                               // Hide spend metrics for all channels except Google Ads
@@ -1375,7 +1288,7 @@ export default function Dashboard() {
                             const yearAgoChange = calculateChange(currentValue, yearAgoValue);
 
                             const isCurrency = metric.metric_name.toLowerCase().includes('revenue') || 
-                                              metric.metric_name.toLowerCase().includes('spend') || 
+                               metric.metric_name.toLowerCase().includes('spend') || 
                                               metric.metric_name.toLowerCase().includes('cost');
                             const isRate = metric.metric_name.toLowerCase().includes('rate') ||
                                           metric.metric_name.toLowerCase().includes('roas');
@@ -1388,7 +1301,7 @@ export default function Dashboard() {
                                     {isCurrency
                                       ? formatCurrency(currentValue)
                                       : isRate
-                                      ? metric.metric_value.toFixed(2)
+                                ? metric.metric_value.toFixed(2)
                                       : formatNumber(currentValue)}
                                   </p>
                                   
@@ -1407,7 +1320,7 @@ export default function Dashboard() {
                                       <span className="text-xs text-muted-foreground">
                                         ({isCurrency ? formatCurrency(prevWeekValue) : isRate ? prevWeekValue.toFixed(2) : formatNumber(prevWeekValue)})
                                       </span>
-                                    </div>
+                          </div>
                                   )}
 
                                   {/* Year Ago Comparison */}
@@ -1435,9 +1348,9 @@ export default function Dashboard() {
                               </div>
                             );
                           })}
-                        </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
                   );
                 })}
               </div>
@@ -1447,13 +1360,13 @@ export default function Dashboard() {
 
           {/* Add Data Tab - Full Access Only */}
           {accessLevel === 'full' && (
-            <TabsContent value="add-data" className="space-y-6">
+          <TabsContent value="add-data" className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <DataUpload onUploadSuccess={handleUploadSuccess} />
                 <GoogleDocsImport onUploadSuccess={handleUploadSuccess} />
               </div>
-              <DataEntryForm onSuccess={handleUploadSuccess} />
-            </TabsContent>
+            <DataEntryForm onSuccess={handleUploadSuccess} />
+          </TabsContent>
           )}
         </Tabs>
       </div>
