@@ -995,18 +995,23 @@ export default function Dashboard() {
                             return null;
                           };
 
-                          const prevWeekRevenue = comparisonData?.previousWeek 
+                          // Check if comparison weeks exist
+                          const hasPreviousWeek = comparisonData?.previousWeek !== null && comparisonData?.previousWeek !== undefined;
+                          const hasYearAgoWeek = comparisonData?.sameWeekYearAgo !== null && comparisonData?.sameWeekYearAgo !== undefined;
+
+                          const prevWeekRevenue = hasPreviousWeek 
                             ? getChannelRevenue(comparisonData.previousWeek, channel)
                             : null;
-                          const yearAgoRevenue = comparisonData?.sameWeekYearAgo 
+                          const yearAgoRevenue = hasYearAgoWeek 
                             ? getChannelRevenue(comparisonData.sameWeekYearAgo, channel)
                             : null;
 
-                          const prevWeekChange = prevWeekRevenue !== null && prevWeekRevenue !== 0 
-                            ? ((data.revenue - prevWeekRevenue) / prevWeekRevenue) * 100 
+                          // Calculate changes - handle null (no data) vs 0 (zero revenue)
+                          const prevWeekChange = prevWeekRevenue !== null 
+                            ? (prevWeekRevenue === 0 ? (data.revenue > 0 ? Infinity : 0) : ((data.revenue - prevWeekRevenue) / prevWeekRevenue) * 100)
                             : null;
-                          const yearAgoChange = yearAgoRevenue !== null && yearAgoRevenue !== 0 
-                            ? ((data.revenue - yearAgoRevenue) / yearAgoRevenue) * 100 
+                          const yearAgoChange = yearAgoRevenue !== null 
+                            ? (yearAgoRevenue === 0 ? (data.revenue > 0 ? Infinity : 0) : ((data.revenue - yearAgoRevenue) / yearAgoRevenue) * 100)
                             : null;
 
                           return (
@@ -1031,28 +1036,36 @@ export default function Dashboard() {
                                   <span className="text-muted-foreground">Revenue:</span>
                                   <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
                                 </div>
-                                {(prevWeekChange !== null || yearAgoChange !== null) && (
+                                {(hasPreviousWeek || hasYearAgoWeek) && (
                                   <div className="space-y-1 pt-2 border-t border-gray-200">
-                                    {prevWeekChange !== null && (
+                                    {hasPreviousWeek && (
                                       <div className="flex items-center justify-between text-xs">
                                         <span className="text-gray-600">vs Last Week:</span>
-                                        <span className={`font-semibold flex items-center gap-1 ${
-                                          prevWeekChange > 0 ? 'text-green-600' : prevWeekChange < 0 ? 'text-red-600' : 'text-gray-600'
-                                        }`}>
-                                          {prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                          {Math.abs(prevWeekChange).toFixed(1)}%
-                                        </span>
+                                        {prevWeekRevenue !== null ? (
+                                          <span className={`font-semibold flex items-center gap-1 ${
+                                            prevWeekChange !== null && prevWeekChange > 0 ? 'text-green-600' : prevWeekChange !== null && prevWeekChange < 0 ? 'text-red-600' : 'text-gray-600'
+                                          }`}>
+                                            {prevWeekChange !== null && prevWeekChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : prevWeekChange !== null && prevWeekChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                            {prevWeekChange !== null && prevWeekChange !== Infinity ? Math.abs(prevWeekChange).toFixed(1) + '%' : prevWeekChange === Infinity ? 'New' : '0.0%'}
+                                          </span>
+                                        ) : (
+                                          <span className="text-gray-400">No data</span>
+                                        )}
                                       </div>
                                     )}
-                                    {yearAgoChange !== null && (
+                                    {hasYearAgoWeek && (
                                       <div className="flex items-center justify-between text-xs">
                                         <span className="text-gray-600">vs Year Ago:</span>
-                                        <span className={`font-semibold flex items-center gap-1 ${
-                                          yearAgoChange > 0 ? 'text-green-600' : yearAgoChange < 0 ? 'text-red-600' : 'text-gray-600'
-                                        }`}>
-                                          {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                                          {Math.abs(yearAgoChange).toFixed(1)}%
-                                        </span>
+                                        {yearAgoRevenue !== null ? (
+                                          <span className={`font-semibold flex items-center gap-1 ${
+                                            yearAgoChange !== null && yearAgoChange > 0 ? 'text-green-600' : yearAgoChange !== null && yearAgoChange < 0 ? 'text-red-600' : 'text-gray-600'
+                                          }`}>
+                                            {yearAgoChange !== null && yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange !== null && yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                            {yearAgoChange !== null && yearAgoChange !== Infinity ? Math.abs(yearAgoChange).toFixed(1) + '%' : yearAgoChange === Infinity ? 'New' : '0.0%'}
+                                          </span>
+                                        ) : (
+                                          <span className="text-gray-400">No data</span>
+                                        )}
                                       </div>
                                     )}
                                   </div>
