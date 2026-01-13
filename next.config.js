@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Disable Turbopack for production builds to avoid parsing issues
+  experimental: {
+    turbo: undefined,
+  },
   // Ensure proper domain handling
   async headers() {
     return [
