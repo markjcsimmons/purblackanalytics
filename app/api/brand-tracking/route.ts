@@ -15,7 +15,13 @@ async function ensureDataDir() {
   try {
     await fs.access(DATA_DIR);
   } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true });
+    try {
+      await fs.mkdir(DATA_DIR, { recursive: true });
+    } catch (error: any) {
+      // On platforms like Render with ephemeral filesystem, this might fail
+      // We'll handle it gracefully by not persisting data
+      console.warn('Could not create data directory:', error.message);
+    }
   }
 }
 
@@ -25,15 +31,24 @@ async function loadResults(): Promise<SearchResult[]> {
     await ensureDataDir();
     const data = await fs.readFile(RESULTS_FILE, 'utf-8');
     return JSON.parse(data);
-  } catch {
+  } catch (error: any) {
+    // On platforms with ephemeral filesystem, return empty array
+    // Data won't persist between deployments, but app will still work
+    console.warn('Could not load results from file system:', error.message);
     return [];
   }
 }
 
 // Save results
 async function saveResults(results: SearchResult[]) {
-  await ensureDataDir();
-  await fs.writeFile(RESULTS_FILE, JSON.stringify(results, null, 2), 'utf-8');
+  try {
+    await ensureDataDir();
+    await fs.writeFile(RESULTS_FILE, JSON.stringify(results, null, 2), 'utf-8');
+  } catch (error: any) {
+    // On platforms with ephemeral filesystem, silently fail
+    // Data won't persist, but app will continue to work
+    console.warn('Could not save results to file system:', error.message);
+  }
 }
 
 export async function POST(request: NextRequest) {

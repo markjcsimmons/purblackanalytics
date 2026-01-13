@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: purblack-analytics
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FULL_ACCESS_PASSWORD
+        sync: false
+      - key: NEXT_PUBLIC_FULL_ACCESS_PASSWORD
+        sync: false
