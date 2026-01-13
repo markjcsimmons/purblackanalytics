@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Explicitly disable Turbopack to avoid parsing issues on Render
-  // Turbopack can cause issues with certain syntax patterns
+  // Disable Turbopack completely - it's not stable for production builds
+  webpack: (config, { isServer }) => {
+    return config;
+  },
   // Ensure proper domain handling
   async headers() {
     return [

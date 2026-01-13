@@ -2,7 +2,7 @@ services:
   - type: web
     name: purblack-analytics
     env: node
-    buildCommand: npm install && rm -rf .next && NEXT_TELEMETRY_DISABLED=1 npm run build
+    buildCommand: npm install && rm -rf .next node_modules/.cache && NEXT_TELEMETRY_DISABLED=1 TURBOPACK=0 npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
