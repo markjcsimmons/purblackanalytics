@@ -93,9 +93,8 @@ export default function LoginPage() {
               {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
-          </CardContent>
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
