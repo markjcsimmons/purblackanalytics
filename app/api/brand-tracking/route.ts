@@ -4,6 +4,9 @@ import { calculateRankings, SearchResult } from '@/lib/brandTracker';
 import { promises as fs } from 'fs';
 import path from 'path';
 
+// Mark route as dynamic
+export const dynamic = 'force-dynamic';
+
 const DATA_DIR = path.join(process.cwd(), 'data');
 const RESULTS_FILE = path.join(DATA_DIR, 'brand-tracking-results.json');
 

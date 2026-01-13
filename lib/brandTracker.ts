@@ -60,11 +60,11 @@ export function extractBrands(text: string): BrandMention[] {
   KNOWN_BRANDS.forEach((brand, index) => {
     const brandLower = brand.toLowerCase();
     const regex = new RegExp(`\\b${brandLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-    const matches = text.matchAll(regex);
+    let match: RegExpExecArray | null;
     
-    for (const match of matches) {
-      const start = Math.max(0, match.index! - 50);
-      const end = Math.min(text.length, match.index! + match[0].length + 50);
+    while ((match = regex.exec(text)) !== null) {
+      const start = Math.max(0, match.index - 50);
+      const end = Math.min(text.length, match.index + match[0].length + 50);
       const context = text.substring(start, end).trim();
       
       mentions.push({
