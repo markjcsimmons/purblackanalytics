@@ -59,9 +59,13 @@ export function extractBrands(text: string): BrandMention[] {
   
   KNOWN_BRANDS.forEach((brand, index) => {
     const brandLower = brand.toLowerCase();
-    // Escape special regex characters
-    const escapedBrand = brandLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp('\\b' + escapedBrand + '\\b', 'gi');
+    // Escape special regex characters - using a safer approach
+    const specialChars = /[.*+?^${}()|[\]\\]/g;
+    const escapedBrand = brandLower.replace(specialChars, function(match) {
+      return '\\' + match;
+    });
+    const regexPattern = '\\b' + escapedBrand + '\\b';
+    const regex = new RegExp(regexPattern, 'gi');
     let match: RegExpExecArray | null;
     
     while ((match = regex.exec(text)) !== null) {
