@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
+import { AISearchInsights } from '@/components/ai-search-insights';
 
 interface SearchResult {
   searchEngine: string;
@@ -166,6 +167,17 @@ export function AISearchRankings() {
                 </div>
               ))}
             </div>
+        )}
+
+        {/* AI Search Insights */}
+        {!isLoading && results.length > 0 && (
+          <div className="mt-8">
+            <AISearchInsights
+              searchQuery={currentQuery}
+              results={results}
+              brandName="Pürblack"
+            />
+          </div>
         )}
       </CardContent>
     </Card>

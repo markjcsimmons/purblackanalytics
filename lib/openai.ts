@@ -702,6 +702,151 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
   }
 }
 
+interface AISearchResult {
+  searchEngine: string;
+  topResults: Array<{
+    url: string;
+    title: string;
+    snippet?: string;
+    position: number;
+  }>;
+}
+
+export async function generateAISearchInsights(data: {
+  searchQuery: string;
+  results: AISearchResult[];
+  brandName?: string;
+}): Promise<Insight[]> {
+  const { searchQuery, results, brandName = 'Pürblack' } = data;
+
+  try {
+    const client = getOpenAIClient();
+
+    // Format search results for analysis
+    const resultsText = results.map(result => {
+      const engineName = result.searchEngine;
+      const topResults = result.topResults
+        .map((item, idx) => `${idx + 1}. ${item.title}\n   ${item.snippet || 'No snippet'}\n   URL: ${item.url}`)
+        .join('\n\n');
+      return `${engineName}:\n${topResults}`;
+    }).join('\n\n---\n\n');
+
+    const prompt = `You are an expert SEO and brand visibility analyst. Analyze the following AI search results for the query "${searchQuery}" and provide actionable insights to help the brand "${brandName}" improve its visibility and performance in AI-powered search results.
+
+SEARCH QUERY: "${searchQuery}"
+
+AI SEARCH RESULTS:
+${resultsText}
+
+Your analysis should cover:
+
+1. **Brand Visibility Assessment**
+   - Is "${brandName}" appearing in any of the top 5 results? If yes, in which search engines and at what positions?
+   - Which competitors are appearing most frequently across all search engines?
+   - What's the competitive landscape (who dominates, who's missing)?
+
+2. **Content Themes & Patterns**
+   - What common themes, topics, or keywords appear across top-performing results?
+   - What types of content formats are ranking (articles, product pages, reviews, etc.)?
+   - What messaging or value propositions are winning?
+
+3. **Opportunities & Gaps**
+   - Where can "${brandName}" improve to rank higher?
+   - What content gaps exist that "${brandName}" could fill?
+   - What are competitors doing that "${brandName}" isn't?
+
+4. **Actionable Recommendations**
+   - Specific content topics or formats "${brandName}" should create
+   - SEO improvements (title tags, meta descriptions, content structure)
+   - Link building or citation opportunities
+   - Messaging adjustments to match what's resonating
+
+Provide 5-8 specific, actionable insights in JSON format. Each insight should have:
+- text: The insight description (2-4 sentences)
+- type: One of "opportunity", "warning", "success", or "recommendation"
+- priority: One of "high", "medium", or "low"
+
+Focus on insights that will help "${brandName}" appear in more top 5 results across AI search engines. Be specific and actionable.
+
+Return ONLY a JSON array of insights, no additional text. Format:
+[
+  {
+    "text": "Insight description...",
+    "type": "opportunity",
+    "priority": "high"
+  },
+  ...
+]`;
+
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert SEO and brand visibility analyst. Always respond with valid JSON only.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
+    });
+
+    const content = response.choices[0].message.content || '';
+    let insights: Insight[] = [];
+
+    try {
+      const parsed = JSON.parse(content);
+      
+      // Handle different possible response formats
+      if (Array.isArray(parsed)) {
+        insights = parsed;
+      } else if (parsed.insights && Array.isArray(parsed.insights)) {
+        insights = parsed.insights;
+      } else if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+        insights = parsed.recommendations;
+      } else {
+        // Try to extract insights from other keys
+        const keys = Object.keys(parsed);
+        for (const key of keys) {
+          if (Array.isArray(parsed[key])) {
+            insights = parsed[key];
+            break;
+          }
+        }
+      }
+
+      // Validate and filter insights
+      insights = insights
+        .filter((insight: any) => insight && typeof insight === 'object' && insight.text)
+        .map((insight: any) => ({
+          text: String(insight.text || ''),
+          type: ['opportunity', 'warning', 'success', 'recommendation'].includes(insight.type)
+            ? insight.type
+            : 'recommendation',
+          priority: ['high', 'medium', 'low'].includes(insight.priority)
+            ? insight.priority
+            : 'medium',
+        }));
+
+      if (insights.length === 0) {
+        throw new Error('No valid insights found in response');
+      }
+
+      return insights;
+    } catch (parseError: any) {
+      console.error('Failed to parse AI search insights:', parseError);
+      console.error('Response content:', content.substring(0, 500));
+      throw new Error('Failed to parse insights from AI response');
+    }
+  } catch (error: any) {
+    console.error('Error generating AI search insights:', error);
+    throw new Error('Failed to generate AI search insights: ' + (error.message || 'Unknown error'));
+  }
+}
+
 export async function generateWeeklySummary(allWeeksData: any[]): Promise<string> {
   const prompt = `You are an expert ecommerce marketing analyst for Pürblack.com. Review the following historical weekly data and provide a comprehensive executive summary highlighting:
 
