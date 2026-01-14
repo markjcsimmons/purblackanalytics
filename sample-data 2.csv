@@ -1,0 +1,41 @@
+Category,Subcategory,Metric,Value
+Overall,Store,Total Revenue,48750
+Overall,Store,Total Orders,125
+Overall,Store,Conversion Rate,2.6
+Overall,Store,Visitors,4800
+Overall,Store,AOV,390
+Marketing,Meta Ads,Spend,6200
+Marketing,Meta Ads,Revenue,18600
+Marketing,Meta Ads,ROAS,3.0
+Marketing,Meta Ads,Clicks,1240
+Marketing,Meta Ads,CPC,5.00
+Marketing,Google Ads,Spend,3800
+Marketing,Google Ads,Revenue,11400
+Marketing,Google Ads,ROAS,3.0
+Marketing,Google Ads,Clicks,950
+Marketing,Google Ads,CPC,4.00
+Marketing,Email & SMS,Spend,500
+Marketing,Email & SMS,Revenue,8500
+Marketing,Email & SMS,ROAS,17.0
+Marketing,Email & SMS,Opens,12000
+Marketing,Email & SMS,Clicks,1800
+Marketing,Affiliates,Commission,1200
+Marketing,Affiliates,Revenue,7200
+Marketing,Affiliates,ROAS,6.0
+Marketing,Organic Social,Spend,0
+Marketing,Organic Social,Revenue,2050
+Marketing,SEO,Spend,0
+Marketing,SEO,Revenue,1000
+Funnel,Homepage,Visitors,4800
+Funnel,Homepage,Bounce Rate,45
+Funnel,Product Page,Visitors,2880
+Funnel,Product Page,Add to Cart,650
+Funnel,Cart,Visitors,650
+Funnel,Cart,Checkout Initiated,180
+Funnel,Checkout,Visitors,180
+Funnel,Checkout,Orders Completed,125
+
+
+
+
+

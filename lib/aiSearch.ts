@@ -131,17 +131,19 @@ async function queryChatGPT(query: string): Promise<SearchResult | null> {
 2. Brief description (2-3 sentences)
 3. If possible, a website URL where this product can be found
 
-Format your response as a JSON array with this structure:
-[
-  {
-    "title": "Product/Brand Name",
-    "snippet": "Description here",
-    "url": "https://example.com/product" or null if unknown
-  },
-  ...
-]
+Format your response as a JSON object with a "recommendations" array:
+{
+  "recommendations": [
+    {
+      "title": "Product/Brand Name",
+      "snippet": "Description here",
+      "url": "https://example.com/product" or null if unknown
+    },
+    ...
+  ]
+}
 
-If you cannot provide URLs, use null for the url field. Return ONLY the JSON array, no additional text.`;
+If you cannot provide URLs, use null for the url field. Return ONLY the JSON object, no additional text.`;
 
     const response = await client.chat.completions.create({
       model: 'gpt-4o',

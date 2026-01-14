@@ -1,0 +1,8 @@
+# Site Password (change this in production!)
+SITE_PASSWORD=Mark32246!
+
+# OpenAI API Key (for AI insights)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Node Environment
+NODE_ENV=production
