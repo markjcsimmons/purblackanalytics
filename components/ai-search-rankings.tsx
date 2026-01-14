@@ -17,6 +17,7 @@ interface SearchResult {
 export function AISearchRankings() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadSearchResults();
@@ -24,20 +25,27 @@ export function AISearchRankings() {
 
   const loadSearchResults = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/ai-search-rankings');
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
+      
       const data = await response.json();
+      
       if (data.success && Array.isArray(data.results)) {
         setResults(data.results);
       } else {
         console.error('Unexpected response format:', data);
+        setError('Unexpected response format');
         setResults([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load search results:', error);
+      setError(error.message || 'Failed to load search results');
       setResults([]);
     } finally {
       setIsLoading(false);
@@ -58,16 +66,21 @@ export function AISearchRankings() {
         </div>
       </CardHeader>
       <CardContent className="pt-6">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800">
+            {error}
+          </div>
+        )}
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-3 opacity-50 animate-pulse" />
             <p>Loading AI search results...</p>
           </div>
-        ) : results.length === 0 ? (
+        ) : results.length === 0 && !error ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>No search results available.</p>
           </div>
-        ) : (
+        ) : results.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
             {results.map((result, index) => (
               <div
