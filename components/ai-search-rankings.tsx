@@ -126,7 +126,7 @@ export function AISearchRankings() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
