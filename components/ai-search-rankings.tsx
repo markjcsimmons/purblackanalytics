@@ -91,7 +91,7 @@ export function AISearchRankings() {
             <div className="mb-4 text-sm text-muted-foreground">
               Showing {results.length} search engines
             </div>
-            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
               {results.map((result, index) => (
                 <div
                   key={index}
