@@ -59,7 +59,7 @@ export function AISearchRankings() {
 
   return (
     <Card className="border-2 border-purple-100">
-      <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100/50">
+      <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100/50 pb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-purple-500 rounded-lg">
             <Search className="h-5 w-5 text-white" />
@@ -70,8 +70,8 @@ export function AISearchRankings() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="mb-6 flex gap-2">
+      <CardContent className="pt-6 space-y-6">
+        <div className="flex gap-3">
           <Input
             type="text"
             placeholder="Enter search query (e.g., best shilajit)"
@@ -97,66 +97,66 @@ export function AISearchRankings() {
           </Button>
         </div>
         {currentQuery && (
-          <div className="mb-4 text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground pb-2">
             Showing results for: <span className="font-semibold text-foreground">&quot;{currentQuery}&quot;</span>
           </div>
         )}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-800">
             {error}
           </div>
         )}
 
         {isLoading && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Search className="h-12 w-12 mx-auto mb-3 opacity-50 animate-pulse" />
-            <p>Loading AI search results...</p>
+          <div className="text-center py-12 text-muted-foreground">
+            <Search className="h-12 w-12 mx-auto mb-4 opacity-50 animate-pulse" />
+            <p className="text-base">Loading AI search results...</p>
           </div>
         )}
 
         {!isLoading && results.length === 0 && !error && (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No search results available.</p>
+          <div className="text-center py-12 text-muted-foreground">
+            <p className="text-base">No search results available.</p>
           </div>
         )}
 
         {!isLoading && results.length > 0 && (
-          <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+          <div className="grid gap-8 grid-cols-1 md:grid-cols-2">
               {results.map((result, index) => (
                 <div
                   key={index}
-                  className="border rounded-lg p-6 bg-gradient-to-br from-white to-gray-50"
+                  className="border rounded-lg p-6 bg-gradient-to-br from-white to-gray-50 shadow-sm"
                 >
-                  <div className="mb-4 pb-3 border-b">
+                  <div className="mb-5 pb-4 border-b border-gray-200">
                     <h3 className="font-bold text-lg text-purple-700">{result.searchEngine}</h3>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {result.topResults.map((link) => (
                       <div
                         key={link.position}
-                        className="border rounded-md p-3 bg-white hover:shadow-sm transition-shadow"
+                        className="border rounded-lg p-4 bg-white hover:shadow-md transition-all duration-200"
                       >
-                        <div className="flex items-start gap-2 mb-1">
-                          <span className="flex-shrink-0 w-5 h-5 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        <div className="flex items-start gap-3 mb-2">
+                          <span className="flex-shrink-0 w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
                             {link.position}
                           </span>
                           <a
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                            className="flex-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5"
                           >
                             {link.title}
-                            <ExternalLink className="h-3 w-3 opacity-60" />
+                            <ExternalLink className="h-3.5 w-3.5 opacity-60" />
                           </a>
                         </div>
                         {link.snippet && link.snippet !== 'Fetching results...' && (
-                          <p className="text-xs text-muted-foreground ml-7 line-clamp-2">
+                          <p className="text-xs text-muted-foreground ml-9 line-clamp-2 leading-relaxed">
                             {link.snippet}
                           </p>
                         )}
                         {link.url && link.url !== '#' && (
-                          <p className="text-xs text-muted-foreground ml-7 mt-1 truncate">
+                          <p className="text-xs text-muted-foreground ml-9 mt-2 truncate">
                             {link.url.startsWith('http') ? new URL(link.url).hostname : link.url}
                           </p>
                         )}
