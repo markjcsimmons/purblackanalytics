@@ -19,6 +19,11 @@ To get real data from AI search engines, you need to set up API keys for the fol
 - Get your API key from: https://portal.azure.com/#create/Microsoft.CognitiveServicesBingSearch-v7
 - Set environment variable: `BING_API_KEY`
 
+### 4. OpenAI API (Optional - for ChatGPT results)
+- Get your API key from: https://platform.openai.com/api-keys
+- Set environment variable: `OPENAI_API_KEY`
+- Note: If you already have this set up for insights generation, ChatGPT will work automatically
+
 ## Setting Up on Render
 
 1. Go to your Render Dashboard → Your Service
