@@ -82,11 +82,11 @@ export function AISearchRankings() {
             <Search className="h-12 w-12 mx-auto mb-3 opacity-50 animate-pulse" />
             <p>Loading AI search results...</p>
           </div>
-        ) : results.length === 0 && !error ? (
+        ) : results.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>No search results available.</p>
           </div>
-        ) : results.length > 0 ? (
+        ) : (
           <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
             {results.map((result, index) => (
               <div
@@ -132,7 +132,7 @@ export function AISearchRankings() {
               </div>
             ))}
           </div>
-        ) : null}
+        )}
       </CardContent>
     </Card>
   );
