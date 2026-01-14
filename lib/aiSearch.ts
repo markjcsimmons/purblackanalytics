@@ -237,7 +237,7 @@ If you cannot provide URLs, use null for the url field. Return ONLY the JSON obj
 
     const topResults = recommendations.slice(0, 5).map((rec, index) => ({
       position: index + 1,
-      url: rec.url && rec.url !== 'null' && rec.url !== 'null' ? rec.url : '#',
+      url: rec.url && rec.url !== 'null' ? rec.url : '#',
       title: rec.title || `Recommendation ${index + 1}`,
       snippet: rec.snippet || '',
     }));
