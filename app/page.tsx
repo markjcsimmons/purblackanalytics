@@ -15,6 +15,7 @@ import { DataEntryForm } from '@/components/data-entry-form';
 import { DataUpload } from '@/components/data-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { InsightsDisplay } from '@/components/insights-display';
+import { AISearchRankings } from '@/components/ai-search-rankings';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -29,7 +30,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Percent,
-  LogOut
+  LogOut,
+  Search,
+  ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
@@ -1095,6 +1098,8 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
+                {/* AI Search Rankings */}
+                <AISearchRankings />
 
                 {/* AI INSIGHTS - After Visual Overview */}
                 <InsightsDisplay 
