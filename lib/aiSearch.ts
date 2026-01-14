@@ -339,20 +339,18 @@ async function queryBingSearch(query: string): Promise<SearchResult | null> {
 export async function queryAllAISearchEngines(query: string): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
 
-  // Query all engines in parallel
-  const [perplexityResult, googleResult, bingResult, chatGPTResult, claudeResult] = await Promise.all([
+  // Query all engines in parallel (excluding Claude - requires paid credits)
+  const [perplexityResult, googleResult, bingResult, chatGPTResult] = await Promise.all([
     queryPerplexity(query),
     queryGoogleSearch(query),
     queryBingSearch(query),
     queryChatGPT(query),
-    queryClaude(query),
   ]);
 
   if (perplexityResult) results.push(perplexityResult);
   if (googleResult) results.push(googleResult);
   if (bingResult) results.push(bingResult);
   if (chatGPTResult) results.push(chatGPTResult);
-  if (claudeResult) results.push(claudeResult);
 
   return results;
 }
