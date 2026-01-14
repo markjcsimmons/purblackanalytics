@@ -14,10 +14,11 @@ interface SearchResult {
   }>;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log('[API] AI Search Rankings endpoint called');
-    const query = 'best shilajit';
+    const { searchParams } = new URL(request.url);
+    const query = searchParams.get('q') || 'best shilajit';
+    console.log('[API] AI Search Rankings endpoint called with query:', query);
     
     // Try to fetch real data from AI search engines
     let results: SearchResult[] = [];

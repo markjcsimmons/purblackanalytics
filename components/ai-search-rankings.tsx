@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Search, ExternalLink } from 'lucide-react';
 
 interface SearchResult {
@@ -18,16 +20,18 @@ export function AISearchRankings() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('best shilajit');
+  const [currentQuery, setCurrentQuery] = useState('best shilajit');
 
   useEffect(() => {
-    loadSearchResults();
+    loadSearchResults(currentQuery);
   }, []);
 
-  const loadSearchResults = async () => {
+  const loadSearchResults = async (query: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/ai-search-rankings');
+      const response = await fetch(`/api/ai-search-rankings?q=${encodeURIComponent(query)}`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -61,12 +65,42 @@ export function AISearchRankings() {
             <Search className="h-5 w-5 text-white" />
           </div>
           <div>
-            <CardTitle className="text-xl">AI Search Rankings: &quot;best shilajit&quot;</CardTitle>
+            <CardTitle className="text-xl">AI Search Rankings</CardTitle>
             <CardDescription>Top 5 results from each AI search engine</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-6">
+        <div className="mb-6 flex gap-2">
+          <Input
+            type="text"
+            placeholder="Enter search query (e.g., best shilajit)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setCurrentQuery(searchQuery);
+                loadSearchResults(searchQuery);
+              }
+            }}
+            className="flex-1"
+          />
+          <Button
+            onClick={() => {
+              setCurrentQuery(searchQuery);
+              loadSearchResults(searchQuery);
+            }}
+            disabled={isLoading || !searchQuery.trim()}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+        </div>
+        {currentQuery && (
+          <div className="mb-4 text-sm text-muted-foreground">
+            Showing results for: <span className="font-semibold text-foreground">&quot;{currentQuery}&quot;</span>
+          </div>
+        )}
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-800">
             {error}
