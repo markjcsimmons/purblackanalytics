@@ -126,14 +126,29 @@ async function queryChatGPT(query: string): Promise<SearchResult | null> {
       return null;
     }
 
-    const prompt = `For the query "${query}", provide 5 specific recommendations with brand names or product names. Format as a list with titles and brief descriptions. Include actual brand/product names when possible.`;
+    const prompt = `For the query "${query}", provide 5 specific recommendations with brand names or product names. For each recommendation, include:
+1. Product/Brand name (as the title)
+2. Brief description (2-3 sentences)
+3. If possible, a website URL where this product can be found
+
+Format your response as a JSON array with this structure:
+[
+  {
+    "title": "Product/Brand Name",
+    "snippet": "Description here",
+    "url": "https://example.com/product" or null if unknown
+  },
+  ...
+]
+
+If you cannot provide URLs, use null for the url field. Return ONLY the JSON array, no additional text.`;
 
     const response = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful assistant that provides specific product recommendations. When asked about products, provide actual brand names and product details when possible.',
+          content: 'You are a helpful assistant that provides specific product recommendations. Always respond with valid JSON only. Include actual brand names, product details, and URLs when available.',
         },
         {
           role: 'user',
@@ -141,51 +156,96 @@ async function queryChatGPT(query: string): Promise<SearchResult | null> {
         },
       ],
       temperature: 0.7,
+      response_format: { type: 'json_object' },
     });
 
     const content = response.choices[0].message.content || '';
     
-    // Parse the response to extract recommendations
-    // Simple parsing - look for numbered lists or bullet points
-    const lines = content.split('\n').filter(line => line.trim().length > 0);
-    const recommendations: Array<{ title: string; snippet: string }> = [];
+    // Try to parse as JSON first
+    let recommendations: Array<{ title: string; snippet: string; url?: string | null }> = [];
     
-    for (const line of lines) {
-      // Match numbered lists (1., 2., etc.) or bullet points
-      const match = line.match(/^[\d•\-\*]\s*[\.\)]?\s*(.+)/);
-      if (match && recommendations.length < 5) {
-        const text = match[1].trim();
-        // Split title and description if there's a colon or dash
-        const [title, ...rest] = text.split(/[:–-]/);
-        const snippet = rest.join(':').trim() || text.substring(0, 150);
-        recommendations.push({
-          title: title.trim(),
-          snippet: snippet.substring(0, 200),
-        });
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (Array.isArray(parsed)) {
+          recommendations = parsed;
+        } else if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          recommendations = parsed.recommendations;
+        } else if (parsed.results && Array.isArray(parsed.results)) {
+          recommendations = parsed.results;
+        }
+      } else {
+        // Try parsing the whole response as JSON
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed)) {
+          recommendations = parsed;
+        } else if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+          recommendations = parsed.recommendations;
+        } else if (parsed.results && Array.isArray(parsed.results)) {
+          recommendations = parsed.results;
+        }
       }
-    }
+    } catch (jsonError) {
+      // If JSON parsing fails, fall back to text parsing
+      console.log('[AI Search] ChatGPT JSON parsing failed, falling back to text parsing');
+      
+      const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
+      
+      for (const line of lines) {
+        // Match numbered lists (1., 2., etc.) or bullet points
+        const match = line.match(/^[\d•\-\*]\s*[\.\)]?\s*(.+)/);
+        if (match && recommendations.length < 5) {
+          const text = match[1].trim();
+          // Try to extract URL from the line
+          const urlMatch = text.match(/(https?:\/\/[^\s]+)/);
+          const url = urlMatch ? urlMatch[1] : null;
+          
+          // Remove URL from text for title/snippet extraction
+          const textWithoutUrl = text.replace(/(https?:\/\/[^\s]+)/g, '').trim();
+          
+          // Split title and description if there's a colon or dash
+          const [title, ...rest] = textWithoutUrl.split(/[:–-]/);
+          const snippet = rest.join(':').trim() || textWithoutUrl.substring(0, 150);
+          
+          recommendations.push({
+            title: title.trim(),
+            snippet: snippet.substring(0, 200),
+            url: url,
+          });
+        }
+      }
 
-    // If we didn't get structured recommendations, create them from the content
-    if (recommendations.length === 0 && content.length > 0) {
-      // Split content into sentences and create recommendations
-      const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 20);
-      for (let i = 0; i < Math.min(5, sentences.length); i++) {
-        const sentence = sentences[i].trim();
-        const words = sentence.split(' ');
-        const title = words.slice(0, 8).join(' ') + (words.length > 8 ? '...' : '');
-        recommendations.push({
-          title,
-          snippet: sentence.substring(0, 150),
-        });
+      // If we still didn't get structured recommendations, create them from the content
+      if (recommendations.length === 0 && content.length > 0) {
+        // Split content into sentences and create recommendations
+        const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 20);
+        for (let i = 0; i < Math.min(5, sentences.length); i++) {
+          const sentence = sentences[i].trim();
+          const urlMatch = sentence.match(/(https?:\/\/[^\s]+)/);
+          const url = urlMatch ? urlMatch[1] : null;
+          const textWithoutUrl = sentence.replace(/(https?:\/\/[^\s]+)/g, '').trim();
+          
+          const words = textWithoutUrl.split(' ');
+          const title = words.slice(0, 8).join(' ') + (words.length > 8 ? '...' : '');
+          recommendations.push({
+            title,
+            snippet: textWithoutUrl.substring(0, 150),
+            url: url,
+          });
+        }
       }
     }
 
     const topResults = recommendations.slice(0, 5).map((rec, index) => ({
       position: index + 1,
-      url: '#', // ChatGPT doesn't provide URLs
+      url: rec.url && rec.url !== 'null' ? rec.url : '#',
       title: rec.title || `Recommendation ${index + 1}`,
-      snippet: rec.snippet,
+      snippet: rec.snippet || '',
     }));
+
+    console.log('[AI Search] ChatGPT parsed', topResults.length, 'recommendations');
 
     return {
       searchEngine: 'ChatGPT',
