@@ -50,6 +50,9 @@ export function AISearchRankings() {
     }
   };
 
+  // Debug: log current state
+  console.log('[AI Search Rankings Render] isLoading:', isLoading, 'results.length:', results.length, 'error:', error);
+
   return (
     <Card className="border-2 border-purple-100">
       <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100/50">
@@ -84,51 +87,56 @@ export function AISearchRankings() {
         )}
 
         {!isLoading && results.length > 0 && (
-          <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-            {results.map((result, index) => (
-              <div
-                key={index}
-                className="border rounded-lg p-4 bg-gradient-to-br from-white to-gray-50"
-              >
-                <div className="mb-4 pb-3 border-b">
-                  <h3 className="font-bold text-lg text-purple-700">{result.searchEngine}</h3>
-                </div>
-                <div className="space-y-3">
-                  {result.topResults.map((link) => (
-                    <div
-                      key={link.position}
-                      className="border rounded-md p-3 bg-white hover:shadow-sm transition-shadow"
-                    >
-                      <div className="flex items-start gap-2 mb-1">
-                        <span className="flex-shrink-0 w-5 h-5 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                          {link.position}
-                        </span>
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
-                        >
-                          {link.title}
-                          <ExternalLink className="h-3 w-3 opacity-60" />
-                        </a>
+          <>
+            <div className="mb-4 text-sm text-muted-foreground">
+              Showing {results.length} search engines
+            </div>
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+              {results.map((result, index) => (
+                <div
+                  key={index}
+                  className="border rounded-lg p-4 bg-gradient-to-br from-white to-gray-50"
+                >
+                  <div className="mb-4 pb-3 border-b">
+                    <h3 className="font-bold text-lg text-purple-700">{result.searchEngine}</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {result.topResults.map((link) => (
+                      <div
+                        key={link.position}
+                        className="border rounded-md p-3 bg-white hover:shadow-sm transition-shadow"
+                      >
+                        <div className="flex items-start gap-2 mb-1">
+                          <span className="flex-shrink-0 w-5 h-5 bg-purple-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                            {link.position}
+                          </span>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                          >
+                            {link.title}
+                            <ExternalLink className="h-3 w-3 opacity-60" />
+                          </a>
+                        </div>
+                        {link.snippet && link.snippet !== 'Fetching results...' && (
+                          <p className="text-xs text-muted-foreground ml-7 line-clamp-2">
+                            {link.snippet}
+                          </p>
+                        )}
+                        {link.url && link.url !== '#' && (
+                          <p className="text-xs text-muted-foreground ml-7 mt-1 truncate">
+                            {link.url.startsWith('http') ? new URL(link.url).hostname : link.url}
+                          </p>
+                        )}
                       </div>
-                      {link.snippet && link.snippet !== 'Fetching results...' && (
-                        <p className="text-xs text-muted-foreground ml-7 line-clamp-2">
-                          {link.snippet}
-                        </p>
-                      )}
-                      {link.url && link.url !== '#' && (
-                        <p className="text-xs text-muted-foreground ml-7 mt-1 truncate">
-                          {link.url.startsWith('http') ? new URL(link.url).hostname : link.url}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
