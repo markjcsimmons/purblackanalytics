@@ -168,7 +168,7 @@ async function queryChatGPT(query: string): Promise<SearchResult | null> {
     // If we didn't get structured recommendations, create them from the content
     if (recommendations.length === 0 && content.length > 0) {
       // Split content into sentences and create recommendations
-      const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+      const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 20);
       for (let i = 0; i < Math.min(5, sentences.length); i++) {
         const sentence = sentences[i].trim();
         const words = sentence.split(' ');
@@ -255,7 +255,7 @@ async function queryClaude(query: string): Promise<SearchResult | null> {
     // If we didn't get structured recommendations, create them from the content
     if (recommendations.length === 0 && content.length > 0) {
       // Split content into sentences and create recommendations
-      const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+      const sentences = content.split(/[.!?]+/).filter((s: string) => s.trim().length > 20);
       for (let i = 0; i < Math.min(5, sentences.length); i++) {
         const sentence = sentences[i].trim();
         const words = sentence.split(' ');
