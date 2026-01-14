@@ -162,36 +162,31 @@ If you cannot provide URLs, use null for the url field. Return ONLY the JSON obj
     });
 
     const content = response.choices[0].message.content || '';
+    console.log('[AI Search] ChatGPT response received, length:', content.length);
+    console.log('[AI Search] ChatGPT response preview:', content.substring(0, 200));
     
     // Try to parse as JSON first
     let recommendations: Array<{ title: string; snippet: string; url?: string | null }> = [];
     
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        if (Array.isArray(parsed)) {
-          recommendations = parsed;
-        } else if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
-          recommendations = parsed.recommendations;
-        } else if (parsed.results && Array.isArray(parsed.results)) {
-          recommendations = parsed.results;
-        }
+      // Try parsing the whole response as JSON first (since we requested json_object format)
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        recommendations = parsed;
+        console.log('[AI Search] ChatGPT parsed as array, found', recommendations.length, 'items');
+      } else if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
+        recommendations = parsed.recommendations;
+        console.log('[AI Search] ChatGPT parsed recommendations array, found', recommendations.length, 'items');
+      } else if (parsed.results && Array.isArray(parsed.results)) {
+        recommendations = parsed.results;
+        console.log('[AI Search] ChatGPT parsed results array, found', recommendations.length, 'items');
       } else {
-        // Try parsing the whole response as JSON
-        const parsed = JSON.parse(content);
-        if (Array.isArray(parsed)) {
-          recommendations = parsed;
-        } else if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
-          recommendations = parsed.recommendations;
-        } else if (parsed.results && Array.isArray(parsed.results)) {
-          recommendations = parsed.results;
-        }
+        console.log('[AI Search] ChatGPT JSON parsed but no array found, keys:', Object.keys(parsed));
       }
     } catch (jsonError) {
       // If JSON parsing fails, fall back to text parsing
-      console.log('[AI Search] ChatGPT JSON parsing failed, falling back to text parsing');
+      console.log('[AI Search] ChatGPT JSON parsing failed:', jsonError);
+      console.log('[AI Search] Falling back to text parsing');
       
       const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
       
@@ -242,19 +237,24 @@ If you cannot provide URLs, use null for the url field. Return ONLY the JSON obj
 
     const topResults = recommendations.slice(0, 5).map((rec, index) => ({
       position: index + 1,
-      url: rec.url && rec.url !== 'null' ? rec.url : '#',
+      url: rec.url && rec.url !== 'null' && rec.url !== 'null' ? rec.url : '#',
       title: rec.title || `Recommendation ${index + 1}`,
       snippet: rec.snippet || '',
     }));
 
     console.log('[AI Search] ChatGPT parsed', topResults.length, 'recommendations');
+    
+    if (topResults.length === 0) {
+      console.warn('[AI Search] ChatGPT returned 0 results. Content was:', content.substring(0, 500));
+    }
 
     return {
       searchEngine: 'ChatGPT',
       topResults: topResults.length > 0 ? topResults : [],
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AI Search] ChatGPT error:', error);
+    console.error('[AI Search] ChatGPT error details:', error?.message, error?.stack);
     return null;
   }
 }
