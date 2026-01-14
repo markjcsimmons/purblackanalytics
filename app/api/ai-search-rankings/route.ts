@@ -15,6 +15,7 @@ interface SearchResult {
 
 export async function GET() {
   try {
+    console.log('[API] AI Search Rankings endpoint called');
     // For now, return mock data structure
     // In production, this would query actual AI search engines
     // Since we don't have scraping libraries in this version,
@@ -53,12 +54,14 @@ export async function GET() {
       },
     ];
     
-    return NextResponse.json({
+    const response = {
       success: true,
       query: 'best shilajit',
       results,
       timestamp: new Date().toISOString(),
-    });
+    };
+    console.log('[API] Returning response with', results.length, 'search engines');
+    return NextResponse.json(response);
   } catch (error: any) {
     console.error('AI search rankings error:', error);
     return NextResponse.json(

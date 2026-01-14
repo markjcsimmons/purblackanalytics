@@ -26,28 +26,34 @@ export function AISearchRankings() {
   const loadSearchResults = async () => {
     setIsLoading(true);
     setError(null);
+    console.log('[AI Search Rankings] Starting to load results...');
     try {
       const response = await fetch('/api/ai-search-rankings');
+      console.log('[AI Search Rankings] Response status:', response.status, response.ok);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('[AI Search Rankings] Error response:', errorData);
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('[AI Search Rankings] Response data:', data);
       
       if (data.success && Array.isArray(data.results)) {
+        console.log('[AI Search Rankings] Setting results:', data.results.length, 'engines');
         setResults(data.results);
       } else {
-        console.error('Unexpected response format:', data);
+        console.error('[AI Search Rankings] Unexpected response format:', data);
         setError('Unexpected response format');
         setResults([]);
       }
     } catch (error: any) {
-      console.error('Failed to load search results:', error);
+      console.error('[AI Search Rankings] Failed to load search results:', error);
       setError(error.message || 'Failed to load search results');
       setResults([]);
     } finally {
+      console.log('[AI Search Rankings] Setting isLoading to false');
       setIsLoading(false);
     }
   };
