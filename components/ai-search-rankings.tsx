@@ -121,11 +121,7 @@ export function AISearchRankings() {
         )}
 
         {!isLoading && results.length > 0 && (
-          <>
-            <div className="mb-4 text-sm text-muted-foreground">
-              Showing {results.length} search engines
-            </div>
-            <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
               {results.map((result, index) => (
                 <div
                   key={index}
@@ -170,7 +166,6 @@ export function AISearchRankings() {
                 </div>
               ))}
             </div>
-          </>
         )}
       </CardContent>
     </Card>
