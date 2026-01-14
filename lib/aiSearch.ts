@@ -234,7 +234,7 @@ async function queryClaude(query: string): Promise<SearchResult | null> {
     const content = data.content?.[0]?.text || '';
     
     // Parse the response to extract recommendations
-    const lines = content.split('\n').filter(line => line.trim().length > 0);
+    const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
     const recommendations: Array<{ title: string; snippet: string }> = [];
     
     for (const line of lines) {
