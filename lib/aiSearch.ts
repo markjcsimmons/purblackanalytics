@@ -226,11 +226,13 @@ async function queryClaude(query: string): Promise<SearchResult | null> {
     });
 
     if (!response.ok) {
-      console.error('[AI Search] Claude API error:', response.status, response.statusText);
+      const errorText = await response.text().catch(() => '');
+      console.error('[AI Search] Claude API error:', response.status, response.statusText, errorText);
       return null;
     }
 
     const data = await response.json();
+    console.log('[AI Search] Claude response received, content length:', data.content?.[0]?.text?.length || 0);
     const content = data.content?.[0]?.text || '';
     
     // Parse the response to extract recommendations
@@ -273,6 +275,12 @@ async function queryClaude(query: string): Promise<SearchResult | null> {
       title: rec.title || `Recommendation ${index + 1}`,
       snippet: rec.snippet,
     }));
+
+    console.log('[AI Search] Claude parsed', topResults.length, 'recommendations');
+    
+    if (topResults.length === 0) {
+      console.log('[AI Search] Claude: No recommendations parsed, content was:', content.substring(0, 200));
+    }
 
     return {
       searchEngine: 'Claude',
