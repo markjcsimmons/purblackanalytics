@@ -216,10 +216,11 @@ async function queryClaude(query: string): Promise<SearchResult | null> {
       body: JSON.stringify({
         model: 'claude-3-5-sonnet-20241022',
         max_tokens: 1024,
+        system: 'You are a helpful assistant that provides specific product recommendations. Format responses as numbered lists with titles and descriptions.',
         messages: [
           {
             role: 'user',
-            content: `For the query "${query}", provide 5 specific recommendations with brand names or product names. Format as a numbered list with titles and brief descriptions. Include actual brand/product names when possible.`,
+            content: `For the query "${query}", provide 5 specific recommendations with brand names or product names. Format as a numbered list (1., 2., 3., etc.) with titles and brief descriptions. Include actual brand/product names when possible.`,
           },
         ],
       }),
