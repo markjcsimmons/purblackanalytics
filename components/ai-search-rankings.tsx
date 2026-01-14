@@ -26,12 +26,19 @@ export function AISearchRankings() {
     setIsLoading(true);
     try {
       const response = await fetch('/api/ai-search-rankings');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
-      if (data.success) {
-        setResults(data.results || []);
+      if (data.success && Array.isArray(data.results)) {
+        setResults(data.results);
+      } else {
+        console.error('Unexpected response format:', data);
+        setResults([]);
       }
     } catch (error) {
       console.error('Failed to load search results:', error);
+      setResults([]);
     } finally {
       setIsLoading(false);
     }
