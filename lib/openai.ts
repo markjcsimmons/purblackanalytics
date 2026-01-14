@@ -761,22 +761,27 @@ Your analysis should cover:
    - Link building or citation opportunities
    - Messaging adjustments to match what's resonating
 
-Provide 5-8 specific, actionable insights in JSON format. Each insight should have:
-- text: The insight description (2-4 sentences)
+Provide 5-8 specific, actionable insights. Format your response as a JSON object with an "insights" array:
+
+{
+  "insights": [
+    {
+      "text": "Insight description (2-4 sentences)...",
+      "type": "opportunity",
+      "priority": "high"
+    },
+    ...
+  ]
+}
+
+Each insight MUST have:
+- text: The insight description (2-4 sentences, be specific)
 - type: One of "opportunity", "warning", "success", or "recommendation"
 - priority: One of "high", "medium", or "low"
 
 Focus on insights that will help "${brandName}" appear in more top 5 results across AI search engines. Be specific and actionable.
 
-Return ONLY a JSON array of insights, no additional text. Format:
-[
-  {
-    "text": "Insight description...",
-    "type": "opportunity",
-    "priority": "high"
-  },
-  ...
-]`;
+Return ONLY the JSON object, no markdown, no code blocks, no additional text.`;
 
     const response = await client.chat.completions.create({
       model: 'gpt-4o',
@@ -795,34 +800,99 @@ Return ONLY a JSON array of insights, no additional text. Format:
     });
 
     const content = response.choices[0].message.content || '';
+    console.log('[AI Search Insights] Raw response length:', content.length);
+    console.log('[AI Search Insights] Response preview:', content.substring(0, 300));
+    
     let insights: Insight[] = [];
 
     try {
-      const parsed = JSON.parse(content);
+      // Try to extract JSON from the response (in case there's extra text)
+      let jsonContent = content.trim();
+      
+      // Remove markdown code blocks if present
+      jsonContent = jsonContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      // Try to find JSON array or object in the content
+      const jsonArrayMatch = jsonContent.match(/\[[\s\S]*\]/);
+      const jsonObjectMatch = jsonContent.match(/\{[\s\S]*\}/);
+      
+      let parsed: any;
+      
+      if (jsonArrayMatch) {
+        // Found JSON array
+        parsed = JSON.parse(jsonArrayMatch[0]);
+      } else if (jsonObjectMatch) {
+        // Found JSON object
+        parsed = JSON.parse(jsonObjectMatch[0]);
+      } else {
+        // Try parsing the whole content
+        parsed = JSON.parse(jsonContent);
+      }
+      
+      console.log('[AI Search Insights] Parsed JSON keys:', Object.keys(parsed));
       
       // Handle different possible response formats
       if (Array.isArray(parsed)) {
         insights = parsed;
+        console.log('[AI Search Insights] Found array with', insights.length, 'items');
       } else if (parsed.insights && Array.isArray(parsed.insights)) {
         insights = parsed.insights;
+        console.log('[AI Search Insights] Found insights array with', insights.length, 'items');
       } else if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
         insights = parsed.recommendations;
+        console.log('[AI Search Insights] Found recommendations array with', insights.length, 'items');
+      } else if (parsed.data && Array.isArray(parsed.data)) {
+        insights = parsed.data;
+        console.log('[AI Search Insights] Found data array with', insights.length, 'items');
       } else {
-        // Try to extract insights from other keys
+        // Try to extract insights from any array-valued key
         const keys = Object.keys(parsed);
+        console.log('[AI Search Insights] Searching for array in keys:', keys);
         for (const key of keys) {
-          if (Array.isArray(parsed[key])) {
-            insights = parsed[key];
-            break;
+          if (Array.isArray(parsed[key]) && parsed[key].length > 0) {
+            // Check if it looks like insights (has objects with text property)
+            const firstItem = parsed[key][0];
+            if (firstItem && typeof firstItem === 'object' && (firstItem.text || firstItem.insight || firstItem.recommendation)) {
+              insights = parsed[key];
+              console.log('[AI Search Insights] Found insights in key:', key, 'with', insights.length, 'items');
+              break;
+            }
           }
         }
       }
 
+      // If still no insights, try to parse as structured text
+      if (insights.length === 0 && content.length > 0) {
+        console.log('[AI Search Insights] No structured insights found, attempting text parsing');
+        // Try to extract insights from numbered list format
+        const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
+        for (const line of lines) {
+          // Match numbered lists or bullet points with insight-like content
+          const match = line.match(/^[\d•\-\*]\s*[\.\)]?\s*(.+)/);
+          if (match && insights.length < 10) {
+            const text = match[1].trim();
+            if (text.length > 20) { // Only include substantial insights
+              insights.push({
+                text,
+                type: 'recommendation',
+                priority: 'medium',
+              });
+            }
+          }
+        }
+        console.log('[AI Search Insights] Extracted', insights.length, 'insights from text');
+      }
+
       // Validate and filter insights
       insights = insights
-        .filter((insight: any) => insight && typeof insight === 'object' && insight.text)
+        .filter((insight: any) => {
+          if (!insight || typeof insight !== 'object') return false;
+          // Support multiple field names for text
+          const hasText = insight.text || insight.insight || insight.recommendation || insight.description;
+          return hasText && String(hasText).trim().length > 0;
+        })
         .map((insight: any) => ({
-          text: String(insight.text || ''),
+          text: String(insight.text || insight.insight || insight.recommendation || insight.description || ''),
           type: ['opportunity', 'warning', 'success', 'recommendation'].includes(insight.type)
             ? insight.type
             : 'recommendation',
@@ -831,15 +901,31 @@ Return ONLY a JSON array of insights, no additional text. Format:
             : 'medium',
         }));
 
+      console.log('[AI Search Insights] Final insights count:', insights.length);
+
       if (insights.length === 0) {
+        console.error('[AI Search Insights] No valid insights after processing');
+        console.error('[AI Search Insights] Original content:', content);
         throw new Error('No valid insights found in response');
       }
 
       return insights;
     } catch (parseError: any) {
-      console.error('Failed to parse AI search insights:', parseError);
-      console.error('Response content:', content.substring(0, 500));
-      throw new Error('Failed to parse insights from AI response');
+      console.error('[AI Search Insights] Parse error:', parseError);
+      console.error('[AI Search Insights] Error message:', parseError.message);
+      console.error('[AI Search Insights] Full response content:', content);
+      
+      // Last resort: create a fallback insight
+      if (content.length > 0) {
+        console.log('[AI Search Insights] Creating fallback insight from content');
+        return [{
+          text: `Analysis completed. Raw response: ${content.substring(0, 500)}${content.length > 500 ? '...' : ''}`,
+          type: 'recommendation' as const,
+          priority: 'medium' as const,
+        }];
+      }
+      
+      throw new Error('Failed to parse insights from AI response: ' + (parseError.message || 'Unknown error'));
     }
   } catch (error: any) {
     console.error('Error generating AI search insights:', error);
