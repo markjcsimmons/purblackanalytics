@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAllEngines } from '@/lib/aiSearchEngines';
 
 // Mark route as dynamic
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     const perplexityApiKey = searchParams.get('perplexityApiKey') || undefined;
     const openaiApiKey = searchParams.get('openaiApiKey') || undefined;
     
-    // Query all search engines
+    // Query all search engines (lazy import to avoid startup issues)
+    const { queryAllEngines } = await import('@/lib/aiSearchEngines');
     const searchResults = await queryAllEngines(query, {
       perplexityApiKey,
       openaiApiKey,

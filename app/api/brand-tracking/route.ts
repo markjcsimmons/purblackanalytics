@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAllEngines } from '@/lib/aiSearchEngines';
 import { calculateRankings, SearchResult } from '@/lib/brandTracker';
 import { promises as fs } from 'fs';
 import path from 'path';
 
 // Mark route as dynamic
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const RESULTS_FILE = path.join(DATA_DIR, 'brand-tracking-results.json');
@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Query all enabled search engines
+    // Query all enabled search engines (lazy import to avoid startup issues)
+    const { queryAllEngines } = await import('@/lib/aiSearchEngines');
     const searchResults = await queryAllEngines(query, {
       perplexityApiKey,
       openaiApiKey,
