@@ -24,6 +24,10 @@ To get real data from AI search engines, you need to set up API keys for the fol
 - Set environment variable: `OPENAI_API_KEY`
 - Note: If you already have this set up for insights generation, ChatGPT will work automatically
 
+### 5. Anthropic API (Optional - for Claude results)
+- Get your API key from: https://console.anthropic.com/settings/keys
+- Set environment variable: `ANTHROPIC_API_KEY`
+
 ## Setting Up on Render
 
 1. Go to your Render Dashboard → Your Service
@@ -33,6 +37,8 @@ To get real data from AI search engines, you need to set up API keys for the fol
    - `GOOGLE_API_KEY` (if using Google)
    - `GOOGLE_SEARCH_ENGINE_ID` (if using Google)
    - `BING_API_KEY` (if using Bing)
+   - `OPENAI_API_KEY` (if using ChatGPT - already set up for insights)
+   - `ANTHROPIC_API_KEY` (if using Claude)
 4. Save and restart your service
 
 ## How It Works

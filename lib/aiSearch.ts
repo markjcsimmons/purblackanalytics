@@ -197,6 +197,93 @@ async function queryChatGPT(query: string): Promise<SearchResult | null> {
   }
 }
 
+// Query Claude (Anthropic)
+async function queryClaude(query: string): Promise<SearchResult | null> {
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      console.log('[AI Search] Anthropic API key not found for Claude');
+      return null;
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        messages: [
+          {
+            role: 'user',
+            content: `For the query "${query}", provide 5 specific recommendations with brand names or product names. Format as a numbered list with titles and brief descriptions. Include actual brand/product names when possible.`,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[AI Search] Claude API error:', response.status, response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.content?.[0]?.text || '';
+    
+    // Parse the response to extract recommendations
+    const lines = content.split('\n').filter(line => line.trim().length > 0);
+    const recommendations: Array<{ title: string; snippet: string }> = [];
+    
+    for (const line of lines) {
+      // Match numbered lists (1., 2., etc.) or bullet points
+      const match = line.match(/^[\d•\-\*]\s*[\.\)]?\s*(.+)/);
+      if (match && recommendations.length < 5) {
+        const text = match[1].trim();
+        // Split title and description if there's a colon or dash
+        const [title, ...rest] = text.split(/[:–-]/);
+        const snippet = rest.join(':').trim() || text.substring(0, 150);
+        recommendations.push({
+          title: title.trim(),
+          snippet: snippet.substring(0, 200),
+        });
+      }
+    }
+
+    // If we didn't get structured recommendations, create them from the content
+    if (recommendations.length === 0 && content.length > 0) {
+      // Split content into sentences and create recommendations
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+      for (let i = 0; i < Math.min(5, sentences.length); i++) {
+        const sentence = sentences[i].trim();
+        const words = sentence.split(' ');
+        const title = words.slice(0, 8).join(' ') + (words.length > 8 ? '...' : '');
+        recommendations.push({
+          title,
+          snippet: sentence.substring(0, 150),
+        });
+      }
+    }
+
+    const topResults = recommendations.slice(0, 5).map((rec, index) => ({
+      position: index + 1,
+      url: '#', // Claude doesn't provide URLs
+      title: rec.title || `Recommendation ${index + 1}`,
+      snippet: rec.snippet,
+    }));
+
+    return {
+      searchEngine: 'Claude',
+      topResults: topResults.length > 0 ? topResults : [],
+    };
+  } catch (error) {
+    console.error('[AI Search] Claude error:', error);
+    return null;
+  }
+}
+
 // Query Bing Search
 async function queryBingSearch(query: string): Promise<SearchResult | null> {
   try {
@@ -244,17 +331,19 @@ export async function queryAllAISearchEngines(query: string): Promise<SearchResu
   const results: SearchResult[] = [];
 
   // Query all engines in parallel
-  const [perplexityResult, googleResult, bingResult, chatGPTResult] = await Promise.all([
+  const [perplexityResult, googleResult, bingResult, chatGPTResult, claudeResult] = await Promise.all([
     queryPerplexity(query),
     queryGoogleSearch(query),
     queryBingSearch(query),
     queryChatGPT(query),
+    queryClaude(query),
   ]);
 
   if (perplexityResult) results.push(perplexityResult);
   if (googleResult) results.push(googleResult);
   if (bingResult) results.push(bingResult);
   if (chatGPTResult) results.push(chatGPTResult);
+  if (claudeResult) results.push(claudeResult);
 
   return results;
 }
