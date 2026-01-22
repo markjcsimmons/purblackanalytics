@@ -321,6 +321,73 @@ export async function queryChatGPT(query: string, apiKey?: string): Promise<Sear
 }
 
 /**
+ * Query OpenAI (separate label from ChatGPT)
+ */
+export async function queryOpenAI(query: string, apiKey?: string): Promise<SearchResult> {
+  const brands: BrandMention[] = [];
+  let rawResponse = '';
+  const sourceLinks: SourceLink[] = [];
+
+  if (!apiKey) {
+    return {
+      query,
+      searchEngine: 'OpenAI',
+      timestamp: new Date().toISOString(),
+      brands,
+      rawResponse: 'Error: OpenAI API key required',
+      sourceLinks: [],
+    };
+  }
+
+  try {
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'user',
+            content: `${query}. Please provide sources/links if available.`,
+          },
+        ],
+        max_tokens: 1000,
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    rawResponse = response.data.choices[0]?.message?.content || '';
+    brands.push(...extractBrands(rawResponse));
+
+    const urlRegex = /(https?:\/\/[^\s\)]+)/g;
+    const urls = rawResponse.match(urlRegex) || [];
+    urls.slice(0, 5).forEach((url, index) => {
+      sourceLinks.push({
+        url,
+        title: `Source ${index + 1}`,
+        position: index + 1,
+      });
+    });
+  } catch (error: any) {
+    console.error('OpenAI query error:', error.message);
+    rawResponse = `Error: ${error.message}`;
+  }
+
+  return {
+    query,
+    searchEngine: 'OpenAI',
+    timestamp: new Date().toISOString(),
+    brands,
+    rawResponse,
+    sourceLinks: sourceLinks.slice(0, 5),
+  };
+}
+
+/**
  * Query all enabled search engines
  */
 export async function queryAllEngines(
@@ -350,6 +417,10 @@ export async function queryAllEngines(
   
   if (enabled.includes('chatgpt') && config.openaiApiKey) {
     queries.push(queryChatGPT(query, config.openaiApiKey));
+  }
+
+  if (enabled.includes('openai') && config.openaiApiKey) {
+    queries.push(queryOpenAI(query, config.openaiApiKey));
   }
   
   const searchResults = await Promise.allSettled(queries);

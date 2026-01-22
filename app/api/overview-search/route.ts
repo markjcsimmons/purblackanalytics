@@ -9,13 +9,16 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('query') || 'best shilajit';
     const perplexityApiKey = searchParams.get('perplexityApiKey') || undefined;
-    const openaiApiKey = searchParams.get('openaiApiKey') || undefined;
+    const openaiApiKey =
+      searchParams.get('openaiApiKey') ||
+      process.env.OPENAI_API_KEY ||
+      undefined;
     
     // Query all search engines
     const searchResults = await queryAllEngines(query, {
       perplexityApiKey,
       openaiApiKey,
-      enabledEngines: ['perplexity', 'google', 'bing'],
+      enabledEngines: ['chatgpt', 'openai'],
     });
     
     // Format results for overview page - top 5 per engine with links

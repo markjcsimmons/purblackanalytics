@@ -50,6 +50,19 @@ interface WeekData {
   insights: any[];
 }
 
+interface SearchResult {
+  searchEngine: string;
+  query: string;
+  timestamp: string;
+  topResults: Array<{
+    url: string;
+    title: string;
+    snippet?: string;
+    position: number;
+  }>;
+  brandsFound: string[];
+}
+
 export default function Dashboard() {
   const [weeks, setWeeks] = useState<any[]>([]);
   const [selectedWeekId, setSelectedWeekId] = useState<number | null>(null);
@@ -61,6 +74,8 @@ export default function Dashboard() {
     previousWeek: any;
     sameWeekYearAgo: any;
   } | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
 
   const fetchWeeks = async () => {
     try {
@@ -97,6 +112,21 @@ export default function Dashboard() {
     }
   };
 
+  const loadSearchResults = async () => {
+    setIsLoadingSearch(true);
+    try {
+      const response = await fetch('/api/overview-search?query=best shilajit');
+      const data = await response.json();
+      if (data.success) {
+        setSearchResults(data.results || []);
+      }
+    } catch (error) {
+      console.error('Failed to load search results:', error);
+    } finally {
+      setIsLoadingSearch(false);
+    }
+  };
+
   useEffect(() => {
     // Check access level from localStorage session
     const session = getSession();
@@ -108,6 +138,7 @@ export default function Dashboard() {
     }
 
     fetchWeeks();
+    loadSearchResults();
   }, []);
 
   useEffect(() => {
@@ -1091,12 +1122,6 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                {/* AI INSIGHTS - After Visual Overview */}
-                <InsightsDisplay 
-                  weekId={selectedWeekId || undefined} 
-                  existingInsights={weekData.insights}
-                  onGenerate={() => fetchWeekData(selectedWeekId!)}
-                />
               </>
             )}
 
@@ -1116,6 +1141,95 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             )}
+
+            {/* AI INSIGHTS - Separate section */}
+            <InsightsDisplay 
+              weekId={selectedWeekId || undefined} 
+              existingInsights={weekData?.insights || []}
+              onGenerate={() => selectedWeekId && fetchWeekData(selectedWeekId)}
+            />
+
+            <Card className="border-2 border-slate-100">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/70">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">AI Search Results</CardTitle>
+                    <CardDescription>Top 5 results from each AI search engine</CardDescription>
+                  </div>
+                  <Button
+                    onClick={loadSearchResults}
+                    disabled={isLoadingSearch}
+                    variant="outline"
+                  >
+                    {isLoadingSearch ? 'Refreshing...' : 'Refresh Results'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {isLoadingSearch ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading search results...
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No search results available. Click refresh to load results.
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+                    {searchResults.map((result, index) => (
+                      <div key={index} className="border border-slate-200 rounded-lg p-4 bg-white">
+                        <div className="mb-3 border-b border-slate-200 pb-2">
+                          <div className="flex items-center justify-between">
+                            <div className="font-semibold text-slate-900">{result.searchEngine}</div>
+                            <div className="text-xs text-slate-500">
+                              {new Date(result.timestamp).toLocaleString()}
+                            </div>
+                          </div>
+                          {result.brandsFound.length > 0 && (
+                            <div className="text-xs text-slate-500 mt-1">
+                              Brands: {result.brandsFound.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                        {result.topResults.length > 0 ? (
+                          <div className="space-y-3">
+                            {result.topResults.map((link, linkIndex) => (
+                              <div key={linkIndex} className="text-sm">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-xs bg-slate-900 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                                    {link.position}
+                                  </span>
+                                  <a
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-slate-900 hover:underline"
+                                  >
+                                    {link.title}
+                                  </a>
+                                </div>
+                                {link.snippet && (
+                                  <div className="text-xs text-slate-500 ml-7 mt-1">
+                                    {link.snippet.length > 150 ? `${link.snippet.substring(0, 150)}...` : link.snippet}
+                                  </div>
+                                )}
+                                <div className="text-xs text-slate-400 ml-7 mt-1">
+                                  {new URL(link.url).hostname}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center text-xs text-slate-400 py-4">
+                            No source links found
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Channels Tab - Full Access Only */}
