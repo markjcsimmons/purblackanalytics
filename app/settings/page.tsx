@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, logout, hasAccess } from '@/lib/auth';
+import { PromotionEntryForm } from '@/components/promotion-entry-form';
 import styles from '../dashboard.module.css';
 
 export default function SettingsPage() {
@@ -65,6 +66,15 @@ export default function SettingsPage() {
         <div className={styles.content}>
           <h2>Settings</h2>
           <p>Configure application settings. This page requires full access.</p>
+          
+          <div style={{ marginTop: '2rem' }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1.5rem', fontWeight: 'bold' }}>Add Data</h3>
+            
+            <div style={{ marginTop: '1.5rem' }}>
+              <h4 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: '600', color: '#059669' }}>Promotions</h4>
+              <PromotionEntryForm />
+            </div>
+          </div>
         </div>
       </main>
     </div>
