@@ -1,3 +1,33 @@
+import OpenAI from 'openai';
+
+// Lazy-load OpenAI client to prevent build-time initialization
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('OPENAI_API_KEY, OPEN_AI_KEY, or OPEN_API_KEY environment variable is required.');
+    }
+    
+    if (!apiKey.startsWith('sk-')) {
+      throw new Error('Invalid OpenAI API key format. Key should start with "sk-".');
+    }
+    
+    openai = new OpenAI({
+      apiKey: apiKey,
+    });
+  }
+  return openai as OpenAI;
+}
+
+export interface Insight {
+  text: string;
+  type: 'opportunity' | 'warning' | 'success' | 'recommendation';
+  priority: 'high' | 'medium' | 'low';
+}
+
 export async function generatePromotionInsights(data: {
   promotions: any[];
   weeksData: any[];
