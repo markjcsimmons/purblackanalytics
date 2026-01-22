@@ -15,7 +15,6 @@ import { DataEntryForm } from '@/components/data-entry-form';
 import { DataUpload } from '@/components/data-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { InsightsDisplay } from '@/components/insights-display';
-import { PromotionInsights } from '@/components/promotion-insights';
 import { 
   TrendingUp, 
   DollarSign, 
