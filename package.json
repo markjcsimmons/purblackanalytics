@@ -14,19 +14,27 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
     "axios": "^1.6.0",
     "better-sqlite3": "^11.10.0",
     "cheerio": "^1.0.0-rc.12",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^2.30.0",
     "lucide-react": "^0.263.1",
     "next": "14.2.35",
     "openai": "^6.16.0",
+    "papaparse": "^5.5.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/cheerio": "^0.22.35",
     "@types/node": "^20.0.0",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "typescript": "^5.0.0"

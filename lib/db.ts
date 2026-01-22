@@ -206,3 +206,59 @@ export function getWeeks() {
   const database = getDb();
   return database.prepare('SELECT * FROM weeks ORDER BY week_start_date DESC').all();
 }
+
+export function findPreviousWeek(weekStartDate: string) {
+  const database = getDb();
+  const currentDate = new Date(weekStartDate);
+  const previousWeekStart = new Date(currentDate);
+  previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+  
+  const previousWeekStartStr = previousWeekStart.toISOString().split('T')[0];
+  
+  const previousWeek = database.prepare(
+    'SELECT * FROM weeks WHERE week_start_date = ?'
+  ).get(previousWeekStartStr) as any;
+  
+  if (!previousWeek) {
+    return null;
+  }
+  
+  const weekData = getWeekData(previousWeek.id);
+  return weekData.week ? weekData : null;
+}
+
+export function findSameWeekYearAgo(weekStartDate: string) {
+  const database = getDb();
+  const currentDate = new Date(weekStartDate);
+  const yearAgoDate = new Date(currentDate);
+  yearAgoDate.setFullYear(yearAgoDate.getFullYear() - 1);
+  
+  // Look for weeks within ±3 days of the same date last year
+  const targetDateStr = yearAgoDate.toISOString().split('T')[0];
+  const threeDaysBefore = new Date(yearAgoDate);
+  threeDaysBefore.setDate(threeDaysBefore.getDate() - 3);
+  const threeDaysAfter = new Date(yearAgoDate);
+  threeDaysAfter.setDate(threeDaysAfter.getDate() + 3);
+  
+  const threeDaysBeforeStr = threeDaysBefore.toISOString().split('T')[0];
+  const threeDaysAfterStr = threeDaysAfter.toISOString().split('T')[0];
+  
+  // Try exact match first
+  let yearAgoWeek = database.prepare(
+    'SELECT * FROM weeks WHERE week_start_date = ?'
+  ).get(targetDateStr) as any;
+  
+  // If not found, try within ±3 days
+  if (!yearAgoWeek) {
+    yearAgoWeek = database.prepare(
+      'SELECT * FROM weeks WHERE week_start_date >= ? AND week_start_date <= ? ORDER BY ABS(julianday(week_start_date) - julianday(?)) LIMIT 1'
+    ).get(threeDaysBeforeStr, threeDaysAfterStr, targetDateStr) as any;
+  }
+  
+  if (!yearAgoWeek) {
+    return null;
+  }
+  
+  const weekData = getWeekData(yearAgoWeek.id);
+  return weekData.week ? weekData : null;
+}
