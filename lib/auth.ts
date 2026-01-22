@@ -1,15 +1,15 @@
 // Authentication configuration
 // Full access password should be set via environment variable NEXT_PUBLIC_FULL_ACCESS_PASSWORD
-// If not set, defaults to 'admin123' (change this default to your current password)
+// If not set, defaults to 'Mark32246!' (change this default to your current password)
 // Note: Using NEXT_PUBLIC_ prefix makes it available in the browser
 // For better security, consider implementing server-side authentication
 export const getFullAccessPassword = (): string => {
   if (typeof window !== 'undefined') {
     // Client-side: use NEXT_PUBLIC_ variable
-    return process.env.NEXT_PUBLIC_FULL_ACCESS_PASSWORD || 'admin123';
+    return process.env.NEXT_PUBLIC_FULL_ACCESS_PASSWORD || 'Mark32246!';
   }
   // Server-side: prefer NEXT_PUBLIC_ but fallback to regular env var
-  return process.env.NEXT_PUBLIC_FULL_ACCESS_PASSWORD || process.env.FULL_ACCESS_PASSWORD || 'admin123';
+  return process.env.NEXT_PUBLIC_FULL_ACCESS_PASSWORD || process.env.FULL_ACCESS_PASSWORD || 'Mark32246!';
 };
 
 export const PASSWORDS = {

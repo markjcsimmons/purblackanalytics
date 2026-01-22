@@ -15,6 +15,7 @@ import { DataEntryForm } from '@/components/data-entry-form';
 import { DataUpload } from '@/components/data-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { InsightsDisplay } from '@/components/insights-display';
+import { getSession } from '@/lib/auth';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -97,20 +98,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // Check access level
-    fetch('/api/auth/check')
-      .then(res => res.json())
-      .then(data => {
-        if (data.authenticated) {
-          setAccessLevel(data.accessLevel || 'full');
-        } else {
-          window.location.href = '/login';
-        }
-      })
-      .catch(() => {
-        window.location.href = '/login';
-      });
-    
+    // Check access level from localStorage session
+    const session = getSession();
+    if (session?.isAuthenticated) {
+      setAccessLevel(session.accessLevel || 'full');
+    } else {
+      window.location.href = '/login';
+      return;
+    }
+
     fetchWeeks();
   }, []);
 
