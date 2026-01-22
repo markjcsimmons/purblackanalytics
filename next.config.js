@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   // Disable Turbopack completely - it's not stable for production builds
+  experimental: {
+    turbo: undefined,
+  },
   webpack: (config, { isServer }) => {
     return config;
   },
