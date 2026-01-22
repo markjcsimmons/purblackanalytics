@@ -1095,9 +1095,6 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Promotion Insights */}
-                <PromotionInsights />
-
                 {/* AI INSIGHTS - After Visual Overview */}
                 <InsightsDisplay 
                   weekId={selectedWeekId || undefined} 
