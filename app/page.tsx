@@ -15,7 +15,6 @@ import { DataEntryForm } from '@/components/data-entry-form';
 import { DataUpload } from '@/components/data-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { InsightsDisplay } from '@/components/insights-display';
-import { PromotionEntryForm } from '@/components/promotion-entry-form';
 import { PromotionInsights } from '@/components/promotion-insights';
 import { 
   TrendingUp, 
@@ -1260,21 +1259,11 @@ export default function Dashboard() {
           {/* Add Data Tab - Full Access Only */}
           {accessLevel === 'full' && (
           <TabsContent value="add-data" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-4">Weekly Data Upload</h2>
               <div className="grid gap-6 md:grid-cols-2">
                 <DataUpload onUploadSuccess={handleUploadSuccess} />
                 <GoogleDocsImport onUploadSuccess={handleUploadSuccess} />
               </div>
-              <div className="mt-4">
-                <DataEntryForm onSuccess={handleUploadSuccess} />
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 pt-6 mt-6">
-              <h2 className="text-2xl font-bold mb-4">Promotions & Discounts</h2>
-              <PromotionEntryForm onSuccess={handleUploadSuccess} />
-            </div>
+            <DataEntryForm onSuccess={handleUploadSuccess} />
           </TabsContent>
           )}
         </Tabs>

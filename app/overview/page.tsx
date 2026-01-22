@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSession, logout, hasAccess } from '@/lib/auth';
-import { PromotionInsights } from '@/components/promotion-insights';
 import styles from '../dashboard.module.css';
 
 interface SearchResult {
@@ -133,11 +132,6 @@ export default function OverviewPage() {
               <p>You have limited access. Only the overview page is available.</p>
             </div>
           )}
-
-          {/* Promotion Insights */}
-          <div style={{ marginTop: '2rem' }}>
-            <PromotionInsights />
-          </div>
 
           <div style={{ marginTop: '3rem' }}>
             <h2>AI Search Results: "best shilajit"</h2>
