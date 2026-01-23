@@ -126,9 +126,10 @@ export async function queryGoogleAI(query: string, apiKey?: string): Promise<Sea
   try {
     // Initialize Gemini API with Google Search grounding
     const genAI = new GoogleGenerativeAI(apiKey);
+    const groundingTool = { googleSearch: {} } as any;
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.0-flash',
-      tools: [{ googleSearch: {} }],
+      tools: [groundingTool],
     });
     
     // Query with Google Search grounding enabled - request 10 sources
@@ -141,8 +142,9 @@ export async function queryGoogleAI(query: string, apiKey?: string): Promise<Sea
     brands.push(...extractBrands(rawResponse));
     
     // Extract citations and source links from grounding metadata
-    if (response.groundingMetadata) {
-      const grounding = response.groundingMetadata;
+    const responseWithMetadata = response as any;
+    if (responseWithMetadata.groundingMetadata) {
+      const grounding = responseWithMetadata.groundingMetadata;
       
       // Extract web search results
       if (grounding.webSearchQueries) {
@@ -167,8 +169,9 @@ export async function queryGoogleAI(query: string, apiKey?: string): Promise<Sea
       }
       
       // Also try to extract from candidate metadata - collect up to 10 total
-      if (sourceLinks.length < 10 && result.response.candidates && result.response.candidates[0]?.groundingMetadata) {
-        const candidateGrounding = result.response.candidates[0].groundingMetadata;
+      const candidates = (result.response as any).candidates;
+      if (sourceLinks.length < 10 && candidates && candidates[0]?.groundingMetadata) {
+        const candidateGrounding = candidates[0].groundingMetadata;
         if (candidateGrounding.groundingChunks) {
           candidateGrounding.groundingChunks.forEach((chunk: any, index: number) => {
             if (sourceLinks.length < 10 && chunk.web && chunk.web.uri) {
