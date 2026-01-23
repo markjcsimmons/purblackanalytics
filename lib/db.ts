@@ -28,6 +28,8 @@ function initializeDatabase(database: Database.Database) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       week_start_date TEXT NOT NULL,
       week_end_date TEXT NOT NULL,
+      notes TEXT,
+      romans_recommendations TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
@@ -200,6 +202,111 @@ export function getWeekData(weekId: number) {
     insights,
     promotions,
   };
+}
+
+export interface WeekData {
+  weekStartDate: string;
+  weekEndDate: string;
+  notes?: string;
+  romansRecommendations?: string;
+  overallMetrics: { [key: string]: number };
+  marketingChannels: { [channel: string]: { [metric: string]: number } };
+  funnelMetrics: { [stage: string]: { [metric: string]: number } };
+}
+
+export function saveWeekData(data: WeekData, weekId?: number): number {
+  const database = getDb();
+  
+  let finalWeekId: number;
+  
+  if (weekId) {
+    // Update existing week
+    const updateWeek = database.prepare(
+      'UPDATE weeks SET week_end_date = ?, notes = ?, romans_recommendations = ? WHERE id = ?'
+    );
+    updateWeek.run(
+      data.weekEndDate,
+      data.notes || null,
+      data.romansRecommendations || null,
+      weekId
+    );
+    finalWeekId = weekId;
+  } else {
+    // Check if week with this start date already exists
+    const existingWeek = database.prepare(
+      'SELECT id FROM weeks WHERE week_start_date = ?'
+    ).get(data.weekStartDate) as { id: number } | undefined;
+    
+    if (existingWeek) {
+      // Update existing week
+      const updateWeek = database.prepare(
+        'UPDATE weeks SET week_end_date = ?, notes = ?, romans_recommendations = ? WHERE id = ?'
+      );
+      updateWeek.run(
+        data.weekEndDate,
+        data.notes || null,
+        data.romansRecommendations || null,
+        existingWeek.id
+      );
+      finalWeekId = existingWeek.id;
+    } else {
+      // Insert new week
+      const insertWeek = database.prepare(
+        'INSERT INTO weeks (week_start_date, week_end_date, notes, romans_recommendations) VALUES (?, ?, ?, ?)'
+      );
+      const info = insertWeek.run(
+        data.weekStartDate, 
+        data.weekEndDate, 
+        data.notes || null,
+        data.romansRecommendations || null
+      );
+      finalWeekId = info.lastInsertRowid as number;
+    }
+  }
+
+  // Delete existing metrics for this week
+  database.prepare('DELETE FROM overall_metrics WHERE week_id = ?').run(finalWeekId);
+  database.prepare('DELETE FROM marketing_channels WHERE week_id = ?').run(finalWeekId);
+  database.prepare('DELETE FROM funnel_metrics WHERE week_id = ?').run(finalWeekId);
+
+  // Insert overall metrics
+  const insertOverallMetric = database.prepare(
+    'INSERT INTO overall_metrics (week_id, metric_name, metric_value) VALUES (?, ?, ?)'
+  );
+  
+  for (const [name, value] of Object.entries(data.overallMetrics)) {
+    if (value > 0 || value < 0) { // Include negative values and zero
+      insertOverallMetric.run(finalWeekId, name, value);
+    }
+  }
+
+  // Insert marketing channel metrics
+  const insertChannelMetric = database.prepare(
+    'INSERT INTO marketing_channels (week_id, channel_name, metric_name, metric_value) VALUES (?, ?, ?, ?)'
+  );
+  
+  for (const [channel, metrics] of Object.entries(data.marketingChannels)) {
+    for (const [metric, value] of Object.entries(metrics)) {
+      if (value > 0 || value < 0) { // Include negative values and zero
+        insertChannelMetric.run(finalWeekId, channel, metric, value);
+      }
+    }
+  }
+
+  // Insert funnel metrics
+  const insertFunnelMetric = database.prepare(
+    'INSERT INTO funnel_metrics (week_id, stage_name, metric_name, metric_value) VALUES (?, ?, ?, ?)'
+  );
+  
+  for (const [stage, metrics] of Object.entries(data.funnelMetrics)) {
+    for (const [metric, value] of Object.entries(metrics)) {
+      if (value > 0 || value < 0) { // Include negative values and zero
+        insertFunnelMetric.run(finalWeekId, stage, metric, value);
+      }
+    }
+  }
+
+  return finalWeekId;
 }
 
 export function getWeeks() {
