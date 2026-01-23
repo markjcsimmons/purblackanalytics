@@ -34,6 +34,7 @@ vercel
    - In Vercel Dashboard → Settings → Environment Variables
    - Add `FULL_ACCESS_PASSWORD` with your current password
    - Add `NEXT_PUBLIC_FULL_ACCESS_PASSWORD` with your current password
+   - Add `GOOGLE_GEMINI_API_KEY` with your Google Gemini API key (see "Getting API Keys" section below)
    - Redeploy after adding variables
 
 6. **Production Deployment**:
@@ -85,8 +86,28 @@ For puranalytics.com, you'll need to configure DNS records:
 
 - `FULL_ACCESS_PASSWORD`: Your current password for full access
 - `NEXT_PUBLIC_FULL_ACCESS_PASSWORD`: Same password (needed for client-side auth)
+- `GOOGLE_GEMINI_API_KEY` or `GEMINI_API_KEY`: Google Gemini API key for Google AI Overview search
 
 **Security Note**: For better security, consider implementing server-side authentication instead of client-side password checking.
+
+## Getting API Keys
+
+### Google Gemini API Key
+
+The application uses Google Gemini API with Google Search grounding for the "Google AI Overview" feature. To get your API key:
+
+1. Visit [Google AI Studio](https://aistudio.google.com/)
+2. Sign in with your Google account
+3. Click **"Get API key"** in the left sidebar
+4. Click **"Create API key"**
+5. Choose an existing Google Cloud project or create a new one
+6. Copy the API key (you'll only see it once - save it securely!)
+7. Add it to your environment variables as `GOOGLE_GEMINI_API_KEY`
+
+**Note**: 
+- The Google Gemini API with Google Search grounding provides real-time web search results
+- Billing for Google Search grounding begins January 5, 2026, but there's a free tier available
+- You can also pass the API key as a query parameter: `?geminiApiKey=your-key` (for testing only - not recommended for production)
 
 ## Post-Deployment Checklist
 
