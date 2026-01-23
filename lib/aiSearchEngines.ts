@@ -131,8 +131,8 @@ export async function queryGoogleAI(query: string, apiKey?: string): Promise<Sea
       tools: [{ googleSearch: {} }],
     });
     
-    // Query with Google Search grounding enabled
-    const prompt = `${query}. Please provide sources and citations.`;
+    // Query with Google Search grounding enabled - request 10 sources
+    const prompt = `${query}. Please provide at least 10 sources and citations with URLs.`;
     const result = await model.generateContent(prompt);
     const response = result.response;
     
@@ -149,29 +149,29 @@ export async function queryGoogleAI(query: string, apiKey?: string): Promise<Sea
         // Web search queries were used
       }
       
-      // Extract citations/chunks
+      // Extract citations/chunks - collect up to 10 results
       if (grounding.groundingChunks) {
         grounding.groundingChunks.forEach((chunk: any, index: number) => {
-          if (chunk.web) {
+          if (sourceLinks.length < 10 && chunk.web) {
             const web = chunk.web;
             if (web.uri) {
               sourceLinks.push({
                 url: web.uri,
-                title: web.title || `Source ${index + 1}`,
+                title: web.title || `Source ${sourceLinks.length + 1}`,
                 snippet: chunk.chunk?.text || '',
-                position: index + 1,
+                position: sourceLinks.length + 1,
               });
             }
           }
         });
       }
       
-      // Also try to extract from candidate metadata
-      if (result.response.candidates && result.response.candidates[0]?.groundingMetadata) {
+      // Also try to extract from candidate metadata - collect up to 10 total
+      if (sourceLinks.length < 10 && result.response.candidates && result.response.candidates[0]?.groundingMetadata) {
         const candidateGrounding = result.response.candidates[0].groundingMetadata;
         if (candidateGrounding.groundingChunks) {
           candidateGrounding.groundingChunks.forEach((chunk: any, index: number) => {
-            if (chunk.web && chunk.web.uri) {
+            if (sourceLinks.length < 10 && chunk.web && chunk.web.uri) {
               const url = chunk.web.uri;
               // Avoid duplicates
               if (!sourceLinks.some(link => link.url === url)) {
@@ -188,22 +188,27 @@ export async function queryGoogleAI(query: string, apiKey?: string): Promise<Sea
       }
     }
     
-    // If no citations found, try to extract URLs from the response text
-    if (sourceLinks.length === 0) {
+    // If no citations found, try to extract URLs from the response text - up to 10
+    if (sourceLinks.length < 10) {
       const urlRegex = /(https?:\/\/[^\s\)]+)/g;
       const urls = rawResponse.match(urlRegex) || [];
-      urls.slice(0, 10).forEach((url, index) => {
-        try {
-          const hostname = new URL(url).hostname;
-          if (!hostname.includes('google.com') && !hostname.includes('googleusercontent.com')) {
-            sourceLinks.push({
-              url,
-              title: hostname,
-              position: index + 1,
-            });
+      urls.forEach((url) => {
+        if (sourceLinks.length < 10) {
+          try {
+            const hostname = new URL(url).hostname;
+            if (!hostname.includes('google.com') && !hostname.includes('googleusercontent.com')) {
+              // Avoid duplicates
+              if (!sourceLinks.some(link => link.url === url)) {
+                sourceLinks.push({
+                  url,
+                  title: hostname,
+                  position: sourceLinks.length + 1,
+                });
+              }
+            }
+          } catch {
+            // Invalid URL, skip
           }
-        } catch {
-          // Invalid URL, skip
         }
       });
     }
@@ -323,10 +328,10 @@ export async function queryChatGPT(query: string, apiKey?: string): Promise<Sear
         messages: [
           {
             role: 'user',
-            content: `${query}. Please provide sources/links if available.`,
+            content: `${query}. Please provide at least 10 sources with URLs and links if available.`,
           },
         ],
-        max_tokens: 1000,
+        max_tokens: 2000,
       },
       {
         headers: {
