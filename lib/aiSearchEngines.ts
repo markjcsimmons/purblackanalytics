@@ -127,7 +127,7 @@ export async function queryGoogleAI(query: string, apiKey?: string): Promise<Sea
     // Initialize Gemini API with Google Search grounding
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.0-flash',
       tools: [{ googleSearch: {} }],
     });
     
