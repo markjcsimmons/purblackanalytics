@@ -38,6 +38,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     const notes = row.week_note?.trim() || '';
     // Try multiple possible column name variations
     const romansRecommendations = (row.roman_recommendations || row.romans_recommendations || row.romanRecommendations || row.romansRecommendations)?.trim() || '';
+    const affiliatesConversions = row.affiliates_conversions ?? row.affiliates_coversions;
 
     // Store week info (always store, even if empty, to ensure it's saved)
     if (weekStartDate) data.weekStartDate = weekStartDate;
@@ -113,8 +114,8 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         if (parseValue(row.affiliates_clicks) > 0) {
           data.marketingChannels['Affiliates']['* Clicks'] = parseValue(row.affiliates_clicks);
         }
-        if (parseValue(row.affiliates_coversions) > 0) {
-          data.marketingChannels['Affiliates']['* Conversions'] = parseValue(row.affiliates_coversions);
+        if (parseValue(affiliatesConversions) > 0) {
+          data.marketingChannels['Affiliates']['* Conversions'] = parseValue(affiliatesConversions);
         }
       }
 
@@ -192,19 +193,19 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       }
 
       // Funnel Metrics - Affiliates
-      if (parseValue(row.affiliates_coversions) > 0) {
+      if (parseValue(affiliatesConversions) > 0) {
         if (!data.funnelMetrics['Affiliates']) {
           data.funnelMetrics['Affiliates'] = {};
         }
         // Estimate sessions from conversions and conversion rate
         const conversionRate = parseValue(row.conversion_rate) / 100;
         if (conversionRate > 0) {
-          const estimatedSessions = parseValue(row.affiliates_coversions) / conversionRate;
+          const estimatedSessions = parseValue(affiliatesConversions) / conversionRate;
           data.funnelMetrics['Affiliates']['Sessions'] = estimatedSessions;
           data.funnelMetrics['Affiliates']['Add to Cart'] = estimatedSessions * (parseValue(row.product_page_add_to_cart_rate) / 100);
           data.funnelMetrics['Affiliates']['Checkout'] = estimatedSessions * (parseValue(row.product_page_add_to_cart_rate) / 100) * (1 - parseValue(row.cart_abandonment_rate) / 100);
         }
-        data.funnelMetrics['Affiliates']['Purchases'] = parseValue(row.affiliates_coversions);
+        data.funnelMetrics['Affiliates']['Purchases'] = parseValue(affiliatesConversions);
       }
 
       // Funnel Metrics - SEO

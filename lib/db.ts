@@ -231,9 +231,10 @@ export function saveWeekData(data: WeekData, weekId?: number): number {
   if (weekId) {
     // Update existing week
     const updateWeek = database.prepare(
-      'UPDATE weeks SET week_end_date = ?, notes = ?, romans_recommendations = ? WHERE id = ?'
+      'UPDATE weeks SET week_start_date = ?, week_end_date = ?, notes = ?, romans_recommendations = ? WHERE id = ?'
     );
     updateWeek.run(
+      data.weekStartDate,
       data.weekEndDate,
       data.notes || null,
       data.romansRecommendations || null,
