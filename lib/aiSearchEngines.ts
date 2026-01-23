@@ -114,20 +114,39 @@ export async function queryGoogleAI(query: string): Promise<SearchResult> {
         hl: 'en',
       },
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Referer': 'https://www.google.com/',
       },
     });
     
-    const $ = cheerio.load(response.data);
+    const htmlContent = response.data;
+    
+    // Check if Google returned an error/redirect page
+    if (htmlContent.includes('enablejs') || 
+        htmlContent.includes('Please click') || 
+        htmlContent.includes('http-equiv="refresh"') ||
+        htmlContent.includes('sourceMappingURL') ||
+        htmlContent.length < 1000) {
+      rawResponse = 'Google Search is blocking automated requests. Please use Google Custom Search API or access Google Search manually.';
+      return {
+        query,
+        searchEngine: 'Google AI Overview',
+        timestamp: new Date().toISOString(),
+        brands,
+        rawResponse,
+        sourceLinks: [],
+      };
+    }
+    
+    const $ = cheerio.load(htmlContent);
     
     // Try to find AI Overview section
     const aiOverview = $('#AIOverview, .kp-blk, [data-ved*="AI"]').first().text() || 
                        $('.hgKElc, .LGOjhe').first().text() ||
-                       $('body').text();
-    
-    rawResponse = aiOverview;
-    brands.push(...extractBrands(aiOverview));
+                       '';
     
     // Extract top search results (organic results)
     $('.g, .tF2Cxc').each((index, element) => {
@@ -164,9 +183,22 @@ export async function queryGoogleAI(query: string): Promise<SearchResult> {
         }
       });
     }
+    
+    // Set raw response to AI Overview if found, otherwise use a summary
+    if (aiOverview) {
+      rawResponse = aiOverview;
+      brands.push(...extractBrands(aiOverview));
+    } else if (sourceLinks.length > 0) {
+      rawResponse = `Found ${sourceLinks.length} search results for "${query}"`;
+      // Extract brands from titles and snippets
+      const allText = sourceLinks.map(link => `${link.title} ${link.snippet || ''}`).join(' ');
+      brands.push(...extractBrands(allText));
+    } else {
+      rawResponse = 'No results found. Google may be blocking automated requests.';
+    }
   } catch (error: any) {
     console.error('Google AI query error:', error.message);
-    rawResponse = `Error: ${error.message}`;
+    rawResponse = `Error: ${error.message}. Google Search may be blocking automated requests. Consider using Google Custom Search API.`;
   }
   
   return {
