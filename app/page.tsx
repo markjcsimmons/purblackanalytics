@@ -87,6 +87,7 @@ export default function Dashboard() {
   const [aiSearchInsights, setAiSearchInsights] = useState<AISearchInsight[]>([]);
   const [isGeneratingAISearchInsights, setIsGeneratingAISearchInsights] = useState(false);
   const [aiSearchInsightsError, setAiSearchInsightsError] = useState('');
+  const [expandedResults, setExpandedResults] = useState<Set<number>>(new Set());
 
   const fetchWeeks = async () => {
     try {
@@ -1274,9 +1275,31 @@ export default function Dashboard() {
                           </div>
                         ) : result.rawResponse ? (
                           <div className="text-xs text-slate-600 py-2">
-                            {result.rawResponse.length > 500
-                              ? `${result.rawResponse.substring(0, 500)}...`
-                              : result.rawResponse}
+                            {result.rawResponse.length > 500 ? (
+                              <>
+                                <div className="whitespace-pre-wrap">
+                                  {expandedResults.has(index)
+                                    ? result.rawResponse
+                                    : `${result.rawResponse.substring(0, 500)}...`}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedResults);
+                                    if (newExpanded.has(index)) {
+                                      newExpanded.delete(index);
+                                    } else {
+                                      newExpanded.add(index);
+                                    }
+                                    setExpandedResults(newExpanded);
+                                  }}
+                                  className="text-xs text-blue-600 hover:text-blue-800 mt-2 font-medium"
+                                >
+                                  {expandedResults.has(index) ? 'Show less' : 'Show more'}
+                                </button>
+                              </>
+                            ) : (
+                              <div className="whitespace-pre-wrap">{result.rawResponse}</div>
+                            )}
                           </div>
                         ) : (
                           <div className="text-center text-xs text-slate-400 py-4">
