@@ -1256,7 +1256,9 @@ export default function Dashboard() {
                                     rel="noopener noreferrer"
                                     className="font-medium text-slate-900 hover:underline"
                                   >
-                                    {link.title}
+                                    {link.title?.toLowerCase().startsWith('source ')
+                                      ? new URL(link.url).hostname
+                                      : link.title}
                                   </a>
                                 </div>
                                 {link.snippet && (

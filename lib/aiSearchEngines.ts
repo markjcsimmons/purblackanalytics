@@ -298,10 +298,16 @@ export async function queryChatGPT(query: string, apiKey?: string): Promise<Sear
     // Extract URLs from ChatGPT response
     const urlRegex = /(https?:\/\/[^\s\)]+)/g;
     const urls = rawResponse.match(urlRegex) || [];
-    urls.slice(0, 5).forEach((url, index) => {
+    urls.slice(0, 10).forEach((url, index) => {
+      let title = `Source ${index + 1}`;
+      try {
+        title = new URL(url).hostname;
+      } catch {
+        // keep fallback title
+      }
       sourceLinks.push({
         url,
-        title: `Source ${index + 1}`,
+        title,
         position: index + 1,
       });
     });
@@ -316,7 +322,7 @@ export async function queryChatGPT(query: string, apiKey?: string): Promise<Sear
     timestamp: new Date().toISOString(),
     brands,
     rawResponse,
-    sourceLinks: sourceLinks.slice(0, 5),
+    sourceLinks: sourceLinks.slice(0, 10),
   };
 }
 
@@ -365,10 +371,16 @@ export async function queryOpenAI(query: string, apiKey?: string): Promise<Searc
 
     const urlRegex = /(https?:\/\/[^\s\)]+)/g;
     const urls = rawResponse.match(urlRegex) || [];
-    urls.slice(0, 5).forEach((url, index) => {
+    urls.slice(0, 10).forEach((url, index) => {
+      let title = `Source ${index + 1}`;
+      try {
+        title = new URL(url).hostname;
+      } catch {
+        // keep fallback title
+      }
       sourceLinks.push({
         url,
-        title: `Source ${index + 1}`,
+        title,
         position: index + 1,
       });
     });
@@ -383,7 +395,7 @@ export async function queryOpenAI(query: string, apiKey?: string): Promise<Searc
     timestamp: new Date().toISOString(),
     brands,
     rawResponse,
-    sourceLinks: sourceLinks.slice(0, 5),
+    sourceLinks: sourceLinks.slice(0, 10),
   };
 }
 
