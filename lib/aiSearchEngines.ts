@@ -122,26 +122,7 @@ export async function queryGoogleAI(query: string): Promise<SearchResult> {
       },
     });
     
-    const htmlContent = response.data;
-    
-    // Check if Google returned an error/redirect page
-    if (htmlContent.includes('enablejs') || 
-        htmlContent.includes('Please click') || 
-        htmlContent.includes('http-equiv="refresh"') ||
-        htmlContent.includes('sourceMappingURL') ||
-        htmlContent.length < 1000) {
-      rawResponse = 'Google Search is blocking automated requests. Please use Google Custom Search API or access Google Search manually.';
-      return {
-        query,
-        searchEngine: 'Google AI Overview',
-        timestamp: new Date().toISOString(),
-        brands,
-        rawResponse,
-        sourceLinks: [],
-      };
-    }
-    
-    const $ = cheerio.load(htmlContent);
+    const $ = cheerio.load(response.data);
     
     // Try to find AI Overview section
     const aiOverview = $('#AIOverview, .kp-blk, [data-ved*="AI"]').first().text() || 
@@ -194,7 +175,7 @@ export async function queryGoogleAI(query: string): Promise<SearchResult> {
       const allText = sourceLinks.map(link => `${link.title} ${link.snippet || ''}`).join(' ');
       brands.push(...extractBrands(allText));
     } else {
-      rawResponse = 'No results found. Google may be blocking automated requests.';
+      rawResponse = 'No results found.';
     }
   } catch (error: any) {
     console.error('Google AI query error:', error.message);
