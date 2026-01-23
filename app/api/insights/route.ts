@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateInsights } from '@/lib/openai 2';
 
 // Force dynamic rendering - don't try to pre-render this route
 export const dynamic = 'force-dynamic';
@@ -18,6 +17,8 @@ export async function POST(request: NextRequest) {
 
     // Dynamically import database functions to avoid build-time execution
     const { getWeekData, getWeeks, saveInsights } = await import('@/lib/db');
+    // Import generateInsights from openai.ts (function was moved from openai 2.ts)
+    const { generateInsights } = await import('@/lib/openai');
 
     // Get current week data
     const weekData = getWeekData(weekId);

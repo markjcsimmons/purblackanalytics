@@ -96,6 +96,15 @@ function initializeDatabase(database: Database.Database) {
       FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE SET NULL
     )
   `);
+
+  // Create recommendation_rules table
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS recommendation_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      rule_text TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
 }
 
 export interface PromotionData {
@@ -307,6 +316,38 @@ export function saveWeekData(data: WeekData, weekId?: number): number {
   }
 
   return finalWeekId;
+}
+
+export function saveInsights(weekId: number, insights: Array<{ text: string; type: string; priority: string }>) {
+  const database = getDb();
+  
+  // Delete existing insights
+  database.prepare('DELETE FROM insights WHERE week_id = ?').run(weekId);
+
+  const insertInsight = database.prepare(
+    'INSERT INTO insights (week_id, insight_text, insight_type, priority) VALUES (?, ?, ?, ?)'
+  );
+
+  for (const insight of insights) {
+    insertInsight.run(weekId, insight.text, insight.type, insight.priority);
+  }
+}
+
+export function getRecommendationRules() {
+  const database = getDb();
+  return database.prepare('SELECT * FROM recommendation_rules ORDER BY created_at DESC').all();
+}
+
+export function addRecommendationRule(ruleText: string) {
+  const database = getDb();
+  const insert = database.prepare('INSERT INTO recommendation_rules (rule_text) VALUES (?)');
+  const info = insert.run(ruleText);
+  return info.lastInsertRowid;
+}
+
+export function deleteRecommendationRule(ruleId: number) {
+  const database = getDb();
+  database.prepare('DELETE FROM recommendation_rules WHERE id = ?').run(ruleId);
 }
 
 export function getWeeks() {
