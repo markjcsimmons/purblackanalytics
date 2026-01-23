@@ -61,6 +61,13 @@ interface SearchResult {
     position: number;
   }>;
   brandsFound: string[];
+  rawResponse?: string;
+}
+
+interface AISearchInsight {
+  text: string;
+  type: 'opportunity' | 'warning' | 'success' | 'recommendation';
+  priority: 'high' | 'medium' | 'low';
 }
 
 export default function Dashboard() {
@@ -76,6 +83,10 @@ export default function Dashboard() {
   } | null>(null);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('best shilajit');
+  const [aiSearchInsights, setAiSearchInsights] = useState<AISearchInsight[]>([]);
+  const [isGeneratingAISearchInsights, setIsGeneratingAISearchInsights] = useState(false);
+  const [aiSearchInsightsError, setAiSearchInsightsError] = useState('');
 
   const fetchWeeks = async () => {
     try {
@@ -114,8 +125,10 @@ export default function Dashboard() {
 
   const loadSearchResults = async () => {
     setIsLoadingSearch(true);
+    setAiSearchInsights([]);
+    setAiSearchInsightsError('');
     try {
-      const response = await fetch('/api/overview-search?query=best shilajit');
+      const response = await fetch(`/api/overview-search?query=${encodeURIComponent(searchQuery)}`);
       const data = await response.json();
       if (data.success) {
         setSearchResults(data.results || []);
@@ -124,6 +137,36 @@ export default function Dashboard() {
       console.error('Failed to load search results:', error);
     } finally {
       setIsLoadingSearch(false);
+    }
+  };
+
+  const generateAISearchInsights = async () => {
+    if (!searchResults.length) {
+      setAiSearchInsightsError('Please run a search first.');
+      return;
+    }
+    setIsGeneratingAISearchInsights(true);
+    setAiSearchInsightsError('');
+    try {
+      const response = await fetch('/api/ai-search-insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: searchQuery,
+          results: searchResults,
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to generate insights (${response.status})`);
+      }
+      const data = await response.json();
+      setAiSearchInsights(data.insights || []);
+    } catch (error: any) {
+      console.error('AI search insights error:', error);
+      setAiSearchInsightsError(error.message || 'Failed to generate insights.');
+    } finally {
+      setIsGeneratingAISearchInsights(false);
     }
   };
 
@@ -1151,18 +1194,26 @@ export default function Dashboard() {
 
             <Card className="border-2 border-slate-100">
               <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/70">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <CardTitle className="text-xl">AI Search Results</CardTitle>
-                    <CardDescription>Top 5 results from each AI search engine</CardDescription>
+                    <CardDescription>Top 10 results from each AI search engine</CardDescription>
                   </div>
-                  <Button
-                    onClick={loadSearchResults}
-                    disabled={isLoadingSearch}
-                    variant="outline"
-                  >
-                    {isLoadingSearch ? 'Refreshing...' : 'Refresh Results'}
-                  </Button>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Enter search query"
+                      className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm"
+                    />
+                    <Button
+                      onClick={loadSearchResults}
+                      disabled={isLoadingSearch}
+                      variant="outline"
+                    >
+                      {isLoadingSearch ? 'Refreshing...' : 'Search'}
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-6">
@@ -1175,10 +1226,10 @@ export default function Dashboard() {
                     No search results available. Click refresh to load results.
                   </div>
                 ) : (
-                  <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2">
                     {searchResults.map((result, index) => (
-                      <div key={index} className="border border-slate-200 rounded-lg p-4 bg-white">
-                        <div className="mb-3 border-b border-slate-200 pb-2">
+                      <div key={index} className="border border-slate-200 rounded-lg p-3 bg-white">
+                        <div className="mb-2 border-b border-slate-200 pb-2">
                           <div className="flex items-center justify-between">
                             <div className="font-semibold text-slate-900">{result.searchEngine}</div>
                             <div className="text-xs text-slate-500">
@@ -1192,7 +1243,7 @@ export default function Dashboard() {
                           )}
                         </div>
                         {result.topResults.length > 0 ? (
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {result.topResults.map((link, linkIndex) => (
                               <div key={linkIndex} className="text-sm">
                                 <div className="flex items-start gap-2">
@@ -1219,11 +1270,59 @@ export default function Dashboard() {
                               </div>
                             ))}
                           </div>
+                        ) : result.rawResponse ? (
+                          <div className="text-xs text-slate-600 py-2">
+                            {result.rawResponse.length > 500
+                              ? `${result.rawResponse.substring(0, 500)}...`
+                              : result.rawResponse}
+                          </div>
                         ) : (
                           <div className="text-center text-xs text-slate-400 py-4">
                             No source links found
                           </div>
                         )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-purple-100">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl">AI Search Insights</CardTitle>
+                    <CardDescription>Recommendations based on AI search analysis</CardDescription>
+                  </div>
+                  <Button
+                    onClick={generateAISearchInsights}
+                    disabled={isGeneratingAISearchInsights}
+                    variant="outline"
+                  >
+                    {isGeneratingAISearchInsights ? 'Generating...' : 'Generate Insights'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {aiSearchInsightsError && (
+                  <div className="mb-4 text-sm text-red-600">{aiSearchInsightsError}</div>
+                )}
+                {aiSearchInsights.length === 0 ? (
+                  <div className="text-center py-6 text-muted-foreground">
+                    No AI search insights yet. Run a search, then generate insights.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {aiSearchInsights.map((insight, index) => (
+                      <div
+                        key={index}
+                        className="border border-purple-200 bg-purple-50 rounded-lg p-3 text-sm"
+                      >
+                        <div className="font-semibold text-purple-900">
+                          {insight.type.toUpperCase()} · {insight.priority.toUpperCase()}
+                        </div>
+                        <div className="text-purple-900 mt-1">{insight.text}</div>
                       </div>
                     ))}
                   </div>

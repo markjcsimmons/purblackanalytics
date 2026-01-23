@@ -21,18 +21,19 @@ export async function GET(request: NextRequest) {
       enabledEngines: ['chatgpt', 'openai'],
     });
     
-    // Format results for overview page - top 5 per engine with links
+    // Format results for overview page - top 10 per engine with links
     const formattedResults = searchResults.map(result => ({
       searchEngine: result.searchEngine,
       query: result.query,
       timestamp: result.timestamp,
-      topResults: (result.sourceLinks || []).slice(0, 5).map(link => ({
+      topResults: (result.sourceLinks || []).slice(0, 10).map(link => ({
         url: link.url,
         title: link.title,
         snippet: link.snippet,
         position: link.position,
       })),
       brandsFound: result.brands.map(b => b.brand),
+      rawResponse: result.rawResponse || '',
     }));
     
     return NextResponse.json({
