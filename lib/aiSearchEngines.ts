@@ -131,7 +131,7 @@ export async function queryGoogleAI(query: string): Promise<SearchResult> {
     
     // Extract top search results (organic results)
     $('.g, .tF2Cxc').each((index, element) => {
-      if (index < 5) {
+      if (index < 10) {
         const linkElement = $(element).find('a[href^="http"]').first();
         const url = linkElement.attr('href');
         const title = $(element).find('h3').first().text().trim() || linkElement.text().trim();
@@ -151,7 +151,7 @@ export async function queryGoogleAI(query: string): Promise<SearchResult> {
     // If no results found, try alternative selectors
     if (sourceLinks.length === 0) {
       $('a[href^="http"]').each((index, element) => {
-        if (index < 5) {
+        if (index < 10) {
           const url = $(element).attr('href');
           const title = $(element).text().trim() || $(element).attr('title') || `Source ${index + 1}`;
           if (url && url.startsWith('http') && !url.includes('google.com')) {
@@ -175,7 +175,7 @@ export async function queryGoogleAI(query: string): Promise<SearchResult> {
     timestamp: new Date().toISOString(),
     brands,
     rawResponse,
-    sourceLinks: sourceLinks.slice(0, 5),
+    sourceLinks: sourceLinks.slice(0, 10),
   };
 }
 
@@ -327,79 +327,6 @@ export async function queryChatGPT(query: string, apiKey?: string): Promise<Sear
 }
 
 /**
- * Query OpenAI (separate label from ChatGPT)
- */
-export async function queryOpenAI(query: string, apiKey?: string): Promise<SearchResult> {
-  const brands: BrandMention[] = [];
-  let rawResponse = '';
-  const sourceLinks: SourceLink[] = [];
-
-  if (!apiKey) {
-    return {
-      query,
-      searchEngine: 'OpenAI',
-      timestamp: new Date().toISOString(),
-      brands,
-      rawResponse: 'Error: OpenAI API key required',
-      sourceLinks: [],
-    };
-  }
-
-  try {
-    const response = await axios.post(
-      'https://api.openai.com/v1/chat/completions',
-      {
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'user',
-            content: `${query}. Please provide sources/links if available.`,
-          },
-        ],
-        max_tokens: 1000,
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    rawResponse = response.data.choices[0]?.message?.content || '';
-    brands.push(...extractBrands(rawResponse));
-
-    const urlRegex = /(https?:\/\/[^\s\)]+)/g;
-    const urls = rawResponse.match(urlRegex) || [];
-    urls.slice(0, 10).forEach((url, index) => {
-      let title = `Source ${index + 1}`;
-      try {
-        title = new URL(url).hostname;
-      } catch {
-        // keep fallback title
-      }
-      sourceLinks.push({
-        url,
-        title,
-        position: index + 1,
-      });
-    });
-  } catch (error: any) {
-    console.error('OpenAI query error:', error.message);
-    rawResponse = `Error: ${error.message}`;
-  }
-
-  return {
-    query,
-    searchEngine: 'OpenAI',
-    timestamp: new Date().toISOString(),
-    brands,
-    rawResponse,
-    sourceLinks: sourceLinks.slice(0, 10),
-  };
-}
-
-/**
  * Query all enabled search engines
  */
 export async function queryAllEngines(
@@ -429,10 +356,6 @@ export async function queryAllEngines(
   
   if (enabled.includes('chatgpt') && config.openaiApiKey) {
     queries.push(queryChatGPT(query, config.openaiApiKey));
-  }
-
-  if (enabled.includes('openai') && config.openaiApiKey) {
-    queries.push(queryOpenAI(query, config.openaiApiKey));
   }
   
   const searchResults = await Promise.allSettled(queries);

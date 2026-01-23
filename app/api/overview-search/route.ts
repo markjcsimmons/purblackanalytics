@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const searchResults = await queryAllEngines(query, {
       perplexityApiKey,
       openaiApiKey,
-      enabledEngines: ['chatgpt', 'openai'],
+      enabledEngines: ['google', 'chatgpt'],
     });
     
     // Format results for overview page - top 10 per engine with links
