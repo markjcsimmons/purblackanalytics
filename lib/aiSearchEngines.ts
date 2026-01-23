@@ -129,37 +129,84 @@ export async function queryGoogleAI(query: string): Promise<SearchResult> {
                        $('.hgKElc, .LGOjhe').first().text() ||
                        '';
     
-    // Extract top search results (organic results)
-    $('.g, .tF2Cxc').each((index, element) => {
-      if (index < 10) {
-        const linkElement = $(element).find('a[href^="http"]').first();
-        const url = linkElement.attr('href');
-        const title = $(element).find('h3').first().text().trim() || linkElement.text().trim();
-        const snippet = $(element).find('.VwiC3b, .s').first().text().trim();
+    // Extract top search results - try multiple selector strategies
+    // Strategy 1: Modern Google result containers
+    $('.g, .tF2Cxc, .MjjYud, .g-blk').each((index, element) => {
+      if (index < 10 && sourceLinks.length < 10) {
+        const $el = $(element);
         
-        if (url && url.startsWith('http')) {
+        // Try to find the main link
+        const linkElement = $el.find('a[href^="http"], a[href^="/url"]').first();
+        let url = linkElement.attr('href');
+        
+        // Handle Google's /url?q= redirects
+        if (url && url.startsWith('/url')) {
+          const match = url.match(/[?&]q=([^&]+)/);
+          if (match) {
+            url = decodeURIComponent(match[1]);
+          }
+        }
+        
+        // Also try data-href attribute
+        if (!url || !url.startsWith('http')) {
+          url = $el.find('[data-href]').attr('data-href') || 
+                $el.find('a[data-ved]').attr('href');
+          if (url && url.startsWith('/url')) {
+            const match = url.match(/[?&]q=([^&]+)/);
+            if (match) {
+              url = decodeURIComponent(match[1]);
+            }
+          }
+        }
+        
+        const title = $el.find('h3, .LC20lb, .DKV0Md').first().text().trim() || 
+                     linkElement.text().trim() ||
+                     $el.find('.yuRUbf a').text().trim();
+        const snippet = $el.find('.VwiC3b, .s, .IsZvec, .MUxGbd').first().text().trim() ||
+                        $el.find('.aCOpRe').first().text().trim();
+        
+        if (url && url.startsWith('http') && !url.includes('google.com') && !url.includes('googleusercontent.com')) {
           sourceLinks.push({
             url,
-            title: title || `Result ${index + 1}`,
+            title: title || new URL(url).hostname,
             snippet,
-            position: index + 1,
+            position: sourceLinks.length + 1,
           });
         }
       }
     });
     
-    // If no results found, try alternative selectors
+    // Strategy 2: If no results, try extracting from link elements directly
     if (sourceLinks.length === 0) {
-      $('a[href^="http"]').each((index, element) => {
-        if (index < 10) {
-          const url = $(element).attr('href');
-          const title = $(element).text().trim() || $(element).attr('title') || `Source ${index + 1}`;
-          if (url && url.startsWith('http') && !url.includes('google.com')) {
-            sourceLinks.push({
-              url,
-              title,
-              position: index + 1,
-            });
+      $('a[href*="/url"], a[href^="http"]').each((index, element) => {
+        if (index < 20 && sourceLinks.length < 10) {
+          let url = $(element).attr('href');
+          
+          // Handle Google redirect URLs
+          if (url && url.includes('/url')) {
+            const match = url.match(/[?&]q=([^&]+)/);
+            if (match) {
+              url = decodeURIComponent(match[1]);
+            }
+          }
+          
+          const title = $(element).text().trim() || 
+                       $(element).find('h3').text().trim() ||
+                       $(element).attr('title') || 
+                       '';
+          
+          if (url && url.startsWith('http') && 
+              !url.includes('google.com') && 
+              !url.includes('googleusercontent.com') &&
+              title.length > 0) {
+            // Avoid duplicates
+            if (!sourceLinks.some(link => link.url === url)) {
+              sourceLinks.push({
+                url,
+                title: title || new URL(url).hostname,
+                position: sourceLinks.length + 1,
+              });
+            }
           }
         }
       });
