@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { BrandMention, extractBrands, SearchResult, SourceLink } from './brandTracker';
 
 export interface SearchEngineConfig {
@@ -99,134 +100,117 @@ export async function queryPerplexity(query: string, apiKey?: string): Promise<S
 }
 
 /**
- * Query Google AI Overview (via Google Search)
+ * Query Google AI (Gemini) with Google Search Grounding
  */
-export async function queryGoogleAI(query: string): Promise<SearchResult> {
+export async function queryGoogleAI(query: string, apiKey?: string): Promise<SearchResult> {
   const brands: BrandMention[] = [];
   let rawResponse = '';
   const sourceLinks: SourceLink[] = [];
   
+  if (!apiKey) {
+    apiKey = process.env.GOOGLE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+  }
+  
+  if (!apiKey) {
+    rawResponse = 'Error: Google Gemini API key required. Set GOOGLE_GEMINI_API_KEY environment variable or pass as parameter.';
+    return {
+      query,
+      searchEngine: 'Google AI Overview',
+      timestamp: new Date().toISOString(),
+      brands,
+      rawResponse,
+      sourceLinks: [],
+    };
+  }
+  
   try {
-    // Query Google Search and look for AI Overview section
-    const response = await axios.get('https://www.google.com/search', {
-      params: {
-        q: query,
-        hl: 'en',
-      },
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://www.google.com/',
-      },
+    // Initialize Gemini API with Google Search grounding
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.0-flash-exp',
+      tools: [{ googleSearch: {} }],
     });
     
-    const $ = cheerio.load(response.data);
+    // Query with Google Search grounding enabled
+    const prompt = `${query}. Please provide sources and citations.`;
+    const result = await model.generateContent(prompt);
+    const response = result.response;
     
-    // Try to find AI Overview section
-    const aiOverview = $('#AIOverview, .kp-blk, [data-ved*="AI"]').first().text() || 
-                       $('.hgKElc, .LGOjhe').first().text() ||
-                       '';
+    // Get the text response
+    rawResponse = response.text();
+    brands.push(...extractBrands(rawResponse));
     
-    // Extract top search results - try multiple selector strategies
-    // Strategy 1: Modern Google result containers
-    $('.g, .tF2Cxc, .MjjYud, .g-blk').each((index, element) => {
-      if (index < 10 && sourceLinks.length < 10) {
-        const $el = $(element);
-        
-        // Try to find the main link
-        const linkElement = $el.find('a[href^="http"], a[href^="/url"]').first();
-        let url = linkElement.attr('href');
-        
-        // Handle Google's /url?q= redirects
-        if (url && url.startsWith('/url')) {
-          const match = url.match(/[?&]q=([^&]+)/);
-          if (match) {
-            url = decodeURIComponent(match[1]);
-          }
-        }
-        
-        // Also try data-href attribute
-        if (!url || !url.startsWith('http')) {
-          url = $el.find('[data-href]').attr('data-href') || 
-                $el.find('a[data-ved]').attr('href');
-          if (url && url.startsWith('/url')) {
-            const match = url.match(/[?&]q=([^&]+)/);
-            if (match) {
-              url = decodeURIComponent(match[1]);
-            }
-          }
-        }
-        
-        const title = $el.find('h3, .LC20lb, .DKV0Md').first().text().trim() || 
-                     linkElement.text().trim() ||
-                     $el.find('.yuRUbf a').text().trim();
-        const snippet = $el.find('.VwiC3b, .s, .IsZvec, .MUxGbd').first().text().trim() ||
-                        $el.find('.aCOpRe').first().text().trim();
-        
-        if (url && url.startsWith('http') && !url.includes('google.com') && !url.includes('googleusercontent.com')) {
-          sourceLinks.push({
-            url,
-            title: title || new URL(url).hostname,
-            snippet,
-            position: sourceLinks.length + 1,
-          });
-        }
+    // Extract citations and source links from grounding metadata
+    if (response.groundingMetadata) {
+      const grounding = response.groundingMetadata;
+      
+      // Extract web search results
+      if (grounding.webSearchQueries) {
+        // Web search queries were used
       }
-    });
-    
-    // Strategy 2: If no results, try extracting from link elements directly
-    if (sourceLinks.length === 0) {
-      $('a[href*="/url"], a[href^="http"]').each((index, element) => {
-        if (index < 20 && sourceLinks.length < 10) {
-          let url = $(element).attr('href');
-          
-          // Handle Google redirect URLs
-          if (url && url.includes('/url')) {
-            const match = url.match(/[?&]q=([^&]+)/);
-            if (match) {
-              url = decodeURIComponent(match[1]);
-            }
-          }
-          
-          const title = $(element).text().trim() || 
-                       $(element).find('h3').text().trim() ||
-                       $(element).attr('title') || 
-                       '';
-          
-          if (url && url.startsWith('http') && 
-              !url.includes('google.com') && 
-              !url.includes('googleusercontent.com') &&
-              title.length > 0) {
-            // Avoid duplicates
-            if (!sourceLinks.some(link => link.url === url)) {
+      
+      // Extract citations/chunks
+      if (grounding.groundingChunks) {
+        grounding.groundingChunks.forEach((chunk: any, index: number) => {
+          if (chunk.web) {
+            const web = chunk.web;
+            if (web.uri) {
               sourceLinks.push({
-                url,
-                title: title || new URL(url).hostname,
-                position: sourceLinks.length + 1,
+                url: web.uri,
+                title: web.title || `Source ${index + 1}`,
+                snippet: chunk.chunk?.text || '',
+                position: index + 1,
               });
             }
           }
+        });
+      }
+      
+      // Also try to extract from candidate metadata
+      if (result.response.candidates && result.response.candidates[0]?.groundingMetadata) {
+        const candidateGrounding = result.response.candidates[0].groundingMetadata;
+        if (candidateGrounding.groundingChunks) {
+          candidateGrounding.groundingChunks.forEach((chunk: any, index: number) => {
+            if (chunk.web && chunk.web.uri) {
+              const url = chunk.web.uri;
+              // Avoid duplicates
+              if (!sourceLinks.some(link => link.url === url)) {
+                sourceLinks.push({
+                  url,
+                  title: chunk.web.title || new URL(url).hostname,
+                  snippet: chunk.chunk?.text || '',
+                  position: sourceLinks.length + 1,
+                });
+              }
+            }
+          });
+        }
+      }
+    }
+    
+    // If no citations found, try to extract URLs from the response text
+    if (sourceLinks.length === 0) {
+      const urlRegex = /(https?:\/\/[^\s\)]+)/g;
+      const urls = rawResponse.match(urlRegex) || [];
+      urls.slice(0, 10).forEach((url, index) => {
+        try {
+          const hostname = new URL(url).hostname;
+          if (!hostname.includes('google.com') && !hostname.includes('googleusercontent.com')) {
+            sourceLinks.push({
+              url,
+              title: hostname,
+              position: index + 1,
+            });
+          }
+        } catch {
+          // Invalid URL, skip
         }
       });
     }
     
-    // Set raw response to AI Overview if found, otherwise use a summary
-    if (aiOverview) {
-      rawResponse = aiOverview;
-      brands.push(...extractBrands(aiOverview));
-    } else if (sourceLinks.length > 0) {
-      rawResponse = `Found ${sourceLinks.length} search results for "${query}"`;
-      // Extract brands from titles and snippets
-      const allText = sourceLinks.map(link => `${link.title} ${link.snippet || ''}`).join(' ');
-      brands.push(...extractBrands(allText));
-    } else {
-      rawResponse = 'No results found.';
-    }
   } catch (error: any) {
-    console.error('Google AI query error:', error.message);
-    rawResponse = `Error: ${error.message}. Google Search may be blocking automated requests. Consider using Google Custom Search API.`;
+    console.error('Google AI (Gemini) query error:', error.message);
+    rawResponse = `Error: ${error.message}`;
   }
   
   return {
@@ -394,6 +378,7 @@ export async function queryAllEngines(
   config: {
     perplexityApiKey?: string;
     openaiApiKey?: string;
+    geminiApiKey?: string;
     enabledEngines?: string[];
   } = {}
 ): Promise<SearchResult[]> {
@@ -407,7 +392,7 @@ export async function queryAllEngines(
   }
   
   if (enabled.includes('google')) {
-    queries.push(queryGoogleAI(query));
+    queries.push(queryGoogleAI(query, config.geminiApiKey));
   }
   
   if (enabled.includes('bing')) {

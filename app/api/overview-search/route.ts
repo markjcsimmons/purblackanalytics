@@ -13,11 +13,17 @@ export async function GET(request: NextRequest) {
       searchParams.get('openaiApiKey') ||
       process.env.OPENAI_API_KEY ||
       undefined;
+    const geminiApiKey =
+      searchParams.get('geminiApiKey') ||
+      process.env.GOOGLE_GEMINI_API_KEY ||
+      process.env.GEMINI_API_KEY ||
+      undefined;
     
     // Query all search engines
     const searchResults = await queryAllEngines(query, {
       perplexityApiKey,
       openaiApiKey,
+      geminiApiKey,
       enabledEngines: ['google', 'chatgpt'],
     });
     
