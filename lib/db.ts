@@ -97,6 +97,19 @@ function initializeDatabase(database: Database.Database) {
     )
   `);
 
+  // Social media metrics (e.g., Instagram stories/reels/posts/account)
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS social_media_metrics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      week_id INTEGER NOT NULL,
+      platform TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      metric_name TEXT NOT NULL,
+      metric_value REAL NOT NULL,
+      FOREIGN KEY (week_id) REFERENCES weeks(id) ON DELETE CASCADE
+    )
+  `);
+
   // Create recommendation_rules table
   database.exec(`
     CREATE TABLE IF NOT EXISTS recommendation_rules (
@@ -173,6 +186,7 @@ export function getAllData() {
     const overallMetrics = database.prepare('SELECT * FROM overall_metrics WHERE week_id = ?').all(week.id);
     const marketingChannels = database.prepare('SELECT * FROM marketing_channels WHERE week_id = ?').all(week.id);
     const funnelMetrics = database.prepare('SELECT * FROM funnel_metrics WHERE week_id = ?').all(week.id);
+    const socialMediaMetrics = database.prepare('SELECT * FROM social_media_metrics WHERE week_id = ?').all(week.id);
     const promotions = database.prepare('SELECT * FROM promotions WHERE week_id = ?').all(week.id);
     
     return {
@@ -180,6 +194,7 @@ export function getAllData() {
       overallMetrics,
       marketingChannels,
       funnelMetrics,
+      socialMediaMetrics,
       promotions,
     };
   });
@@ -192,6 +207,7 @@ export function getWeekData(weekId: number) {
   const overallMetrics = database.prepare('SELECT * FROM overall_metrics WHERE week_id = ?').all(weekId);
   const marketingChannels = database.prepare('SELECT * FROM marketing_channels WHERE week_id = ?').all(weekId);
   const funnelMetrics = database.prepare('SELECT * FROM funnel_metrics WHERE week_id = ?').all(weekId);
+  const socialMediaMetrics = database.prepare('SELECT * FROM social_media_metrics WHERE week_id = ?').all(weekId);
   const insightsRaw = database.prepare('SELECT * FROM insights WHERE week_id = ?').all(weekId) as any[];
   const promotions = database.prepare('SELECT * FROM promotions WHERE week_id = ?').all(weekId);
 
@@ -208,6 +224,7 @@ export function getWeekData(weekId: number) {
     overallMetrics,
     marketingChannels,
     funnelMetrics,
+    socialMediaMetrics,
     insights,
     promotions,
   };
@@ -221,6 +238,13 @@ export interface WeekData {
   overallMetrics: { [key: string]: number };
   marketingChannels: { [channel: string]: { [metric: string]: number } };
   funnelMetrics: { [stage: string]: { [metric: string]: number } };
+  socialMedia?: {
+    [platform: string]: {
+      [contentType: string]: {
+        [metricName: string]: number;
+      };
+    };
+  };
 }
 
 export function saveWeekData(data: WeekData, weekId?: number): number {
@@ -250,9 +274,10 @@ export function saveWeekData(data: WeekData, weekId?: number): number {
     if (existingWeek) {
       // Update existing week
       const updateWeek = database.prepare(
-        'UPDATE weeks SET week_end_date = ?, notes = ?, romans_recommendations = ? WHERE id = ?'
+        'UPDATE weeks SET week_start_date = ?, week_end_date = ?, notes = ?, romans_recommendations = ? WHERE id = ?'
       );
       updateWeek.run(
+        data.weekStartDate,
         data.weekEndDate,
         data.notes || null,
         data.romansRecommendations || null,
@@ -278,6 +303,7 @@ export function saveWeekData(data: WeekData, weekId?: number): number {
   database.prepare('DELETE FROM overall_metrics WHERE week_id = ?').run(finalWeekId);
   database.prepare('DELETE FROM marketing_channels WHERE week_id = ?').run(finalWeekId);
   database.prepare('DELETE FROM funnel_metrics WHERE week_id = ?').run(finalWeekId);
+  database.prepare('DELETE FROM social_media_metrics WHERE week_id = ?').run(finalWeekId);
 
   // Insert overall metrics
   const insertOverallMetric = database.prepare(
@@ -312,6 +338,22 @@ export function saveWeekData(data: WeekData, weekId?: number): number {
     for (const [metric, value] of Object.entries(metrics)) {
       if (value > 0 || value < 0) { // Include negative values and zero
         insertFunnelMetric.run(finalWeekId, stage, metric, value);
+      }
+    }
+  }
+
+  // Insert social media metrics (optional)
+  if (data.socialMedia) {
+    const insertSocialMetric = database.prepare(
+      'INSERT INTO social_media_metrics (week_id, platform, content_type, metric_name, metric_value) VALUES (?, ?, ?, ?, ?)'
+    );
+    for (const [platform, contentTypes] of Object.entries(data.socialMedia)) {
+      for (const [contentType, metrics] of Object.entries(contentTypes)) {
+        for (const [metricName, value] of Object.entries(metrics)) {
+          if (typeof value === 'number' && (value > 0 || value < 0)) {
+            insertSocialMetric.run(finalWeekId, platform, contentType, metricName, value);
+          }
+        }
       }
     }
   }

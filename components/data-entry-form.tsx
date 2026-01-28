@@ -17,6 +17,7 @@ import {
   Store, 
   Megaphone, 
   Target, 
+  Instagram,
   Sparkles,
   Save,
   Calendar,
@@ -84,6 +85,26 @@ interface FormData {
   socialATC: string;
   socialCheckout: string;
   socialPurchases: string;
+
+  // Instagram (Social Media)
+  igStoriesViews: string;
+  igStoriesReposts: string;
+  igStoriesInteractions: string;
+  igStoriesReach: string;
+
+  igReelsViews: string;
+  igReelsReposts: string;
+  igReelsInteractions: string;
+  igReelsReach: string;
+
+  igPostsViews: string;
+  igPostsReposts: string;
+  igPostsInteractions: string;
+  igPostsReach: string;
+
+  igAccountSubscribers: string;
+  igAccountViews: string;
+  igAccountInteractions: string;
   
   // Product Page Metrics
   productPageATCRate: string;
@@ -153,6 +174,25 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     socialATC: '',
     socialCheckout: '',
     socialPurchases: '',
+
+    igStoriesViews: '',
+    igStoriesReposts: '',
+    igStoriesInteractions: '',
+    igStoriesReach: '',
+
+    igReelsViews: '',
+    igReelsReposts: '',
+    igReelsInteractions: '',
+    igReelsReach: '',
+
+    igPostsViews: '',
+    igPostsReposts: '',
+    igPostsInteractions: '',
+    igPostsReach: '',
+
+    igAccountSubscribers: '',
+    igAccountViews: '',
+    igAccountInteractions: '',
     productPageATCRate: '',
     productPageTimeOnPage: '',
     productPageScrollDepth: '',
@@ -295,6 +335,40 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             cartAbandonment: funnels['Cart']?.['* Abandonment rate']?.toString() || '',
           }));
         }
+
+        // Populate Instagram (social media) metrics
+        if (data.socialMediaMetrics && Array.isArray(data.socialMediaMetrics)) {
+          const sm = data.socialMediaMetrics.reduce((acc: any, m: any) => {
+            const key = `${m.platform}|${m.content_type}|${m.metric_name}`;
+            acc[key] = m.metric_value;
+            return acc;
+          }, {});
+
+          const getSM = (platform: string, contentType: string, metric: string) =>
+            sm[`${platform}|${contentType}|${metric}`];
+
+          setFormData(prev => ({
+            ...prev,
+            igStoriesViews: getSM('Instagram', 'Stories', 'Views')?.toString() || '',
+            igStoriesReposts: getSM('Instagram', 'Stories', 'Reposts')?.toString() || '',
+            igStoriesInteractions: getSM('Instagram', 'Stories', 'Interactions')?.toString() || '',
+            igStoriesReach: getSM('Instagram', 'Stories', 'Reach')?.toString() || '',
+
+            igReelsViews: getSM('Instagram', 'Reels', 'Views')?.toString() || '',
+            igReelsReposts: getSM('Instagram', 'Reels', 'Reposts')?.toString() || '',
+            igReelsInteractions: getSM('Instagram', 'Reels', 'Interactions')?.toString() || '',
+            igReelsReach: getSM('Instagram', 'Reels', 'Reach')?.toString() || '',
+
+            igPostsViews: getSM('Instagram', 'Posts', 'Views')?.toString() || '',
+            igPostsReposts: getSM('Instagram', 'Posts', 'Reposts')?.toString() || '',
+            igPostsInteractions: getSM('Instagram', 'Posts', 'Interactions')?.toString() || '',
+            igPostsReach: getSM('Instagram', 'Posts', 'Reach')?.toString() || '',
+
+            igAccountSubscribers: getSM('Instagram', 'Account', 'Subscribers')?.toString() || '',
+            igAccountViews: getSM('Instagram', 'Account', 'Views')?.toString() || '',
+            igAccountInteractions: getSM('Instagram', 'Account', 'Interactions')?.toString() || '',
+          }));
+        }
       }
     } catch (err: any) {
       setError(`Failed to load week data: ${err.message}`);
@@ -354,6 +428,25 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         socialATC: '',
         socialCheckout: '',
         socialPurchases: '',
+
+        igStoriesViews: '',
+        igStoriesReposts: '',
+        igStoriesInteractions: '',
+        igStoriesReach: '',
+
+        igReelsViews: '',
+        igReelsReposts: '',
+        igReelsInteractions: '',
+        igReelsReach: '',
+
+        igPostsViews: '',
+        igPostsReposts: '',
+        igPostsInteractions: '',
+        igPostsReach: '',
+
+        igAccountSubscribers: '',
+        igAccountViews: '',
+        igAccountInteractions: '',
         productPageATCRate: '',
         productPageTimeOnPage: '',
         productPageScrollDepth: '',
@@ -489,6 +582,40 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         }
       });
 
+      // Social media (Instagram) metrics
+      const instagram: any = {};
+      const setIG = (contentType: string, metricName: string, valueStr: string) => {
+        const v = parseFloat(valueStr) || 0;
+        if (v > 0) {
+          if (!instagram[contentType]) instagram[contentType] = {};
+          instagram[contentType][metricName] = v;
+        }
+      };
+
+      setIG('Stories', 'Views', formData.igStoriesViews);
+      setIG('Stories', 'Reposts', formData.igStoriesReposts);
+      setIG('Stories', 'Interactions', formData.igStoriesInteractions);
+      setIG('Stories', 'Reach', formData.igStoriesReach);
+
+      setIG('Reels', 'Views', formData.igReelsViews);
+      setIG('Reels', 'Reposts', formData.igReelsReposts);
+      setIG('Reels', 'Interactions', formData.igReelsInteractions);
+      setIG('Reels', 'Reach', formData.igReelsReach);
+
+      setIG('Posts', 'Views', formData.igPostsViews);
+      setIG('Posts', 'Reposts', formData.igPostsReposts);
+      setIG('Posts', 'Interactions', formData.igPostsInteractions);
+      setIG('Posts', 'Reach', formData.igPostsReach);
+
+      setIG('Account', 'Subscribers', formData.igAccountSubscribers);
+      setIG('Account', 'Views', formData.igAccountViews);
+      setIG('Account', 'Interactions', formData.igAccountInteractions);
+
+      const socialMediaObj: any = {};
+      if (Object.keys(instagram).length > 0) {
+        socialMediaObj['Instagram'] = instagram;
+      }
+
         const uploadData = {
           weekStartDate: formData.weekStartDate,
           weekEndDate: formData.weekEndDate,
@@ -497,6 +624,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           overallMetrics: overallMetricsObj,
           marketingChannels: marketingChannelsObj,
           funnelMetrics: funnelMetricsObj,
+          socialMedia: socialMediaObj,
           weekId: selectedWeekId || undefined,
       };
 
@@ -562,6 +690,25 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         socialATC: '',
         socialCheckout: '',
         socialPurchases: '',
+
+        igStoriesViews: '',
+        igStoriesReposts: '',
+        igStoriesInteractions: '',
+        igStoriesReach: '',
+
+        igReelsViews: '',
+        igReelsReposts: '',
+        igReelsInteractions: '',
+        igReelsReach: '',
+
+        igPostsViews: '',
+        igPostsReposts: '',
+        igPostsInteractions: '',
+        igPostsReach: '',
+
+        igAccountSubscribers: '',
+        igAccountViews: '',
+        igAccountInteractions: '',
         productPageATCRate: '',
         productPageTimeOnPage: '',
         productPageScrollDepth: '',
@@ -1209,6 +1356,198 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                     onChange={(e) => handleChange('socialPurchases', e.target.value)}
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Social Media (Instagram) */}
+      <Card>
+        <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50">
+          <div className="flex items-center gap-3">
+            <Instagram className="h-5 w-5 text-pink-600" />
+            <div>
+              <CardTitle>Social Media (Instagram)</CardTitle>
+              <CardDescription>Weekly Instagram performance by content type</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-8">
+          {/* Stories */}
+          <div className="border-l-4 border-pink-500 pl-4">
+            <h3 className="font-semibold text-lg mb-4">Stories</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="igStoriesViews">Views</Label>
+                <Input
+                  id="igStoriesViews"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igStoriesViews}
+                  onChange={(e) => handleChange('igStoriesViews', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igStoriesReposts">Reposts</Label>
+                <Input
+                  id="igStoriesReposts"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igStoriesReposts}
+                  onChange={(e) => handleChange('igStoriesReposts', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igStoriesInteractions">Interactions</Label>
+                <Input
+                  id="igStoriesInteractions"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igStoriesInteractions}
+                  onChange={(e) => handleChange('igStoriesInteractions', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igStoriesReach">Reach</Label>
+                <Input
+                  id="igStoriesReach"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igStoriesReach}
+                  onChange={(e) => handleChange('igStoriesReach', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Reels */}
+          <div className="border-l-4 border-purple-500 pl-4">
+            <h3 className="font-semibold text-lg mb-4">Reels</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="igReelsViews">Views</Label>
+                <Input
+                  id="igReelsViews"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igReelsViews}
+                  onChange={(e) => handleChange('igReelsViews', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igReelsReposts">Reposts</Label>
+                <Input
+                  id="igReelsReposts"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igReelsReposts}
+                  onChange={(e) => handleChange('igReelsReposts', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igReelsInteractions">Interactions</Label>
+                <Input
+                  id="igReelsInteractions"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igReelsInteractions}
+                  onChange={(e) => handleChange('igReelsInteractions', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igReelsReach">Reach</Label>
+                <Input
+                  id="igReelsReach"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igReelsReach}
+                  onChange={(e) => handleChange('igReelsReach', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Posts */}
+          <div className="border-l-4 border-amber-500 pl-4">
+            <h3 className="font-semibold text-lg mb-4">Posts</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label htmlFor="igPostsViews">Views</Label>
+                <Input
+                  id="igPostsViews"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igPostsViews}
+                  onChange={(e) => handleChange('igPostsViews', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igPostsReposts">Reposts</Label>
+                <Input
+                  id="igPostsReposts"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igPostsReposts}
+                  onChange={(e) => handleChange('igPostsReposts', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igPostsInteractions">Interactions</Label>
+                <Input
+                  id="igPostsInteractions"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igPostsInteractions}
+                  onChange={(e) => handleChange('igPostsInteractions', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igPostsReach">Reach</Label>
+                <Input
+                  id="igPostsReach"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igPostsReach}
+                  onChange={(e) => handleChange('igPostsReach', e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Account */}
+          <div className="border-l-4 border-slate-500 pl-4">
+            <h3 className="font-semibold text-lg mb-4">Account</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="igAccountSubscribers">Subscribers</Label>
+                <Input
+                  id="igAccountSubscribers"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igAccountSubscribers}
+                  onChange={(e) => handleChange('igAccountSubscribers', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igAccountViews">Views</Label>
+                <Input
+                  id="igAccountViews"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igAccountViews}
+                  onChange={(e) => handleChange('igAccountViews', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="igAccountInteractions">Interactions</Label>
+                <Input
+                  id="igAccountInteractions"
+                  type="number"
+                  placeholder="0"
+                  value={formData.igAccountInteractions}
+                  onChange={(e) => handleChange('igAccountInteractions', e.target.value)}
+                />
               </div>
             </div>
           </div>

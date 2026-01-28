@@ -23,6 +23,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       overallMetrics: {},
       marketingChannels: {},
       funnelMetrics: {},
+      socialMedia: {},
     };
 
     // Helper function to parse numeric values
@@ -32,6 +33,14 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       return isNaN(num) ? 0 : num;
     };
 
+    const pick = (keys: string[]): any => {
+      for (const k of keys) {
+        const v = row?.[k];
+        if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+      }
+      return undefined;
+    };
+
     // Extract week information
     const weekStartDate = row.week_start?.trim() || '';
     const weekEndDate = row.week_end?.trim() || '';
@@ -39,6 +48,98 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     // Try multiple possible column name variations
     const romansRecommendations = (row.roman_recommendations || row.romans_recommendations || row.romanRecommendations || row.romansRecommendations)?.trim() || '';
     const affiliatesConversions = row.affiliates_conversions ?? row.affiliates_coversions;
+
+    // Instagram (Social Media)
+    const setInstagramMetric = (contentType: string, metricName: string, value: number) => {
+      if (!data.socialMedia.Instagram) data.socialMedia.Instagram = {};
+      if (!data.socialMedia.Instagram[contentType]) data.socialMedia.Instagram[contentType] = {};
+      if (value > 0 || value < 0) {
+        data.socialMedia.Instagram[contentType][metricName] = value;
+      }
+    };
+
+    // Stories
+    setInstagramMetric(
+      'Stories',
+      'Views',
+      parseValue(pick(['instagram_stories_views', 'ig_stories_views', 'stories_views', 'instagram_story_views', 'ig_story_views']))
+    );
+    setInstagramMetric(
+      'Stories',
+      'Reposts',
+      parseValue(pick(['instagram_stories_reposts', 'ig_stories_reposts', 'stories_reposts', 'instagram_story_reposts', 'ig_story_reposts']))
+    );
+    setInstagramMetric(
+      'Stories',
+      'Interactions',
+      parseValue(pick(['instagram_stories_interactions', 'ig_stories_interactions', 'stories_interactions', 'instagram_story_interactions', 'ig_story_interactions']))
+    );
+    setInstagramMetric(
+      'Stories',
+      'Reach',
+      parseValue(pick(['instagram_stories_reach', 'ig_stories_reach', 'stories_reach', 'instagram_story_reach', 'ig_story_reach']))
+    );
+
+    // Reels
+    setInstagramMetric(
+      'Reels',
+      'Views',
+      parseValue(pick(['instagram_reels_views', 'ig_reels_views', 'reels_views']))
+    );
+    setInstagramMetric(
+      'Reels',
+      'Reposts',
+      parseValue(pick(['instagram_reels_reposts', 'ig_reels_reposts', 'reels_reposts']))
+    );
+    setInstagramMetric(
+      'Reels',
+      'Interactions',
+      parseValue(pick(['instagram_reels_interactions', 'ig_reels_interactions', 'reels_interactions']))
+    );
+    setInstagramMetric(
+      'Reels',
+      'Reach',
+      parseValue(pick(['instagram_reels_reach', 'ig_reels_reach', 'reels_reach']))
+    );
+
+    // Posts
+    setInstagramMetric(
+      'Posts',
+      'Views',
+      parseValue(pick(['instagram_posts_views', 'ig_posts_views', 'posts_views', 'instagram_post_views', 'ig_post_views']))
+    );
+    setInstagramMetric(
+      'Posts',
+      'Reposts',
+      parseValue(pick(['instagram_posts_reposts', 'ig_posts_reposts', 'posts_reposts', 'instagram_post_reposts', 'ig_post_reposts']))
+    );
+    setInstagramMetric(
+      'Posts',
+      'Interactions',
+      parseValue(pick(['instagram_posts_interactions', 'ig_posts_interactions', 'posts_interactions', 'instagram_post_interactions', 'ig_post_interactions']))
+    );
+    setInstagramMetric(
+      'Posts',
+      'Reach',
+      parseValue(pick(['instagram_posts_reach', 'ig_posts_reach', 'posts_reach', 'instagram_post_reach', 'ig_post_reach']))
+    );
+
+    // Account stats
+    setInstagramMetric(
+      'Account',
+      'Subscribers',
+      parseValue(pick(['instagram_account_subscribers', 'ig_account_subscribers', 'account_subscribers', 'instagram_followers', 'ig_followers']))
+    );
+    setInstagramMetric(
+      'Account',
+      'Views',
+      parseValue(pick(['instagram_account_views', 'ig_account_views', 'account_views']))
+    );
+    setInstagramMetric(
+      'Account',
+      'Interactions',
+      parseValue(pick(['instagram_account_interactions', 'ig_account_interactions', 'account_interactions']))
+    );
 
     // Store week info (always store, even if empty, to ensure it's saved)
     if (weekStartDate) data.weekStartDate = weekStartDate;
@@ -324,7 +425,8 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         const hasData = 
           Object.keys(weekData.overallMetrics).length > 0 ||
           Object.keys(weekData.marketingChannels).length > 0 ||
-          Object.keys(weekData.funnelMetrics).length > 0;
+          Object.keys(weekData.funnelMetrics).length > 0 ||
+          (weekData.socialMedia && Object.keys(weekData.socialMedia).length > 0);
 
         if (!hasData) {
           errorCount++;
@@ -347,6 +449,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
           overallMetrics: weekData.overallMetrics,
           marketingChannels: weekData.marketingChannels,
           funnelMetrics: weekData.funnelMetrics,
+          socialMedia: weekData.socialMedia,
         };
 
         try {
@@ -430,7 +533,7 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
             required
           />
           <p className="text-xs text-muted-foreground">
-            CSV should include columns: week_start, week_end, week_note, roman_recommendations, total_revenue, total_orders, avg_order_value, conversion_rate, total_sessions, and other metric columns.
+            CSV should include columns: week_start, week_end, week_note, roman_recommendations, total_revenue, total_orders, avg_order_value, conversion_rate, total_sessions, and (optional) Instagram columns like instagram_stories_views, instagram_stories_reposts, instagram_stories_interactions, instagram_stories_reach, instagram_reels_*, instagram_posts_*, instagram_account_subscribers.
           </p>
         </div>
 
