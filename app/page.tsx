@@ -14,6 +14,7 @@ import {
 import { DataEntryForm } from '@/components/data-entry-form';
 import { DataUpload } from '@/components/data-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
+import { PromotionsUpload } from '@/components/promotions-upload';
 import { InsightsDisplay } from '@/components/insights-display';
 import { getSession } from '@/lib/auth';
 import { 
@@ -1644,6 +1645,7 @@ export default function Dashboard() {
                 <DataUpload onUploadSuccess={handleUploadSuccess} />
                 <GoogleDocsImport onUploadSuccess={handleUploadSuccess} />
               </div>
+              <PromotionsUpload />
             <DataEntryForm onSuccess={handleUploadSuccess} />
           </TabsContent>
           )}

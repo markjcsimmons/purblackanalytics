@@ -175,7 +175,17 @@ export function getAllPromotions() {
 
 export function getPromotionsForWeek(weekId: number) {
   const database = getDb();
-  return database.prepare('SELECT * FROM promotions WHERE week_id = ?').all(weekId);
+  const week = database.prepare('SELECT * FROM weeks WHERE id = ?').get(weekId) as any;
+  if (!week) return [];
+  return database
+    .prepare(
+      `
+      SELECT * FROM promotions
+      WHERE start_date <= ? AND end_date >= ?
+      ORDER BY start_date DESC
+      `
+    )
+    .all(week.week_end_date, week.week_start_date);
 }
 
 export function getAllData() {
@@ -187,7 +197,15 @@ export function getAllData() {
     const marketingChannels = database.prepare('SELECT * FROM marketing_channels WHERE week_id = ?').all(week.id);
     const funnelMetrics = database.prepare('SELECT * FROM funnel_metrics WHERE week_id = ?').all(week.id);
     const socialMediaMetrics = database.prepare('SELECT * FROM social_media_metrics WHERE week_id = ?').all(week.id);
-    const promotions = database.prepare('SELECT * FROM promotions WHERE week_id = ?').all(week.id);
+    const promotions = database
+      .prepare(
+        `
+        SELECT * FROM promotions
+        WHERE start_date <= ? AND end_date >= ?
+        ORDER BY start_date DESC
+        `
+      )
+      .all(week.week_end_date, week.week_start_date);
     
     return {
       week,
@@ -209,7 +227,18 @@ export function getWeekData(weekId: number) {
   const funnelMetrics = database.prepare('SELECT * FROM funnel_metrics WHERE week_id = ?').all(weekId);
   const socialMediaMetrics = database.prepare('SELECT * FROM social_media_metrics WHERE week_id = ?').all(weekId);
   const insightsRaw = database.prepare('SELECT * FROM insights WHERE week_id = ?').all(weekId) as any[];
-  const promotions = database.prepare('SELECT * FROM promotions WHERE week_id = ?').all(weekId);
+  const promotions =
+    week && typeof week === 'object' && 'week_start_date' in (week as any) && 'week_end_date' in (week as any)
+      ? database
+          .prepare(
+            `
+            SELECT * FROM promotions
+            WHERE start_date <= ? AND end_date >= ?
+            ORDER BY start_date DESC
+            `
+          )
+          .all((week as any).week_end_date, (week as any).week_start_date)
+      : [];
 
   // Map database field names to component expected format
   const insights = insightsRaw.map((insight: any) => ({
