@@ -1187,7 +1187,7 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Social Media (Instagram) */}
+                {/* Social Media (Instagram) - Overview Highlights */}
                 <Card className="border-2 border-pink-100">
                   <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50">
                     <div className="flex items-center gap-3">
@@ -1196,158 +1196,122 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <CardTitle className="text-xl">Social Media</CardTitle>
-                        <CardDescription>Weekly Instagram performance (Stories, Reels, Posts, Account)</CardDescription>
+                        <CardDescription>Overview highlights (Account Subscribers + Reels/Posts Reach &amp; Interactions)</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-6 space-y-6">
+                  <CardContent className="pt-6">
                     {(() => {
-                      const sections: Array<{
-                        title: string;
-                        contentType: string;
-                        metrics: Array<{ key: string; label: string }>;
-                      }> = [
-                        {
-                          title: 'Stories',
-                          contentType: 'Stories',
-                          metrics: [
-                            { key: 'Views', label: 'Views' },
-                            // Display labels updated per request, but we still read existing stored keys
-                            { key: 'Reposts', label: 'Replies' },
-                            { key: 'Interactions', label: 'Profile Visits' },
-                            { key: 'Reach', label: 'Reach' },
-                          ],
-                        },
-                        {
-                          title: 'Reels',
-                          contentType: 'Reels',
-                          metrics: [
-                            { key: 'Views', label: 'Views' },
-                            { key: 'Reposts', label: 'Reposts' },
-                            { key: 'Interactions', label: 'Interactions' },
-                            { key: 'Reach', label: 'Reach' },
-                          ],
-                        },
-                        {
-                          title: 'Posts',
-                          contentType: 'Posts',
-                          metrics: [
-                            { key: 'Views', label: 'Views' },
-                            { key: 'Reposts', label: 'Reposts' },
-                            { key: 'Interactions', label: 'Interactions' },
-                            { key: 'Reach', label: 'Reach' },
-                          ],
-                        },
-                        {
-                          title: 'Account',
-                          contentType: 'Account',
-                          metrics: [
-                            { key: 'Subscribers', label: 'Subscribers' },
-                            { key: 'Views', label: 'Views' },
-                            { key: 'Interactions', label: 'Interactions' },
-                          ],
-                        },
+                      const highlights = [
+                        { contentType: 'Account', key: 'Subscribers', label: 'Account Subscribers' },
+                        { contentType: 'Reels', key: 'Reach', label: 'Reels Reach' },
+                        { contentType: 'Reels', key: 'Interactions', label: 'Reels Interactions' },
+                        { contentType: 'Posts', key: 'Reach', label: 'Posts Reach' },
+                        { contentType: 'Posts', key: 'Interactions', label: 'Posts Interactions' },
                       ];
 
-                      const hasAny =
-                        sections.some((s) =>
-                          s.metrics.some((metric) => getSocialMetric(weekData, 'Instagram', s.contentType, metric.key) !== null)
-                        );
+                      const hasAny = highlights.some(
+                        (m) => getSocialMetric(weekData, 'Instagram', m.contentType, m.key) !== null
+                      );
 
                       if (!hasAny) {
                         return (
                           <div className="text-center py-8 text-muted-foreground">
                             <Instagram className="h-12 w-12 mx-auto mb-3 opacity-30" />
                             <p>No social media data available yet</p>
-                            <p className="text-xs mt-2">Add Instagram metrics in the Add Data tab (manual or CSV).</p>
+                            <p className="text-xs mt-2">Full Social Media details are on the Channels tab.</p>
                           </div>
                         );
                       }
 
                       return (
-                        <div className="space-y-8">
-                          {sections.map((section) => (
-                            <div key={section.contentType} className="border-l-4 border-pink-300 pl-4">
-                              <h3 className="font-semibold text-lg mb-4">{section.title}</h3>
-                              <div className={`grid gap-4 ${section.metrics.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
-                                {section.metrics.map((metric) => {
-                                  const current = getSocialMetric(weekData, 'Instagram', section.contentType, metric.key);
-                                  const prev = comparisonData?.previousWeek
-                                    ? getSocialMetric(comparisonData.previousWeek, 'Instagram', section.contentType, metric.key)
-                                    : null;
-                                  const yearAgo = comparisonData?.sameWeekYearAgo
-                                    ? getSocialMetric(comparisonData.sameWeekYearAgo, 'Instagram', section.contentType, metric.key)
-                                    : null;
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                          {highlights.map((metric) => {
+                            const current = getSocialMetric(weekData, 'Instagram', metric.contentType, metric.key);
+                            const prev = comparisonData?.previousWeek
+                              ? getSocialMetric(comparisonData.previousWeek, 'Instagram', metric.contentType, metric.key)
+                              : null;
+                            const yearAgo = comparisonData?.sameWeekYearAgo
+                              ? getSocialMetric(comparisonData.sameWeekYearAgo, 'Instagram', metric.contentType, metric.key)
+                              : null;
 
-                                  const currentValue = current ?? 0;
-                                  const prevChange = current !== null ? formatChange(currentValue, prev) : null;
-                                  const yearAgoChange = current !== null ? formatChange(currentValue, yearAgo) : null;
+                            const currentValue = current ?? 0;
+                            const prevChange = current !== null ? formatChange(currentValue, prev) : null;
+                            const yearAgoChange = current !== null ? formatChange(currentValue, yearAgo) : null;
 
-                                  return (
-                                    <div key={metric.key} className="p-4 border-2 border-pink-200 rounded-lg bg-gradient-to-br from-white to-pink-50">
-                                      <div className="text-sm font-medium text-slate-700 mb-2">{metric.label}</div>
-                                      <div className="text-2xl font-bold text-slate-900">{formatNumber(currentValue)}</div>
+                            return (
+                              <div
+                                key={`${metric.contentType}-${metric.key}`}
+                                className="p-4 border-2 border-pink-200 rounded-lg bg-gradient-to-br from-white to-pink-50"
+                              >
+                                <div className="text-sm font-medium text-slate-700 mb-2">{metric.label}</div>
+                                <div className="text-2xl font-bold text-slate-900">{formatNumber(currentValue)}</div>
 
-                                      {(comparisonData?.previousWeek || comparisonData?.sameWeekYearAgo) && (
-                                        <div className="space-y-1 mt-3 pt-3 border-t border-pink-200">
-                                          {comparisonData?.previousWeek && (
-                                            <div className="flex items-center justify-between text-xs">
-                                              <span className="text-slate-600">vs Last Week:</span>
-                                              {prev !== null && current !== null ? (
-                                                <span
-                                                  className={`font-semibold flex items-center gap-1 ${
-                                                    prevChange !== null && prevChange !== Infinity && prevChange > 0
-                                                      ? 'text-green-600'
-                                                      : prevChange !== null && prevChange !== Infinity && prevChange < 0
-                                                      ? 'text-red-600'
-                                                      : 'text-slate-600'
-                                                  }`}
-                                                >
-                                                  {prevChange !== null && prevChange !== Infinity && prevChange > 0 ? (
-                                                    <ArrowUpRight className="h-3 w-3" />
-                                                  ) : prevChange !== null && prevChange !== Infinity && prevChange < 0 ? (
-                                                    <ArrowDownRight className="h-3 w-3" />
-                                                  ) : null}
-                                                  {prevChange === Infinity ? 'New' : prevChange !== null ? `${Math.abs(prevChange).toFixed(1)}%` : '0.0%'}
-                                                </span>
-                                              ) : (
-                                                <span className="text-slate-400">No data</span>
-                                              )}
-                                            </div>
-                                          )}
-                                          {comparisonData?.sameWeekYearAgo && (
-                                            <div className="flex items-center justify-between text-xs">
-                                              <span className="text-slate-600">vs Year Ago:</span>
-                                              {yearAgo !== null && current !== null ? (
-                                                <span
-                                                  className={`font-semibold flex items-center gap-1 ${
-                                                    yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange > 0
-                                                      ? 'text-green-600'
-                                                      : yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange < 0
-                                                      ? 'text-red-600'
-                                                      : 'text-slate-600'
-                                                  }`}
-                                                >
-                                                  {yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange > 0 ? (
-                                                    <ArrowUpRight className="h-3 w-3" />
-                                                  ) : yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange < 0 ? (
-                                                    <ArrowDownRight className="h-3 w-3" />
-                                                  ) : null}
-                                                  {yearAgoChange === Infinity ? 'New' : yearAgoChange !== null ? `${Math.abs(yearAgoChange).toFixed(1)}%` : '0.0%'}
-                                                </span>
-                                              ) : (
-                                                <span className="text-slate-400">No data</span>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
+                                {(comparisonData?.previousWeek || comparisonData?.sameWeekYearAgo) && (
+                                  <div className="space-y-1 mt-3 pt-3 border-t border-pink-200">
+                                    {comparisonData?.previousWeek && (
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-slate-600">vs Last Week:</span>
+                                        {prev !== null && current !== null ? (
+                                          <span
+                                            className={`font-semibold flex items-center gap-1 ${
+                                              prevChange !== null && prevChange !== Infinity && prevChange > 0
+                                                ? 'text-green-600'
+                                                : prevChange !== null && prevChange !== Infinity && prevChange < 0
+                                                ? 'text-red-600'
+                                                : 'text-slate-600'
+                                            }`}
+                                          >
+                                            {prevChange !== null && prevChange !== Infinity && prevChange > 0 ? (
+                                              <ArrowUpRight className="h-3 w-3" />
+                                            ) : prevChange !== null && prevChange !== Infinity && prevChange < 0 ? (
+                                              <ArrowDownRight className="h-3 w-3" />
+                                            ) : null}
+                                            {prevChange === Infinity
+                                              ? 'New'
+                                              : prevChange !== null
+                                              ? `${Math.abs(prevChange).toFixed(1)}%`
+                                              : '0.0%'}
+                                          </span>
+                                        ) : (
+                                          <span className="text-slate-400">No data</span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {comparisonData?.sameWeekYearAgo && (
+                                      <div className="flex items-center justify-between text-xs">
+                                        <span className="text-slate-600">vs Year Ago:</span>
+                                        {yearAgo !== null && current !== null ? (
+                                          <span
+                                            className={`font-semibold flex items-center gap-1 ${
+                                              yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange > 0
+                                                ? 'text-green-600'
+                                                : yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange < 0
+                                                ? 'text-red-600'
+                                                : 'text-slate-600'
+                                            }`}
+                                          >
+                                            {yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange > 0 ? (
+                                              <ArrowUpRight className="h-3 w-3" />
+                                            ) : yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange < 0 ? (
+                                              <ArrowDownRight className="h-3 w-3" />
+                                            ) : null}
+                                            {yearAgoChange === Infinity
+                                              ? 'New'
+                                              : yearAgoChange !== null
+                                              ? `${Math.abs(yearAgoChange).toFixed(1)}%`
+                                              : '0.0%'}
+                                          </span>
+                                        ) : (
+                                          <span className="text-slate-400">No data</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       );
                     })()}
@@ -1669,6 +1633,172 @@ export default function Dashboard() {
                   </Card>
                   );
                 })}
+
+                {/* Social Media (Instagram) - moved from Overview */}
+                <Card className="border-2 border-pink-100">
+                  <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-pink-500 rounded-lg">
+                        <Instagram className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">Social Media</CardTitle>
+                        <CardDescription>Weekly Instagram performance (Stories, Reels, Posts, Account)</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6 space-y-6">
+                    {(() => {
+                      const sections: Array<{
+                        title: string;
+                        contentType: string;
+                        metrics: Array<{ key: string; label: string }>;
+                      }> = [
+                        {
+                          title: 'Stories',
+                          contentType: 'Stories',
+                          metrics: [
+                            { key: 'Views', label: 'Views' },
+                            { key: 'Reposts', label: 'Replies' },
+                            { key: 'Interactions', label: 'Profile Visits' },
+                            { key: 'Reach', label: 'Reach' },
+                          ],
+                        },
+                        {
+                          title: 'Reels',
+                          contentType: 'Reels',
+                          metrics: [
+                            { key: 'Views', label: 'Views' },
+                            { key: 'Reposts', label: 'Reposts' },
+                            { key: 'Interactions', label: 'Interactions' },
+                            { key: 'Reach', label: 'Reach' },
+                          ],
+                        },
+                        {
+                          title: 'Posts',
+                          contentType: 'Posts',
+                          metrics: [
+                            { key: 'Views', label: 'Views' },
+                            { key: 'Reposts', label: 'Reposts' },
+                            { key: 'Interactions', label: 'Interactions' },
+                            { key: 'Reach', label: 'Reach' },
+                          ],
+                        },
+                        {
+                          title: 'Account',
+                          contentType: 'Account',
+                          metrics: [
+                            { key: 'Subscribers', label: 'Subscribers' },
+                            { key: 'Views', label: 'Views' },
+                            { key: 'Interactions', label: 'Interactions' },
+                          ],
+                        },
+                      ];
+
+                      const hasAny =
+                        sections.some((s) =>
+                          s.metrics.some((metric) => getSocialMetric(weekData, 'Instagram', s.contentType, metric.key) !== null)
+                        );
+
+                      if (!hasAny) {
+                        return (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <Instagram className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                            <p>No social media data available yet</p>
+                            <p className="text-xs mt-2">Add Instagram metrics in the Add Data tab (manual or CSV).</p>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-8">
+                          {sections.map((section) => (
+                            <div key={section.contentType} className="border-l-4 border-pink-300 pl-4">
+                              <h3 className="font-semibold text-lg mb-4">{section.title}</h3>
+                              <div className={`grid gap-4 ${section.metrics.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+                                {section.metrics.map((metric) => {
+                                  const current = getSocialMetric(weekData, 'Instagram', section.contentType, metric.key);
+                                  const prev = comparisonData?.previousWeek
+                                    ? getSocialMetric(comparisonData.previousWeek, 'Instagram', section.contentType, metric.key)
+                                    : null;
+                                  const yearAgo = comparisonData?.sameWeekYearAgo
+                                    ? getSocialMetric(comparisonData.sameWeekYearAgo, 'Instagram', section.contentType, metric.key)
+                                    : null;
+
+                                  const currentValue = current ?? 0;
+                                  const prevChange = current !== null ? formatChange(currentValue, prev) : null;
+                                  const yearAgoChange = current !== null ? formatChange(currentValue, yearAgo) : null;
+
+                                  return (
+                                    <div key={metric.key} className="p-4 border-2 border-pink-200 rounded-lg bg-gradient-to-br from-white to-pink-50">
+                                      <div className="text-sm font-medium text-slate-700 mb-2">{metric.label}</div>
+                                      <div className="text-2xl font-bold text-slate-900">{formatNumber(currentValue)}</div>
+
+                                      {(comparisonData?.previousWeek || comparisonData?.sameWeekYearAgo) && (
+                                        <div className="space-y-1 mt-3 pt-3 border-t border-pink-200">
+                                          {comparisonData?.previousWeek && (
+                                            <div className="flex items-center justify-between text-xs">
+                                              <span className="text-slate-600">vs Last Week:</span>
+                                              {prev !== null && current !== null ? (
+                                                <span
+                                                  className={`font-semibold flex items-center gap-1 ${
+                                                    prevChange !== null && prevChange !== Infinity && prevChange > 0
+                                                      ? 'text-green-600'
+                                                      : prevChange !== null && prevChange !== Infinity && prevChange < 0
+                                                      ? 'text-red-600'
+                                                      : 'text-slate-600'
+                                                  }`}
+                                                >
+                                                  {prevChange !== null && prevChange !== Infinity && prevChange > 0 ? (
+                                                    <ArrowUpRight className="h-3 w-3" />
+                                                  ) : prevChange !== null && prevChange !== Infinity && prevChange < 0 ? (
+                                                    <ArrowDownRight className="h-3 w-3" />
+                                                  ) : null}
+                                                  {prevChange === Infinity ? 'New' : prevChange !== null ? `${Math.abs(prevChange).toFixed(1)}%` : '0.0%'}
+                                                </span>
+                                              ) : (
+                                                <span className="text-slate-400">No data</span>
+                                              )}
+                                            </div>
+                                          )}
+                                          {comparisonData?.sameWeekYearAgo && (
+                                            <div className="flex items-center justify-between text-xs">
+                                              <span className="text-slate-600">vs Year Ago:</span>
+                                              {yearAgo !== null && current !== null ? (
+                                                <span
+                                                  className={`font-semibold flex items-center gap-1 ${
+                                                    yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange > 0
+                                                      ? 'text-green-600'
+                                                      : yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange < 0
+                                                      ? 'text-red-600'
+                                                      : 'text-slate-600'
+                                                  }`}
+                                                >
+                                                  {yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange > 0 ? (
+                                                    <ArrowUpRight className="h-3 w-3" />
+                                                  ) : yearAgoChange !== null && yearAgoChange !== Infinity && yearAgoChange < 0 ? (
+                                                    <ArrowDownRight className="h-3 w-3" />
+                                                  ) : null}
+                                                  {yearAgoChange === Infinity ? 'New' : yearAgoChange !== null ? `${Math.abs(yearAgoChange).toFixed(1)}%` : '0.0%'}
+                                                </span>
+                                              ) : (
+                                                <span className="text-slate-400">No data</span>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
               </div>
             )}
           </TabsContent>
