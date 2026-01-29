@@ -562,62 +562,6 @@ export default function Dashboard() {
                   </Card>
                 </div>
 
-                {/* This week vs benchmarks (fast scan) */}
-                <Card className="border-2 border-slate-200 bg-white">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-semibold text-slate-900">This week at a glance</CardTitle>
-                    <CardDescription className="text-xs">Week-over-week and year-over-year deltas for key KPIs</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                      {[
-                        { label: 'Revenue', key: 'Revenue', format: (v: number) => formatCurrency(v) },
-                        { label: 'Orders', key: 'Orders', format: (v: number) => formatNumber(v) },
-                        { label: 'Conversion Rate', key: 'Conversion Rate', format: (v: number) => `${(v || 0).toFixed(2)}%` },
-                        { label: 'Sessions', key: 'Total Sessions', format: (v: number) => formatNumber(v) },
-                      ].map((kpi) => {
-                        const current = getMetricValue(weekData.overallMetrics, kpi.key);
-                        const prev = comparisonData?.previousWeek
-                          ? getMetricValue(comparisonData.previousWeek.overallMetrics, kpi.key)
-                          : null;
-                        const yearAgo = comparisonData?.sameWeekYearAgo
-                          ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, kpi.key)
-                          : null;
-
-                        const wow =
-                          prev !== null && prev !== 0 ? ((current - prev) / prev) * 100 : prev === 0 && current > 0 ? Infinity : null;
-                        const yoy =
-                          yearAgo !== null && yearAgo !== 0
-                            ? ((current - yearAgo) / yearAgo) * 100
-                            : yearAgo === 0 && current > 0
-                            ? Infinity
-                            : null;
-
-                        return (
-                          <div key={kpi.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                            <div className="text-xs text-slate-600">{kpi.label}</div>
-                            <div className="text-lg font-bold text-slate-900">{kpi.format(current)}</div>
-                            <div className="mt-2 space-y-1 text-[11px]">
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-500">vs Last Week</span>
-                                <span className="font-semibold text-slate-700">
-                                  {wow === Infinity ? 'New' : wow === null ? '—' : `${wow > 0 ? '+' : ''}${wow.toFixed(1)}%`}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="text-slate-500">vs Year Ago</span>
-                                <span className="font-semibold text-slate-700">
-                                  {yoy === Infinity ? 'New' : yoy === null ? '—' : `${yoy > 0 ? '+' : ''}${yoy.toFixed(1)}%`}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {/* Overview workspace */}
                 <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
                   <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
