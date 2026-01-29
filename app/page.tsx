@@ -80,6 +80,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [accessLevel, setAccessLevel] = useState<'full' | 'limited' | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'insights' | 'ai-search'>('deep-dive');
   const [comparisonData, setComparisonData] = useState<{
     previousWeek: any;
     sameWeekYearAgo: any;
@@ -561,50 +562,71 @@ export default function Dashboard() {
                   </Card>
                 </div>
 
-                {/* ROMAN'S RECOMMENDATIONS */}
-                <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50">
-                  <CardHeader className="bg-gradient-to-r from-amber-100 to-yellow-100">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-amber-500 rounded-lg">
-                        <Sparkles className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl text-amber-900">Roman&apos;s Recommendations</CardTitle>
-                        <CardDescription className="text-amber-700">Expert insights and actionable recommendations</CardDescription>
-                      </div>
-                    </div>
+                {/* This week vs benchmarks (fast scan) */}
+                <Card className="border-2 border-slate-200 bg-white">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-slate-900">This week at a glance</CardTitle>
+                    <CardDescription className="text-xs">Week-over-week and year-over-year deltas for key KPIs</CardDescription>
                   </CardHeader>
-                  <CardContent className="pt-6">
-                    {(() => {
-                      // Try multiple property name formats
-                      const week = weekData.week as any;
-                      const recommendations = week?.romans_recommendations || week?.romansRecommendations || week?.roman_recommendations || week?.romanRecommendations;
-                      
-                      if (recommendations && typeof recommendations === 'string' && recommendations.trim()) {
+                  <CardContent>
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        { label: 'Revenue', key: 'Revenue', format: (v: number) => formatCurrency(v) },
+                        { label: 'Orders', key: 'Orders', format: (v: number) => formatNumber(v) },
+                        { label: 'Conversion Rate', key: 'Conversion Rate', format: (v: number) => `${(v || 0).toFixed(2)}%` },
+                        { label: 'Sessions', key: 'Total Sessions', format: (v: number) => formatNumber(v) },
+                      ].map((kpi) => {
+                        const current = getMetricValue(weekData.overallMetrics, kpi.key);
+                        const prev = comparisonData?.previousWeek
+                          ? getMetricValue(comparisonData.previousWeek.overallMetrics, kpi.key)
+                          : null;
+                        const yearAgo = comparisonData?.sameWeekYearAgo
+                          ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, kpi.key)
+                          : null;
+
+                        const wow =
+                          prev !== null && prev !== 0 ? ((current - prev) / prev) * 100 : prev === 0 && current > 0 ? Infinity : null;
+                        const yoy =
+                          yearAgo !== null && yearAgo !== 0
+                            ? ((current - yearAgo) / yearAgo) * 100
+                            : yearAgo === 0 && current > 0
+                            ? Infinity
+                            : null;
+
                         return (
-                          <div className="prose prose-amber max-w-none">
-                            <p 
-                              className="text-gray-800 text-xs leading-relaxed whitespace-pre-wrap"
-                              dangerouslySetInnerHTML={{
-                                __html: renderMarkdownBold(recommendations.trim())
-                              }}
-                            />
+                          <div key={kpi.key} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                            <div className="text-xs text-slate-600">{kpi.label}</div>
+                            <div className="text-lg font-bold text-slate-900">{kpi.format(current)}</div>
+                            <div className="mt-2 space-y-1 text-[11px]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">vs Last Week</span>
+                                <span className="font-semibold text-slate-700">
+                                  {wow === Infinity ? 'New' : wow === null ? '—' : `${wow > 0 ? '+' : ''}${wow.toFixed(1)}%`}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-500">vs Year Ago</span>
+                                <span className="font-semibold text-slate-700">
+                                  {yoy === Infinity ? 'New' : yoy === null ? '—' : `${yoy > 0 ? '+' : ''}${yoy.toFixed(1)}%`}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         );
-                      }
-                      
-                      return (
-                        <div className="text-center py-8">
-                          <Sparkles className="h-12 w-12 mx-auto mb-3 text-amber-300 opacity-50" />
-                          <p className="text-amber-700 text-sm">
-                            No recommendations added yet. Add them in the <strong>Add Data</strong> tab under &quot;Week Information&quot;.
-                          </p>
-                        </div>
-                      );
-                    })()}
+                      })}
+                    </div>
                   </CardContent>
                 </Card>
 
+                {/* Overview workspace */}
+                <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
+                  <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
+                    <TabsTrigger value="deep-dive">Deep Dive</TabsTrigger>
+                    <TabsTrigger value="insights">Insights</TabsTrigger>
+                    <TabsTrigger value="ai-search">AI / Search</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="deep-dive" className="space-y-8">
                 {/* CONVERSION FUNNEL - Detailed Breakdown */}
                 <Card className="border-2 border-indigo-100">
                   <CardHeader className="bg-gradient-to-r from-indigo-50 to-purple-50">
@@ -1052,7 +1074,7 @@ export default function Dashboard() {
                         Object.entries(
                           weekData.marketingChannels.reduce((acc: any, item: any) => {
                             if (!acc[item.channel_name]) {
-                              acc[item.channel_name] = { revenue: 0, spend: 0, conversions: 0, clicks: 0 };
+                              acc[item.channel_name] = { revenue: 0, spend: 0, conversions: 0, clicks: 0, affiliatesSignedUp: 0 };
                             }
                             const metricLower = item.metric_name.toLowerCase();
                             // Recognize revenue, sales, or attributed revenue
@@ -1067,6 +1089,9 @@ export default function Dashboard() {
                             }
                             if (metricLower.includes('click')) {
                               acc[item.channel_name].clicks = item.metric_value;
+                            }
+                            if (metricLower.includes('affiliate') && (metricLower.includes('signed') || metricLower.includes('signup'))) {
+                              acc[item.channel_name].affiliatesSignedUp = item.metric_value;
                             }
                             return acc;
                           }, {})
@@ -1128,6 +1153,12 @@ export default function Dashboard() {
                                   <span className="text-muted-foreground">Revenue:</span>
                                   <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
                                 </div>
+                                {isAffiliate && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Affiliates signed up:</span>
+                                    <span className="font-semibold text-slate-900">{formatNumber(data.affiliatesSignedUp || 0)}</span>
+                                  </div>
+                                )}
                                 {(hasPreviousWeek || hasYearAgoWeek) && (
                                   <div className="space-y-1 pt-2 border-t border-gray-200">
                                     {hasPreviousWeek && (
@@ -1318,32 +1349,64 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-              </>
-            )}
+                  </TabsContent>
 
-            {!weekData && !isLoading && (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="text-center py-12">
-                    <BarChart3 className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Upload your first week of data to get started
-                    </p>
-                    <Button onClick={() => document.querySelector('[value="add-data"]')?.dispatchEvent(new Event('click'))}>
-                      Add Data
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  <TabsContent value="insights" className="space-y-8">
+                    {/* ROMAN'S RECOMMENDATIONS */}
+                    <Card className="border-2 border-amber-300 bg-gradient-to-br from-amber-50 to-yellow-50">
+                      <CardHeader className="bg-gradient-to-r from-amber-100 to-yellow-100">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-amber-500 rounded-lg">
+                            <Sparkles className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-xl text-amber-900">Roman&apos;s Recommendations</CardTitle>
+                            <CardDescription className="text-amber-700">Expert insights and actionable recommendations</CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-6">
+                        {(() => {
+                          const week = weekData.week as any;
+                          const recommendations =
+                            week?.romans_recommendations ||
+                            week?.romansRecommendations ||
+                            week?.roman_recommendations ||
+                            week?.romanRecommendations;
 
-            {/* AI INSIGHTS - Separate section */}
-            <InsightsDisplay 
-              weekId={selectedWeekId || undefined} 
-              existingInsights={weekData?.insights || []}
-              onGenerate={() => selectedWeekId && fetchWeekData(selectedWeekId)}
-            />
+                          if (recommendations && typeof recommendations === 'string' && recommendations.trim()) {
+                            return (
+                              <div className="prose prose-amber max-w-none">
+                                <p
+                                  className="text-gray-800 text-xs leading-relaxed whitespace-pre-wrap"
+                                  dangerouslySetInnerHTML={{
+                                    __html: renderMarkdownBold(recommendations.trim()),
+                                  }}
+                                />
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="text-center py-8">
+                              <Sparkles className="h-12 w-12 mx-auto mb-3 text-amber-300 opacity-50" />
+                              <p className="text-amber-700 text-sm">
+                                No recommendations added yet. Add them in the <strong>Add Data</strong> tab under &quot;Week Information&quot;.
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </CardContent>
+                    </Card>
+
+                    <InsightsDisplay
+                      weekId={selectedWeekId || undefined}
+                      existingInsights={weekData?.insights || []}
+                      onGenerate={() => selectedWeekId && fetchWeekData(selectedWeekId)}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="ai-search" className="space-y-8">
 
             <Card className="border-2 border-slate-100">
               <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/70">
@@ -1506,6 +1569,27 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
+                  </TabsContent>
+                </Tabs>
+              </>
+            )}
+
+            {!weekData && !isLoading && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-12">
+                    <BarChart3 className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                    <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Upload your first week of data to get started
+                    </p>
+                    <Button onClick={() => document.querySelector('[value="add-data"]')?.dispatchEvent(new Event('click'))}>
+                      Add Data
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Channels Tab - Full Access Only */}

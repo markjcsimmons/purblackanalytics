@@ -64,6 +64,7 @@ interface FormData {
   affiliatesSpend: string;
   affiliatesClicks: string;
   affiliatesConversions: string;
+  affiliatesSignedUp: string;
   affiliatesSessions: string;
   affiliatesATC: string;
   affiliatesCheckout: string;
@@ -157,6 +158,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     affiliatesSpend: '',
     affiliatesClicks: '',
     affiliatesConversions: '',
+    affiliatesSignedUp: '',
     affiliatesSessions: '',
     affiliatesATC: '',
     affiliatesCheckout: '',
@@ -281,6 +283,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             affiliatesSpend: channels['Affiliates']?.['* Spend']?.toString() || '',
             affiliatesClicks: channels['Affiliates']?.['* Clicks']?.toString() || '',
             affiliatesConversions: channels['Affiliates']?.['* Conversions']?.toString() || '',
+            affiliatesSignedUp: channels['Affiliates']?.['* Affiliates signed up']?.toString() || '',
             // SEO
             seoImpressions: channels['SEO']?.['* Impressions']?.toString() || '',
             seoClicks: channels['SEO']?.['* Clicks']?.toString() || '',
@@ -411,6 +414,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         affiliatesSpend: '',
         affiliatesClicks: '',
         affiliatesConversions: '',
+        affiliatesSignedUp: '',
         affiliatesSessions: '',
         affiliatesATC: '',
         affiliatesCheckout: '',
@@ -518,6 +522,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           { channel: 'Affiliates', metric: '* Spend', value: parseFloat(formData.affiliatesSpend) || 0 },
           { channel: 'Affiliates', metric: '* Clicks', value: parseFloat(formData.affiliatesClicks) || 0 },
           { channel: 'Affiliates', metric: '* Conversions', value: parseFloat(formData.affiliatesConversions) || 0 },
+          { channel: 'Affiliates', metric: '* Affiliates signed up', value: parseFloat(formData.affiliatesSignedUp) || 0 },
           // Social
           { channel: 'Social', metric: '* Revenue', value: parseFloat(formData.socialRevenue) || 0 },
           { channel: 'Social', metric: '* Spend', value: parseFloat(formData.socialSpend) || 0 },
@@ -673,6 +678,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         affiliatesSpend: '',
         affiliatesClicks: '',
         affiliatesConversions: '',
+        affiliatesSignedUp: '',
         affiliatesSessions: '',
         affiliatesATC: '',
         affiliatesCheckout: '',
@@ -1152,6 +1158,16 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                   placeholder="6"
                   value={formData.affiliatesConversions}
                   onChange={(e) => handleChange('affiliatesConversions', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="affiliatesSignedUp">Affiliates signed up</Label>
+                <Input
+                  id="affiliatesSignedUp"
+                  type="number"
+                  placeholder="0"
+                  value={formData.affiliatesSignedUp}
+                  onChange={(e) => handleChange('affiliatesSignedUp', e.target.value)}
                 />
               </div>
             </div>

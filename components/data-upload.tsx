@@ -218,6 +218,17 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         if (parseValue(affiliatesConversions) > 0) {
           data.marketingChannels['Affiliates']['* Conversions'] = parseValue(affiliatesConversions);
         }
+        const affiliatesSignedUp = pick([
+          'affiliates_signed_up',
+          'affiliate_signed_up',
+          'affiliates_signups',
+          'affiliate_signups',
+          'affiliates_signed',
+          'affiliates_signedup',
+        ]);
+        if (parseValue(affiliatesSignedUp) > 0) {
+          data.marketingChannels['Affiliates']['* Affiliates signed up'] = parseValue(affiliatesSignedUp);
+        }
       }
 
       // Marketing Channels - SEO
