@@ -1205,17 +1205,53 @@ export default function Dashboard() {
                       const sections: Array<{
                         title: string;
                         contentType: string;
-                        metrics: string[];
+                        metrics: Array<{ key: string; label: string }>;
                       }> = [
-                        { title: 'Stories', contentType: 'Stories', metrics: ['Views', 'Reposts', 'Interactions', 'Reach'] },
-                        { title: 'Reels', contentType: 'Reels', metrics: ['Views', 'Reposts', 'Interactions', 'Reach'] },
-                        { title: 'Posts', contentType: 'Posts', metrics: ['Views', 'Reposts', 'Interactions', 'Reach'] },
-                        { title: 'Account', contentType: 'Account', metrics: ['Subscribers', 'Views', 'Interactions'] },
+                        {
+                          title: 'Stories',
+                          contentType: 'Stories',
+                          metrics: [
+                            { key: 'Views', label: 'Views' },
+                            // Display labels updated per request, but we still read existing stored keys
+                            { key: 'Reposts', label: 'Replies' },
+                            { key: 'Interactions', label: 'Profile Visits' },
+                            { key: 'Reach', label: 'Reach' },
+                          ],
+                        },
+                        {
+                          title: 'Reels',
+                          contentType: 'Reels',
+                          metrics: [
+                            { key: 'Views', label: 'Views' },
+                            { key: 'Reposts', label: 'Reposts' },
+                            { key: 'Interactions', label: 'Interactions' },
+                            { key: 'Reach', label: 'Reach' },
+                          ],
+                        },
+                        {
+                          title: 'Posts',
+                          contentType: 'Posts',
+                          metrics: [
+                            { key: 'Views', label: 'Views' },
+                            { key: 'Reposts', label: 'Reposts' },
+                            { key: 'Interactions', label: 'Interactions' },
+                            { key: 'Reach', label: 'Reach' },
+                          ],
+                        },
+                        {
+                          title: 'Account',
+                          contentType: 'Account',
+                          metrics: [
+                            { key: 'Subscribers', label: 'Subscribers' },
+                            { key: 'Views', label: 'Views' },
+                            { key: 'Interactions', label: 'Interactions' },
+                          ],
+                        },
                       ];
 
                       const hasAny =
                         sections.some((s) =>
-                          s.metrics.some((metric) => getSocialMetric(weekData, 'Instagram', s.contentType, metric) !== null)
+                          s.metrics.some((metric) => getSocialMetric(weekData, 'Instagram', s.contentType, metric.key) !== null)
                         );
 
                       if (!hasAny) {
@@ -1235,12 +1271,12 @@ export default function Dashboard() {
                               <h3 className="font-semibold text-lg mb-4">{section.title}</h3>
                               <div className={`grid gap-4 ${section.metrics.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
                                 {section.metrics.map((metric) => {
-                                  const current = getSocialMetric(weekData, 'Instagram', section.contentType, metric);
+                                  const current = getSocialMetric(weekData, 'Instagram', section.contentType, metric.key);
                                   const prev = comparisonData?.previousWeek
-                                    ? getSocialMetric(comparisonData.previousWeek, 'Instagram', section.contentType, metric)
+                                    ? getSocialMetric(comparisonData.previousWeek, 'Instagram', section.contentType, metric.key)
                                     : null;
                                   const yearAgo = comparisonData?.sameWeekYearAgo
-                                    ? getSocialMetric(comparisonData.sameWeekYearAgo, 'Instagram', section.contentType, metric)
+                                    ? getSocialMetric(comparisonData.sameWeekYearAgo, 'Instagram', section.contentType, metric.key)
                                     : null;
 
                                   const currentValue = current ?? 0;
@@ -1248,8 +1284,8 @@ export default function Dashboard() {
                                   const yearAgoChange = current !== null ? formatChange(currentValue, yearAgo) : null;
 
                                   return (
-                                    <div key={metric} className="p-4 border-2 border-pink-200 rounded-lg bg-gradient-to-br from-white to-pink-50">
-                                      <div className="text-sm font-medium text-slate-700 mb-2">{metric}</div>
+                                    <div key={metric.key} className="p-4 border-2 border-pink-200 rounded-lg bg-gradient-to-br from-white to-pink-50">
+                                      <div className="text-sm font-medium text-slate-700 mb-2">{metric.label}</div>
                                       <div className="text-2xl font-bold text-slate-900">{formatNumber(currentValue)}</div>
 
                                       {(comparisonData?.previousWeek || comparisonData?.sameWeekYearAgo) && (
