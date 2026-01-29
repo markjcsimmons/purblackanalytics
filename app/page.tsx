@@ -564,10 +564,25 @@ export default function Dashboard() {
 
                 {/* Overview workspace */}
                 <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
-                    <TabsTrigger value="deep-dive">Deep Dive</TabsTrigger>
-                    <TabsTrigger value="insights">Insights</TabsTrigger>
-                    <TabsTrigger value="ai-search">AI / Search</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm lg:w-[520px]">
+                    <TabsTrigger
+                      value="deep-dive"
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
+                    >
+                      Deep Dive
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="insights"
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
+                    >
+                      Insights
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="ai-search"
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
+                    >
+                      AI / Search
+                    </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="deep-dive" className="space-y-8">
