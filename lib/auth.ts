@@ -13,7 +13,7 @@ export const getFullAccessPassword = (): string => {
 };
 
 export const PASSWORDS = {
-  LIMITED_ACCESS: 'PB2026!',
+  LIMITED_ACCESS: 'PB2025!',
 } as const;
 
 export type AccessLevel = 'full' | 'limited' | null;
