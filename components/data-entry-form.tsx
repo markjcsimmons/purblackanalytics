@@ -38,6 +38,7 @@ interface FormData {
   aov: string;
   conversionRate: string;
   sessions: string;
+  checkoutAbandonmentRate: string;
   
   // Google Ads
   googleAdsRevenue: string;
@@ -107,15 +108,6 @@ interface FormData {
   igAccountViews: string;
   igAccountInteractions: string;
   
-  // Product Page Metrics
-  productPageATCRate: string;
-  productPageTimeOnPage: string;
-  productPageScrollDepth: string;
-  
-  // Cart Metrics
-  cartShippingIssues: string;
-  cartAbandonment: string;
-  
   // Top Selling Products
   products: Array<{ name: string; orders: string }>;
 }
@@ -138,6 +130,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     aov: '',
     conversionRate: '',
     sessions: '',
+    checkoutAbandonmentRate: '',
     googleAdsRevenue: '',
     googleAdsSpend: '',
     googleAdsClicks: '',
@@ -195,11 +188,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
     igAccountSubscribers: '',
     igAccountViews: '',
     igAccountInteractions: '',
-    productPageATCRate: '',
-    productPageTimeOnPage: '',
-    productPageScrollDepth: '',
-    cartShippingIssues: '',
-    cartAbandonment: '',
     products: [{ name: '', orders: '' }],
   });
 
@@ -242,6 +230,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             aov: metrics['* AOV']?.toString() || '',
             conversionRate: metrics['* Conversion Rate']?.toString() || '',
             sessions: metrics['* Total Sessions']?.toString() || '',
+            checkoutAbandonmentRate: metrics['* Checkout Abandonment Rate']?.toString() || '',
           }));
 
           // Extract products
@@ -330,12 +319,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
             socialATC: funnels['Social']?.['Add to Cart']?.toString() || '',
             socialCheckout: funnels['Social']?.['Checkout']?.toString() || '',
             socialPurchases: funnels['Social']?.['Purchases']?.toString() || '',
-            // Product Page
-            productPageATCRate: funnels['Product Page']?.['* Add-to-cart rate']?.toString() || '',
-            productPageTimeOnPage: funnels['Product Page']?.['* Time on page']?.toString() || '',
-            productPageScrollDepth: funnels['Product Page']?.['* Scroll depth']?.toString() || '',
-            // Cart
-            cartAbandonment: funnels['Cart']?.['* Abandonment rate']?.toString() || '',
           }));
         }
 
@@ -394,6 +377,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         aov: '',
         conversionRate: '',
         sessions: '',
+        checkoutAbandonmentRate: '',
         googleAdsRevenue: '',
         googleAdsSpend: '',
         googleAdsClicks: '',
@@ -451,11 +435,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         igAccountSubscribers: '',
         igAccountViews: '',
         igAccountInteractions: '',
-        productPageATCRate: '',
-        productPageTimeOnPage: '',
-        productPageScrollDepth: '',
-        cartShippingIssues: '',
-        cartAbandonment: '',
         products: [{ name: '', orders: '' }],
       });
     } else {
@@ -490,6 +469,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           { metric: '* AOV', value: parseFloat(formData.aov) || 0 },
           { metric: '* Conversion Rate', value: parseFloat(formData.conversionRate) || 0 },
           { metric: '* Total Sessions', value: parseFloat(formData.sessions) || 0 },
+          { metric: '* Checkout Abandonment Rate', value: parseFloat(formData.checkoutAbandonmentRate) || 0 },
         // Add top selling products
           ...formData.products
             .filter(p => p.name.trim() && parseFloat(p.orders) > 0)
@@ -570,13 +550,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
           { stage: 'Social', metric: 'Add to Cart', value: parseFloat(formData.socialATC) || 0 },
           { stage: 'Social', metric: 'Checkout', value: parseFloat(formData.socialCheckout) || 0 },
           { stage: 'Social', metric: 'Purchases', value: parseFloat(formData.socialPurchases) || 0 },
-          // Product Page
-          { stage: 'Product Page', metric: '* Add-to-cart rate', value: parseFloat(formData.productPageATCRate) || 0 },
-          { stage: 'Product Page', metric: '* Time on page', value: parseFloat(formData.productPageTimeOnPage) || 0 },
-          { stage: 'Product Page', metric: '* Scroll depth', value: parseFloat(formData.productPageScrollDepth) || 0 },
-          // Cart
-          { stage: 'Cart', metric: '* Shipping issues', value: parseFloat(formData.cartShippingIssues) || 0 },
-          { stage: 'Cart', metric: '* Abandonment rate', value: parseFloat(formData.cartAbandonment) || 0 },
       ];
       funnelMetricsArray.forEach(item => {
         if (item.value > 0) {
@@ -658,6 +631,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         aov: '',
         conversionRate: '',
         sessions: '',
+        checkoutAbandonmentRate: '',
         googleAdsRevenue: '',
         googleAdsSpend: '',
         googleAdsClicks: '',
@@ -715,11 +689,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
         igAccountSubscribers: '',
         igAccountViews: '',
         igAccountInteractions: '',
-        productPageATCRate: '',
-        productPageTimeOnPage: '',
-        productPageScrollDepth: '',
-        cartShippingIssues: '',
-        cartAbandonment: '',
         products: [{ name: '', orders: '' }],
       });
         setSelectedWeekId(null);
@@ -906,6 +875,17 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 placeholder="1484"
                 value={formData.sessions}
                 onChange={(e) => handleChange('sessions', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="checkoutAbandonmentRate">Checkout Abandonment Rate (%)</Label>
+              <Input
+                id="checkoutAbandonmentRate"
+                type="number"
+                step="0.01"
+                placeholder="46.25"
+                value={formData.checkoutAbandonmentRate}
+                onChange={(e) => handleChange('checkoutAbandonmentRate', e.target.value)}
               />
             </div>
           </div>
@@ -1564,88 +1544,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                   value={formData.igAccountInteractions}
                   onChange={(e) => handleChange('igAccountInteractions', e.target.value)}
                 />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Website Experience */}
-      <Card>
-        <CardHeader className="bg-gradient-to-r from-teal-50 to-cyan-50">
-          <div className="flex items-center gap-3">
-            <Target className="h-5 w-5 text-teal-600" />
-            <div>
-              <CardTitle>Website Experience</CardTitle>
-              <CardDescription>Product page and cart metrics</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="space-y-6">
-            <div>
-              <h3 className="font-semibold mb-3">Product Page</h3>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="productPageATCRate">Add-to-Cart Rate (%)</Label>
-                  <Input
-                    id="productPageATCRate"
-                    type="number"
-                    step="0.01"
-                    placeholder="20.66"
-                    value={formData.productPageATCRate}
-                    onChange={(e) => handleChange('productPageATCRate', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="productPageTimeOnPage">Time on Page (min)</Label>
-                  <Input
-                    id="productPageTimeOnPage"
-                    type="number"
-                    step="0.1"
-                    placeholder="6.0"
-                    value={formData.productPageTimeOnPage}
-                    onChange={(e) => handleChange('productPageTimeOnPage', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="productPageScrollDepth">Scroll Depth (%)</Label>
-                  <Input
-                    id="productPageScrollDepth"
-                    type="number"
-                    step="0.1"
-                    placeholder="50.0"
-                    value={formData.productPageScrollDepth}
-                    onChange={(e) => handleChange('productPageScrollDepth', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-3">Cart</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="cartShippingIssues">Shipping Issues (%)</Label>
-                  <Input
-                    id="cartShippingIssues"
-                    type="number"
-                    step="0.1"
-                    placeholder="4.4"
-                    value={formData.cartShippingIssues}
-                    onChange={(e) => handleChange('cartShippingIssues', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cartAbandonment">Cart Abandonment Rate (%)</Label>
-                  <Input
-                    id="cartAbandonment"
-                    type="number"
-                    step="0.1"
-                    placeholder="65.0"
-                    value={formData.cartAbandonment}
-                    onChange={(e) => handleChange('cartAbandonment', e.target.value)}
-                  />
-                </div>
               </div>
             </div>
           </div>

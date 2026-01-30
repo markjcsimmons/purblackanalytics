@@ -164,6 +164,15 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       if (parseValue(row.total_sessions) > 0) {
         data.overallMetrics['* Total Sessions'] = parseValue(row.total_sessions);
       }
+      if (parseValue(row.total_add_to_cart) > 0) {
+        data.overallMetrics['* Total Add to Cart'] = parseValue(row.total_add_to_cart);
+      }
+      if (parseValue(row.total_checkout) > 0) {
+        data.overallMetrics['* Total Checkout'] = parseValue(row.total_checkout);
+      }
+      if (parseValue(row.checkout_abandonment_rate) > 0) {
+        data.overallMetrics['* Checkout Abandonment Rate'] = parseValue(row.checkout_abandonment_rate);
+      }
 
       // Marketing Channels - Google Ads
       if (parseValue(row.google_ads_revenue) > 0 || parseValue(row.google_ads_spend) > 0) {

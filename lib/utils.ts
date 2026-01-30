@@ -71,6 +71,10 @@ export function getFunnelMetricSum(funnelMetrics: any[], metricName: string): nu
  * Handles different metric name formats
  */
 export function getTotalAddToCart(funnelMetrics: any[], overallMetrics: any[]): number {
+  // Prefer explicit total if present (from CSV/manual entry)
+  const explicitTotal = getMetricValue(overallMetrics, 'Total Add to Cart');
+  if (explicitTotal > 0) return explicitTotal;
+
   if (!funnelMetrics || !Array.isArray(funnelMetrics)) return 0;
   
   // Try to find 'Sessions → Add to Cart' first

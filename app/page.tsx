@@ -661,26 +661,18 @@ export default function Dashboard() {
                         <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-cyan-100 rounded-lg border-2 border-blue-200">
                           <div className="text-sm text-blue-600 mb-2">Add to Cart</div>
                           <div className="text-3xl font-bold text-blue-900">
-                            {formatNumber(getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                              getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                              getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100)}
+                            {formatNumber(getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics))}
                           </div>
                           <div className="text-xs font-semibold text-blue-700 mt-2 mb-2">
                             {(getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') || 0).toFixed(1)}% rate
                           </div>
                           {comparisonData && (() => {
-                            const currentValue = getMetricValue(weekData.funnelMetrics, 'Sessions → Add to Cart') || 
-                              getMetricValue(weekData.funnelMetrics, 'Add-to-cart rate') * 
-                              getMetricValue(weekData.overallMetrics, 'Total Sessions') / 100;
+                            const currentValue = getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics);
                             const prevWeekATC = comparisonData.previousWeek 
-                              ? (getMetricValue(comparisonData.previousWeek.funnelMetrics, 'Sessions → Add to Cart') || 
-                                 getMetricValue(comparisonData.previousWeek.funnelMetrics, 'Add-to-cart rate') * 
-                                 getMetricValue(comparisonData.previousWeek.overallMetrics, 'Total Sessions') / 100)
+                              ? getTotalAddToCart(comparisonData.previousWeek.funnelMetrics, comparisonData.previousWeek.overallMetrics)
                               : null;
                             const yearAgoATC = comparisonData.sameWeekYearAgo 
-                              ? (getMetricValue(comparisonData.sameWeekYearAgo.funnelMetrics, 'Sessions → Add to Cart') || 
-                                 getMetricValue(comparisonData.sameWeekYearAgo.funnelMetrics, 'Add-to-cart rate') * 
-                                 getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Total Sessions') / 100)
+                              ? getTotalAddToCart(comparisonData.sameWeekYearAgo.funnelMetrics, comparisonData.sameWeekYearAgo.overallMetrics)
                               : null;
                             const prevWeekChange = prevWeekATC !== null && prevWeekATC !== 0 
                               ? ((currentValue - prevWeekATC) / prevWeekATC) * 100 
@@ -726,22 +718,26 @@ export default function Dashboard() {
                         <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-100 rounded-lg border-2 border-purple-200">
                           <div className="text-sm text-purple-600 mb-2">Checkout</div>
                           <div className="text-3xl font-bold text-purple-900">
-                            {formatNumber(getFunnelMetricSum(weekData.funnelMetrics, 'Checkout'))}
+                            {formatNumber(getMetricValue(weekData.overallMetrics, 'Total Checkout') || getFunnelMetricSum(weekData.funnelMetrics, 'Checkout'))}
                           </div>
                           <div className="text-xs font-semibold text-purple-700 mt-2 mb-2">
                             {(() => {
-                              const totalCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                              const totalCheckout =
+                                getMetricValue(weekData.overallMetrics, 'Total Checkout') || getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                               const totalATC = getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics);
                               return totalATC > 0 ? ((totalCheckout / totalATC) * 100).toFixed(1) : '0.0';
                             })()}% from cart
                           </div>
                           {comparisonData && (() => {
-                            const currentValue = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                            const currentValue =
+                              getMetricValue(weekData.overallMetrics, 'Total Checkout') || getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                             const prevWeekValue = comparisonData.previousWeek 
-                              ? getFunnelMetricSum(comparisonData.previousWeek.funnelMetrics, 'Checkout')
+                              ? (getMetricValue(comparisonData.previousWeek.overallMetrics, 'Total Checkout') ||
+                                 getFunnelMetricSum(comparisonData.previousWeek.funnelMetrics, 'Checkout'))
                               : null;
                             const yearAgoValue = comparisonData.sameWeekYearAgo 
-                              ? getFunnelMetricSum(comparisonData.sameWeekYearAgo.funnelMetrics, 'Checkout')
+                              ? (getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Total Checkout') ||
+                                 getFunnelMetricSum(comparisonData.sameWeekYearAgo.funnelMetrics, 'Checkout'))
                               : null;
                             const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
                               ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
@@ -848,7 +844,12 @@ export default function Dashboard() {
                           <div className="text-sm text-amber-700">
                             <span className="font-bold text-lg">
                               {(() => {
-                                const totalCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                                const explicitRate = getMetricValue(weekData.overallMetrics, 'Checkout Abandonment Rate');
+                                if (explicitRate > 0) return explicitRate.toFixed(1);
+
+                                const totalCheckout =
+                                  getMetricValue(weekData.overallMetrics, 'Total Checkout') ||
+                                  getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                                 const totalATC = getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics);
                                 return totalATC > 0 ? (100 - ((totalCheckout / totalATC) * 100)).toFixed(1) : '0.0';
                               })()}%
@@ -856,29 +857,47 @@ export default function Dashboard() {
                             {' '}of users who added to cart didn't checkout
                           </div>
                           {comparisonData && (() => {
-                            const currentCheckout = getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
+                            const currentExplicit = getMetricValue(weekData.overallMetrics, 'Checkout Abandonment Rate');
+                            const currentCheckout =
+                              getMetricValue(weekData.overallMetrics, 'Total Checkout') ||
+                              getFunnelMetricSum(weekData.funnelMetrics, 'Checkout');
                             const currentATC = getTotalAddToCart(weekData.funnelMetrics, weekData.overallMetrics);
-                            const currentAbandonment = currentATC > 0 ? (100 - ((currentCheckout / currentATC) * 100)) : 0;
+                            const currentAbandonment =
+                              currentExplicit > 0 ? currentExplicit : currentATC > 0 ? (100 - ((currentCheckout / currentATC) * 100)) : 0;
                             
-                            const prevWeekCheckout = comparisonData.previousWeek 
-                              ? getFunnelMetricSum(comparisonData.previousWeek.funnelMetrics, 'Checkout')
+                            const prevWeekExplicit = comparisonData.previousWeek
+                              ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Checkout Abandonment Rate')
+                              : 0;
+                            const prevWeekCheckout = comparisonData.previousWeek
+                              ? (getMetricValue(comparisonData.previousWeek.overallMetrics, 'Total Checkout') ||
+                                 getFunnelMetricSum(comparisonData.previousWeek.funnelMetrics, 'Checkout'))
                               : null;
-                            const prevWeekATC = comparisonData.previousWeek 
+                            const prevWeekATC = comparisonData.previousWeek
                               ? getTotalAddToCart(comparisonData.previousWeek.funnelMetrics, comparisonData.previousWeek.overallMetrics)
                               : null;
-                            const prevWeekAbandonment = prevWeekATC && prevWeekATC > 0 
-                              ? (100 - ((prevWeekCheckout! / prevWeekATC) * 100))
-                              : null;
+                            const prevWeekAbandonment =
+                              prevWeekExplicit > 0
+                                ? prevWeekExplicit
+                                : prevWeekATC && prevWeekATC > 0
+                                ? (100 - ((prevWeekCheckout! / prevWeekATC) * 100))
+                                : null;
                             
-                            const yearAgoCheckout = comparisonData.sameWeekYearAgo 
-                              ? getFunnelMetricSum(comparisonData.sameWeekYearAgo.funnelMetrics, 'Checkout')
+                            const yearAgoExplicit = comparisonData.sameWeekYearAgo
+                              ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Checkout Abandonment Rate')
+                              : 0;
+                            const yearAgoCheckout = comparisonData.sameWeekYearAgo
+                              ? (getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Total Checkout') ||
+                                 getFunnelMetricSum(comparisonData.sameWeekYearAgo.funnelMetrics, 'Checkout'))
                               : null;
-                            const yearAgoATC = comparisonData.sameWeekYearAgo 
+                            const yearAgoATC = comparisonData.sameWeekYearAgo
                               ? getTotalAddToCart(comparisonData.sameWeekYearAgo.funnelMetrics, comparisonData.sameWeekYearAgo.overallMetrics)
                               : null;
-                            const yearAgoAbandonment = yearAgoATC && yearAgoATC > 0 
-                              ? (100 - ((yearAgoCheckout! / yearAgoATC) * 100))
-                              : null;
+                            const yearAgoAbandonment =
+                              yearAgoExplicit > 0
+                                ? yearAgoExplicit
+                                : yearAgoATC && yearAgoATC > 0
+                                ? (100 - ((yearAgoCheckout! / yearAgoATC) * 100))
+                                : null;
                             
                             // For abandonment, increase is BAD (red), decrease is GOOD (green)
                             const prevWeekChange = prevWeekAbandonment !== null 
