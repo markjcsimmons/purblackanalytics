@@ -95,6 +95,7 @@ export default function Dashboard() {
   const [isGeneratingAISearchWhy, setIsGeneratingAISearchWhy] = useState(false);
   const [aiSearchWhyError, setAiSearchWhyError] = useState('');
   const [expandedResults, setExpandedResults] = useState<Set<number>>(new Set());
+  const [expandedSourceEngines, setExpandedSourceEngines] = useState<Set<string>>(new Set());
 
   const fetchWeeks = async () => {
     try {
@@ -249,6 +250,14 @@ export default function Dashboard() {
       .replace(/'/g, '&#039;');
     // Convert **text** to <strong>text</strong> and newlines to <br />
     return escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br />');
+  };
+
+  const getHostname = (url: string) => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return url;
+    }
   };
 
   const getSocialMetric = (data: any, platform: string, contentType: string, metricName: string): number | null => {
@@ -1546,6 +1555,94 @@ export default function Dashboard() {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
+              <CardHeader className="bg-gradient-to-r from-emerald-100 to-teal-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl text-emerald-900">Sources used (websites)</CardTitle>
+                    <CardDescription className="text-emerald-800">
+                      Exact domains/URLs cited by each AI engine. (Gemini uses grounding citations; ChatGPT shows the URLs it provided.)
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {searchResults.length === 0 ? (
+                  <div className="text-sm text-emerald-900">Run a search to see the websites each engine cited.</div>
+                ) : (
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {searchResults.map((r, idx) => {
+                      const links = Array.isArray(r.topResults) ? r.topResults : [];
+                      const byHost = new Map<string, { host: string; urls: string[] }>();
+                      for (const l of links) {
+                        const host = getHostname(l.url);
+                        const entry = byHost.get(host) || { host, urls: [] };
+                        if (!entry.urls.includes(l.url)) entry.urls.push(l.url);
+                        byHost.set(host, entry);
+                      }
+                      const hosts = Array.from(byHost.values()).sort((a, b) => b.urls.length - a.urls.length);
+                      const engineKey = r.searchEngine || `engine-${idx}`;
+                      const isExpanded = expandedSourceEngines.has(engineKey);
+
+                      return (
+                        <div key={idx} className="rounded-lg border border-emerald-200 bg-white/70 p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="font-semibold text-slate-900">{r.searchEngine}</div>
+                            <button
+                              className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+                              onClick={() => {
+                                const next = new Set(expandedSourceEngines);
+                                if (next.has(engineKey)) next.delete(engineKey);
+                                else next.add(engineKey);
+                                setExpandedSourceEngines(next);
+                              }}
+                            >
+                              {isExpanded ? 'Show less' : 'Show all'}
+                            </button>
+                          </div>
+                          <div className="mt-2 text-xs text-slate-600">
+                            {hosts.length} website{hosts.length === 1 ? '' : 's'} · {links.length} cited link{links.length === 1 ? '' : 's'}
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {(isExpanded ? hosts : hosts.slice(0, 10)).map((h) => (
+                              <span
+                                key={h.host}
+                                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-900"
+                                title={h.urls[0]}
+                              >
+                                <span className="font-semibold">{h.host}</span>
+                                <span className="text-emerald-700">({h.urls.length})</span>
+                              </span>
+                            ))}
+                          </div>
+
+                          {isExpanded && hosts.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {hosts.slice(0, 12).map((h) => (
+                                <div key={h.host} className="text-xs">
+                                  <div className="font-semibold text-slate-800">{h.host}</div>
+                                  <div className="mt-1 space-y-1">
+                                    {h.urls.slice(0, 5).map((u) => (
+                                      <div key={u} className="truncate">
+                                        <a className="underline text-slate-700 hover:text-slate-900" href={u} target="_blank" rel="noopener noreferrer">
+                                          {u}
+                                        </a>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
