@@ -1582,6 +1582,12 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {!aiSearchWhyAnalysis.parsed && aiSearchWhyAnalysis.analysisText && (
+                      <div className="rounded-lg border border-amber-200 bg-white/60 p-4 text-sm text-slate-900">
+                        <div className="font-semibold text-amber-900 mb-1">Analysis (fallback)</div>
+                        <div className="whitespace-pre-wrap">{aiSearchWhyAnalysis.analysisText}</div>
+                      </div>
+                    )}
                     {aiSearchWhyAnalysis.summary && (
                       <div className="rounded-lg border border-amber-200 bg-white/60 p-4 text-sm text-slate-900">
                         <div className="font-semibold text-amber-900 mb-1">Summary</div>

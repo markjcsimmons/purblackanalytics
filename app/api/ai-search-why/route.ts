@@ -49,6 +49,42 @@ function extractJsonObject(text: string): string | null {
   return text.slice(first, last + 1);
 }
 
+function buildPlainTextPrompt(opts: {
+  query: string;
+  brand: string;
+  brandDomains: string[];
+  brandAliases: string[];
+  resultsCompact: any;
+}) {
+  const { query, brand, brandDomains, brandAliases, resultsCompact } = opts;
+  return `You are an expert in AI search visibility and citation mechanics.
+
+Answer: WHY are these the AI search results for "${query}" and why ${brand} appears or does NOT appear.
+
+Rules:
+- Use ONLY the provided results (URLs/titles/snippets/brandsFound). Do not browse.
+- Be granular and competitor-specific. Call out concrete signals like COA/lab reports, press/media, review/listicle patterns, Reddit/forum signals, etc.
+- Always spell the brand as "${brand}" exactly.
+- Cite evidence as: (Engine · #Position · hostname/path hint).
+
+BRAND:
+- Name: ${brand}
+- Domains: ${JSON.stringify(brandDomains)}
+- Aliases: ${JSON.stringify(brandAliases)}
+
+RESULTS:
+${JSON.stringify(resultsCompact, null, 2)}
+
+Output format (plain text):
+- Summary (3-6 bullets)
+- Per engine:
+  - Does ${brand} appear? Where?
+  - Top competitors and why they did well (with evidence)
+  - Patterns driving the citations
+  - 3-6 concrete next actions tied to evidence
+`;
+}
+
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is required to run AI search "why" analysis.');
@@ -56,8 +92,9 @@ function getOpenAIClient(): OpenAI {
 }
 
 export async function POST(request: NextRequest) {
+  let body: any = null;
   try {
-    const body = await request.json();
+    body = await request.json();
     const query = body.query as string | undefined;
     const results = body.results as SearchResult[] | undefined;
     const brand = (body.brand as string | undefined) || 'Pürblack';
@@ -201,15 +238,52 @@ ${content}`;
         summary: typeof parsed.summary === 'string' ? parsed.summary : '',
         engines: Array.isArray(parsed.engines) ? parsed.engines : [],
         nextDataToCollect: Array.isArray(parsed.nextDataToCollect) ? parsed.nextDataToCollect : [],
+        parsed: true,
       },
     });
   } catch (error: any) {
     console.error('AI search why analysis error:', error);
-    const isSyntax = error?.name === 'SyntaxError' || /JSON/i.test(String(error?.message || ''));
-    return NextResponse.json(
-      { error: isSyntax ? 'AI analysis returned an invalid format. Please try again.' : error.message || 'Internal server error' },
-      { status: isSyntax ? 502 : 500 }
-    );
+    const isJsonish = error?.name === 'SyntaxError' || /JSON/i.test(String(error?.message || ''));
+    // If JSON formatting failed, fall back to a plain-text analysis so the user still gets an answer.
+    if (isJsonish) {
+      try {
+        const client = getOpenAIClient();
+        const plainTextPrompt = buildPlainTextPrompt({
+          query: body?.query,
+          brand: (body?.brand as string | undefined) || 'Pürblack',
+          brandDomains: (body?.brandDomains as string[] | undefined) || ['purblack.com'],
+          brandAliases: (body?.brandAliases as string[] | undefined) || ['Pürblack', 'Purblack', 'Pur black'],
+          resultsCompact: compactResults((body?.results as SearchResult[]) || []),
+        });
+        const fallback = await client.chat.completions.create({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: 'Return plain text only.' },
+            { role: 'user', content: plainTextPrompt },
+          ],
+          temperature: 0.2,
+          max_tokens: 900,
+        });
+        const text = fallback.choices[0]?.message?.content || '';
+        return NextResponse.json({
+          analysis: {
+            summary: '',
+            engines: [],
+            nextDataToCollect: [],
+            parsed: false,
+            analysisText: text,
+          },
+        });
+      } catch (fallbackError: any) {
+        console.error('AI search why analysis fallback error:', fallbackError);
+        return NextResponse.json(
+          { error: 'AI analysis failed. Please try again.' },
+          { status: 502 }
+        );
+      }
+    }
+
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
 
