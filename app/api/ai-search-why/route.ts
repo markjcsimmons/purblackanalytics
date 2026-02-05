@@ -41,6 +41,14 @@ function compactResults(results: SearchResult[]) {
   }));
 }
 
+function extractJsonObject(text: string): string | null {
+  if (!text) return null;
+  const first = text.indexOf('{');
+  const last = text.lastIndexOf('}');
+  if (first === -1 || last === -1 || last <= first) return null;
+  return text.slice(first, last + 1);
+}
+
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is required to run AI search "why" analysis.');
@@ -134,13 +142,52 @@ Competitor selection rules:
         { role: 'system', content: 'Return valid JSON only.' },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.2,
+      temperature: 0.1,
       max_tokens: 900,
       response_format: { type: 'json_object' },
     });
 
     const content = response.choices[0]?.message?.content || '{}';
-    const parsed = JSON.parse(content);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      // Sometimes models still return malformed JSON (e.g., unescaped newlines).
+      // Try extracting the first {...} block and parsing again.
+      const extracted = extractJsonObject(content);
+      if (extracted) {
+        try {
+          parsed = JSON.parse(extracted);
+        } catch {
+          // Final fallback: ask the model to repair/normalize to valid JSON.
+          const repairPrompt = `Fix and normalize the following into valid JSON ONLY.
+
+Rules:
+- Output ONLY JSON (no markdown, no commentary).
+- Keep the same data, just make it valid JSON.
+- Ensure keys: summary (string), engines (array), nextDataToCollect (array).
+
+Malformed JSON:
+${content}`;
+
+          const repaired = await client.chat.completions.create({
+            model: 'gpt-4o',
+            messages: [
+              { role: 'system', content: 'Return valid JSON only.' },
+              { role: 'user', content: repairPrompt },
+            ],
+            temperature: 0,
+            max_tokens: 900,
+            response_format: { type: 'json_object' },
+          });
+
+          const repairedContent = repaired.choices[0]?.message?.content || '{}';
+          parsed = JSON.parse(repairedContent);
+        }
+      } else {
+        throw new Error('Model returned invalid JSON.');
+      }
+    }
 
     return NextResponse.json({
       analysis: {
