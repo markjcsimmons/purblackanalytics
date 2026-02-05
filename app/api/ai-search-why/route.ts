@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const query = body.query as string | undefined;
     const results = body.results as SearchResult[] | undefined;
-    const brand = (body.brand as string | undefined) || 'Purblack';
+    const brand = (body.brand as string | undefined) || 'Pürblack';
     const brandDomains = (body.brandDomains as string[] | undefined) || ['purblack.com'];
     const brandAliases = (body.brandAliases as string[] | undefined) || ['Pürblack', 'Purblack', 'Pur black'];
 
@@ -39,11 +39,15 @@ export async function POST(request: NextRequest) {
 
     const client = getOpenAIClient();
 
-    const prompt = `You are an expert in AI search visibility and citations.
+    const prompt = `You are an expert in AI search visibility and citation mechanics.
 
-Your job: answer "WHY are these the results?" for query "${query}", and specifically why ${brand} appears or does NOT appear.
+Your job: answer "WHY are these the results?" for query "${query}", and specifically why ${brand} appears or does NOT appear — with granular, competitor-specific reasons.
 
-Use ONLY the provided data. Do not assume anything not in the results. If evidence is missing, say so and propose what data to collect next.
+IMPORTANT RULES:
+- Use ONLY the provided data (URLs/titles/snippets/brandsFound). Do NOT guess or browse the web.
+- If you cannot prove a claim from the evidence here, you MUST label it as a hypothesis and state what evidence would confirm it.
+- Avoid generic advice. Every insight/recommendation MUST reference evidence from the results (engine + position).
+- Always spell the brand as "${brand}" exactly (with the umlaut) in your output text.
 
 BRAND:
 - Name: ${brand}
@@ -53,10 +57,19 @@ BRAND:
 AI SEARCH RESULTS (top 10 per engine):
 ${JSON.stringify(results, null, 2)}
 
+WHAT TO EXTRACT (be specific):
+- For each engine, list the dominant citation patterns (e.g., Reddit threads, listicles, review sites, affiliate blogs, ecommerce product pages, lab/COA pages, news/press mentions).
+- Identify competitors that are appearing and explain *why they did well* based on signals in URL/title/snippet/hostname. Examples of acceptable granular signals:
+  - Mentions of "COA", "lab report", "certificate of analysis", "third-party testing" in URL/title/snippet
+  - Named media outlets in hostname/title (press coverage)
+  - "best", "top", "review", "vs", "comparison", "coupon", "affiliate" patterns
+  - Community/forum signals (Reddit, Quora, niche forums)
+  - Authority aggregators (Healthline-style, Wirecutter-style, etc.)
+
 OUTPUT REQUIREMENTS:
 - Return ONLY valid JSON (no markdown).
-- Include evidence by referencing the exact engine and the exact result position(s) you used.
-- Be concrete and action-oriented. Avoid generic SEO advice.
+- Evidence must reference the exact engine and result position(s) used.
+- Prefer short bullet-like strings in arrays.
 
 Return JSON shape:
 {
@@ -68,14 +81,28 @@ Return JSON shape:
         "appears": boolean,
         "appearances": [{"position": number, "url": string, "title": string}],
         "whyLikely": string[],
-        "whyNotLikely": string[]
+        "whyNotLikely": string[],
+        "evidenceSignals": [{"signal": string, "evidence": [{"position": number, "url": string, "title": string}]}]
       },
+      "competitors": [
+        {
+          "name": string,
+          "appearances": [{"position": number, "url": string, "title": string}],
+          "whyTheyDidWell": string[],
+          "evidenceSignals": [{"signal": string, "evidence": [{"position": number, "url": string, "title": string}]}],
+          "gapsToVerify": string[]
+        }
+      ],
       "resultPatterns": [{"pattern": string, "evidence": [{"position": number, "url": string, "title": string}]}],
       "recommendations": [{"action": string, "why": string, "evidence": [{"position": number, "url": string, "title": string}]}]
     }
   ],
   "nextDataToCollect": string[]
-}`;
+}
+
+Competitor selection rules:
+- Use brandsFound plus any obvious brand names from titles/hostnames.
+- Include up to 6 competitors per engine (prioritize those appearing highest).`;
 
     const response = await client.chat.completions.create({
       model: 'gpt-4o',

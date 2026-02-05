@@ -194,7 +194,7 @@ export default function Dashboard() {
         body: JSON.stringify({
           query: searchQuery,
           results: searchResults,
-          brand: 'Purblack',
+          brand: 'Pürblack',
           brandDomains: ['purblack.com'],
           brandAliases: ['Pürblack', 'Purblack', 'Pur black'],
         }),
@@ -1656,6 +1656,55 @@ export default function Dashboard() {
                                     </li>
                                   ))}
                                 </ul>
+                              </div>
+                            )}
+
+                            {Array.isArray(engine?.competitors) && engine.competitors.length > 0 && (
+                              <div className="mt-4">
+                                <div className="text-xs font-semibold text-slate-600 mb-1">Competitors (why they did well)</div>
+                                <div className="space-y-3">
+                                  {engine.competitors.slice(0, 3).map((c: any, i: number) => (
+                                    <div key={i} className="rounded-md border border-amber-100 bg-white/70 p-2">
+                                      <div className="flex items-center justify-between">
+                                        <div className="text-xs font-semibold text-slate-900">{c.name}</div>
+                                        <div className="text-[11px] text-slate-500">
+                                          {Array.isArray(c.appearances) ? `${c.appearances.length} link${c.appearances.length === 1 ? '' : 's'}` : ''}
+                                        </div>
+                                      </div>
+                                      {Array.isArray(c.evidenceSignals) && c.evidenceSignals.length > 0 ? (
+                                        <ul className="list-disc pl-5 mt-1 text-[11px] text-slate-800 space-y-1">
+                                          {c.evidenceSignals.slice(0, 3).map((s: any, j: number) => (
+                                            <li key={j}>
+                                              <span className="font-semibold">{s.signal}</span>
+                                              {Array.isArray(s.evidence) && s.evidence[0]?.url ? (
+                                                <>
+                                                  {' '}(
+                                                  <a
+                                                    className="underline"
+                                                    href={s.evidence[0].url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                  >
+                                                    #{s.evidence[0].position}
+                                                  </a>
+                                                  )
+                                                </>
+                                              ) : null}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      ) : Array.isArray(c.whyTheyDidWell) && c.whyTheyDidWell.length > 0 ? (
+                                        <ul className="list-disc pl-5 mt-1 text-[11px] text-slate-800 space-y-1">
+                                          {c.whyTheyDidWell.slice(0, 3).map((x: string, j: number) => (
+                                            <li key={j}>{x}</li>
+                                          ))}
+                                        </ul>
+                                      ) : (
+                                        <div className="mt-1 text-[11px] text-slate-500">No competitor signals returned.</div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
