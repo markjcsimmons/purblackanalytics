@@ -144,6 +144,7 @@ Competitor selection rules:
       ],
       temperature: 0.1,
       max_tokens: 900,
+      // Keep JSON mode; we also have parsing/repair fallbacks below.
       response_format: { type: 'json_object' },
     });
 
@@ -182,7 +183,13 @@ ${content}`;
           });
 
           const repairedContent = repaired.choices[0]?.message?.content || '{}';
-          parsed = JSON.parse(repairedContent);
+          try {
+            parsed = JSON.parse(repairedContent);
+          } catch {
+            const extractedRepaired = extractJsonObject(repairedContent);
+            if (!extractedRepaired) throw new Error('Model returned invalid JSON.');
+            parsed = JSON.parse(extractedRepaired);
+          }
         }
       } else {
         throw new Error('Model returned invalid JSON.');
@@ -198,7 +205,11 @@ ${content}`;
     });
   } catch (error: any) {
     console.error('AI search why analysis error:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    const isSyntax = error?.name === 'SyntaxError' || /JSON/i.test(String(error?.message || ''));
+    return NextResponse.json(
+      { error: isSyntax ? 'AI analysis returned an invalid format. Please try again.' : error.message || 'Internal server error' },
+      { status: isSyntax ? 502 : 500 }
+    );
   }
 }
 
