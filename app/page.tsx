@@ -91,6 +91,9 @@ export default function Dashboard() {
   const [aiSearchInsights, setAiSearchInsights] = useState<AISearchInsight[]>([]);
   const [isGeneratingAISearchInsights, setIsGeneratingAISearchInsights] = useState(false);
   const [aiSearchInsightsError, setAiSearchInsightsError] = useState('');
+  const [aiSearchWhyAnalysis, setAiSearchWhyAnalysis] = useState<any | null>(null);
+  const [isGeneratingAISearchWhy, setIsGeneratingAISearchWhy] = useState(false);
+  const [aiSearchWhyError, setAiSearchWhyError] = useState('');
   const [expandedResults, setExpandedResults] = useState<Set<number>>(new Set());
 
   const fetchWeeks = async () => {
@@ -132,6 +135,8 @@ export default function Dashboard() {
     setIsLoadingSearch(true);
     setAiSearchInsights([]);
     setAiSearchInsightsError('');
+    setAiSearchWhyAnalysis(null);
+    setAiSearchWhyError('');
     try {
       const response = await fetch(`/api/overview-search?query=${encodeURIComponent(searchQuery)}`);
       const data = await response.json();
@@ -172,6 +177,39 @@ export default function Dashboard() {
       setAiSearchInsightsError(error.message || 'Failed to generate insights.');
     } finally {
       setIsGeneratingAISearchInsights(false);
+    }
+  };
+
+  const generateAISearchWhy = async () => {
+    if (!searchResults.length) {
+      setAiSearchWhyError('Please run a search first.');
+      return;
+    }
+    setIsGeneratingAISearchWhy(true);
+    setAiSearchWhyError('');
+    try {
+      const response = await fetch('/api/ai-search-why', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: searchQuery,
+          results: searchResults,
+          brand: 'Purblack',
+          brandDomains: ['purblack.com'],
+          brandAliases: ['Pürblack', 'Purblack', 'Pur black'],
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to generate why analysis (${response.status})`);
+      }
+      const data = await response.json();
+      setAiSearchWhyAnalysis(data.analysis || null);
+    } catch (error: any) {
+      console.error('AI search why analysis error:', error);
+      setAiSearchWhyError(error.message || 'Failed to generate why analysis.');
+    } finally {
+      setIsGeneratingAISearchWhy(false);
     }
   };
 
@@ -1407,6 +1445,13 @@ export default function Dashboard() {
                     >
                       {isLoadingSearch ? 'Refreshing...' : 'Search'}
                     </Button>
+                    <Button
+                      onClick={generateAISearchWhy}
+                      disabled={isGeneratingAISearchWhy || isLoadingSearch || searchResults.length === 0}
+                      variant="outline"
+                    >
+                      {isGeneratingAISearchWhy ? 'Analyzing...' : 'Why these results?'}
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
@@ -1501,6 +1546,133 @@ export default function Dashboard() {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50">
+              <CardHeader className="bg-gradient-to-r from-amber-100 to-yellow-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl text-amber-900">Why these results?</CardTitle>
+                    <CardDescription className="text-amber-800">
+                      Explanation of why sources rank and why Pürblack appears (or not)
+                    </CardDescription>
+                  </div>
+                  <Button
+                    onClick={generateAISearchWhy}
+                    disabled={isGeneratingAISearchWhy || isLoadingSearch || searchResults.length === 0}
+                    variant="outline"
+                  >
+                    {isGeneratingAISearchWhy ? 'Analyzing...' : 'Run Why analysis'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                {aiSearchWhyError && <div className="mb-4 text-sm text-red-600">{aiSearchWhyError}</div>}
+                {!aiSearchWhyAnalysis ? (
+                  <div className="text-sm text-amber-900">
+                    Click <strong>Why these results?</strong> to get a breakdown of:
+                    <ul className="list-disc pl-5 mt-2 text-amber-900/90">
+                      <li>Which source types are driving visibility (Reddit, listicles, reviews, affiliates, etc.)</li>
+                      <li>Whether Pürblack is cited, where, and what seems to drive inclusion</li>
+                      <li>Concrete actions to improve citations and rankings</li>
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {aiSearchWhyAnalysis.summary && (
+                      <div className="rounded-lg border border-amber-200 bg-white/60 p-4 text-sm text-slate-900">
+                        <div className="font-semibold text-amber-900 mb-1">Summary</div>
+                        <div className="whitespace-pre-wrap">{aiSearchWhyAnalysis.summary}</div>
+                      </div>
+                    )}
+
+                    {Array.isArray(aiSearchWhyAnalysis.engines) && aiSearchWhyAnalysis.engines.length > 0 && (
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        {aiSearchWhyAnalysis.engines.map((engine: any, idx: number) => (
+                          <div key={idx} className="rounded-lg border border-amber-200 bg-white/70 p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="font-semibold text-slate-900">{engine.searchEngine || `Engine ${idx + 1}`}</div>
+                              <div
+                                className={`text-xs font-semibold px-2 py-1 rounded ${
+                                  engine?.purblack?.appears ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-700'
+                                }`}
+                              >
+                                {engine?.purblack?.appears ? 'Pürblack cited' : 'Not cited'}
+                              </div>
+                            </div>
+
+                            {Array.isArray(engine?.purblack?.appearances) && engine.purblack.appearances.length > 0 && (
+                              <div className="mt-3 text-sm">
+                                <div className="text-xs font-semibold text-slate-600 mb-1">Where it appears</div>
+                                <div className="space-y-1">
+                                  {engine.purblack.appearances.slice(0, 3).map((a: any, i: number) => (
+                                    <div key={i} className="text-xs text-slate-700">
+                                      <span className="font-semibold">#{a.position}</span>{' '}
+                                      <a className="underline" href={a.url} target="_blank" rel="noopener noreferrer">
+                                        {a.title || new URL(a.url).hostname}
+                                      </a>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {Array.isArray(engine?.resultPatterns) && engine.resultPatterns.length > 0 && (
+                              <div className="mt-3">
+                                <div className="text-xs font-semibold text-slate-600 mb-1">Patterns driving results</div>
+                                <div className="space-y-2">
+                                  {engine.resultPatterns.slice(0, 3).map((p: any, i: number) => (
+                                    <div key={i} className="text-xs text-slate-700">
+                                      <div className="font-semibold">{p.pattern}</div>
+                                      {Array.isArray(p.evidence) && p.evidence.length > 0 && (
+                                        <div className="mt-1 text-[11px] text-slate-600 space-y-1">
+                                          {p.evidence.slice(0, 2).map((e: any, j: number) => (
+                                            <div key={j}>
+                                              #{e.position}{' '}
+                                              <a className="underline" href={e.url} target="_blank" rel="noopener noreferrer">
+                                                {e.title || new URL(e.url).hostname}
+                                              </a>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {Array.isArray(engine?.recommendations) && engine.recommendations.length > 0 && (
+                              <div className="mt-3">
+                                <div className="text-xs font-semibold text-slate-600 mb-1">What to do next</div>
+                                <ul className="list-disc pl-5 text-xs text-slate-800 space-y-1">
+                                  {engine.recommendations.slice(0, 4).map((r: any, i: number) => (
+                                    <li key={i}>
+                                      <span className="font-semibold">{r.action}</span>
+                                      {r.why ? <span className="text-slate-600"> — {r.why}</span> : null}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {Array.isArray(aiSearchWhyAnalysis.nextDataToCollect) && aiSearchWhyAnalysis.nextDataToCollect.length > 0 && (
+                      <div className="rounded-lg border border-amber-200 bg-white/60 p-4 text-sm">
+                        <div className="font-semibold text-amber-900 mb-2">To improve accuracy, collect next</div>
+                        <ul className="list-disc pl-5 text-sm text-slate-800 space-y-1">
+                          {aiSearchWhyAnalysis.nextDataToCollect.slice(0, 6).map((x: string, i: number) => (
+                            <li key={i}>{x}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
