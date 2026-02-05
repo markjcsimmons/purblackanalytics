@@ -18,6 +18,29 @@ type SearchResult = {
   rawResponse?: string;
 };
 
+function compactResults(results: SearchResult[]) {
+  const truncate = (s: unknown, max: number) => {
+    const str = typeof s === 'string' ? s : '';
+    if (!str) return '';
+    return str.length > max ? `${str.slice(0, max)}…` : str;
+  };
+
+  return results.map((r) => ({
+    searchEngine: r.searchEngine,
+    query: r.query,
+    timestamp: r.timestamp,
+    brandsFound: Array.isArray(r.brandsFound) ? r.brandsFound.slice(0, 30) : [],
+    topResults: Array.isArray(r.topResults)
+      ? r.topResults.slice(0, 10).map((t) => ({
+          position: t.position,
+          url: t.url,
+          title: truncate(t.title, 140),
+          snippet: truncate(t.snippet, 260),
+        }))
+      : [],
+  }));
+}
+
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is required to run AI search "why" analysis.');
@@ -38,6 +61,7 @@ export async function POST(request: NextRequest) {
     }
 
     const client = getOpenAIClient();
+    const resultsCompact = compactResults(results);
 
     const prompt = `You are an expert in AI search visibility and citation mechanics.
 
@@ -55,7 +79,7 @@ BRAND:
 - Aliases: ${JSON.stringify(brandAliases)}
 
 AI SEARCH RESULTS (top 10 per engine):
-${JSON.stringify(results, null, 2)}
+${JSON.stringify(resultsCompact, null, 2)}
 
 WHAT TO EXTRACT (be specific):
 - For each engine, list the dominant citation patterns (e.g., Reddit threads, listicles, review sites, affiliate blogs, ecommerce product pages, lab/COA pages, news/press mentions).
@@ -111,6 +135,7 @@ Competitor selection rules:
         { role: 'user', content: prompt },
       ],
       temperature: 0.2,
+      max_tokens: 900,
       response_format: { type: 'json_object' },
     });
 
