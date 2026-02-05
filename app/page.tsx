@@ -260,6 +260,28 @@ export default function Dashboard() {
     }
   };
 
+  const isHomepageUrl = (url: string) => {
+    try {
+      const u = new URL(url);
+      const path = u.pathname || '/';
+      const isRoot = path === '/' || path === '';
+      const hasQueryOrHash = Boolean(u.search && u.search !== '?') || Boolean(u.hash);
+      return isRoot && !hasQueryOrHash;
+    } catch {
+      return false;
+    }
+  };
+
+  const getUrlLabel = (url: string) => {
+    try {
+      const u = new URL(url);
+      const path = u.pathname && u.pathname !== '/' ? u.pathname : '/';
+      return `${u.hostname}${path}`;
+    } catch {
+      return url;
+    }
+  };
+
   const getSocialMetric = (data: any, platform: string, contentType: string, metricName: string): number | null => {
     const arr = data?.socialMediaMetrics;
     if (!arr || !Array.isArray(arr)) return null;
@@ -1578,16 +1600,39 @@ export default function Dashboard() {
                   <div className="grid gap-4 lg:grid-cols-2">
                     {searchResults.map((r, idx) => {
                       const links = Array.isArray(r.topResults) ? r.topResults : [];
-                      const byHost = new Map<string, { host: string; urls: string[] }>();
+
+                      const uniqueByUrl = new Map<
+                        string,
+                        { url: string; title?: string; position: number; host: string; isHomepage: boolean }
+                      >();
                       for (const l of links) {
-                        const host = getHostname(l.url);
-                        const entry = byHost.get(host) || { host, urls: [] };
-                        if (!entry.urls.includes(l.url)) entry.urls.push(l.url);
-                        byHost.set(host, entry);
+                        const url = l.url;
+                        if (!url) continue;
+                        if (!uniqueByUrl.has(url)) {
+                          uniqueByUrl.set(url, {
+                            url,
+                            title: l.title,
+                            position: typeof l.position === 'number' ? l.position : 999,
+                            host: getHostname(url),
+                            isHomepage: isHomepageUrl(url),
+                          });
+                        }
                       }
-                      const hosts = Array.from(byHost.values()).sort((a, b) => b.urls.length - a.urls.length);
+
+                      const allPages = Array.from(uniqueByUrl.values()).sort((a, b) => a.position - b.position);
+                      const deepLinks = allPages.filter((p) => !p.isHomepage);
+                      const homepageLinks = allPages.filter((p) => p.isHomepage);
+
+                      // Host summary (kept, but deep-links are the main value)
+                      const byHost = new Map<string, number>();
+                      for (const p of allPages) byHost.set(p.host, (byHost.get(p.host) || 0) + 1);
+                      const hosts = Array.from(byHost.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([host, count]) => ({ host, count }));
+
                       const engineKey = r.searchEngine || `engine-${idx}`;
                       const isExpanded = expandedSourceEngines.has(engineKey);
+                      const primaryPages = (deepLinks.length > 0 ? deepLinks : allPages).slice(0, isExpanded ? 25 : 8);
 
                       return (
                         <div key={idx} className="rounded-lg border border-emerald-200 bg-white/70 p-4">
@@ -1606,40 +1651,64 @@ export default function Dashboard() {
                             </button>
                           </div>
                           <div className="mt-2 text-xs text-slate-600">
-                            {hosts.length} website{hosts.length === 1 ? '' : 's'} · {links.length} cited link{links.length === 1 ? '' : 's'}
+                            {deepLinks.length} deep link{deepLinks.length === 1 ? '' : 's'} · {homepageLinks.length} homepage link
+                            {homepageLinks.length === 1 ? '' : 's'} · {hosts.length} website{hosts.length === 1 ? '' : 's'}
                           </div>
 
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {(isExpanded ? hosts : hosts.slice(0, 10)).map((h) => (
-                              <span
-                                key={h.host}
-                                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-900"
-                                title={h.urls[0]}
-                              >
-                                <span className="font-semibold">{h.host}</span>
-                                <span className="text-emerald-700">({h.urls.length})</span>
-                              </span>
-                            ))}
-                          </div>
+                          {deepLinks.length === 0 ? (
+                            <div className="mt-3 text-sm text-emerald-900">
+                              This engine mostly returned <strong>homepages</strong>. If you want sub-pages here, we’ll need
+                              the engine to return grounded/cited URLs beyond the root domain.
+                            </div>
+                          ) : null}
 
-                          {isExpanded && hosts.length > 0 && (
-                            <div className="mt-3 space-y-2">
-                              {hosts.slice(0, 12).map((h) => (
-                                <div key={h.host} className="text-xs">
-                                  <div className="font-semibold text-slate-800">{h.host}</div>
-                                  <div className="mt-1 space-y-1">
-                                    {h.urls.slice(0, 5).map((u) => (
-                                      <div key={u} className="truncate">
-                                        <a className="underline text-slate-700 hover:text-slate-900" href={u} target="_blank" rel="noopener noreferrer">
-                                          {u}
+                          <div className="mt-3 space-y-2">
+                            <div className="text-xs font-semibold text-slate-700">Cited pages</div>
+                            {primaryPages.length === 0 ? (
+                              <div className="text-xs text-slate-500">No cited URLs returned.</div>
+                            ) : (
+                              <div className="space-y-2">
+                                {primaryPages.map((p) => (
+                                  <div key={p.url} className="rounded-md border border-emerald-100 bg-white/70 p-2">
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-[11px] font-semibold bg-slate-900 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
+                                        {p.position}
+                                      </span>
+                                      <div className="min-w-0">
+                                        <a
+                                          className="text-xs font-semibold text-slate-900 underline hover:text-slate-950"
+                                          href={p.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          title={p.url}
+                                        >
+                                          {getUrlLabel(p.url)}
                                         </a>
+                                        {p.title ? (
+                                          <div className="mt-1 text-[11px] text-slate-600 line-clamp-2">{p.title}</div>
+                                        ) : null}
                                       </div>
-                                    ))}
+                                    </div>
                                   </div>
-                                </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-3">
+                            <div className="text-xs font-semibold text-slate-700">Websites (domain summary)</div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {(isExpanded ? hosts : hosts.slice(0, 10)).map((h) => (
+                                <span
+                                  key={h.host}
+                                  className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-900"
+                                >
+                                  <span className="font-semibold">{h.host}</span>
+                                  <span className="text-emerald-700">({h.count})</span>
+                                </span>
                               ))}
                             </div>
-                          )}
+                          </div>
                         </div>
                       );
                     })}
