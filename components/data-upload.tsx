@@ -29,7 +29,8 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     // Helper function to parse numeric values
     const parseValue = (val: any): number => {
       if (val === null || val === undefined || val === '') return 0;
-      const num = parseFloat(val.toString().replace(/,/g, ''));
+      // Handle "4 925" (space thousands) and "4,925" formats
+      const num = parseFloat(val.toString().replace(/,/g, '').replace(/\s+/g, ''));
       return isNaN(num) ? 0 : num;
     };
 
@@ -67,12 +68,41 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
     setInstagramMetric(
       'Stories',
       'Reposts',
-      parseValue(pick(['instagram_stories_reposts', 'ig_stories_reposts', 'stories_reposts', 'instagram_story_reposts', 'ig_story_reposts']))
+      // NOTE: Dashboard labels this as "Replies" for Stories
+      parseValue(
+        pick([
+          'instagram_stories_reposts',
+          'ig_stories_reposts',
+          'stories_reposts',
+          'instagram_story_reposts',
+          'ig_story_reposts',
+          'stories_replies',
+          'instagram_stories_replies',
+          'ig_stories_replies',
+          'instagram_story_replies',
+          'ig_story_replies',
+        ])
+      )
     );
     setInstagramMetric(
       'Stories',
       'Interactions',
-      parseValue(pick(['instagram_stories_interactions', 'ig_stories_interactions', 'stories_interactions', 'instagram_story_interactions', 'ig_story_interactions']))
+      // NOTE: Dashboard labels this as "Profile Visits" for Stories
+      parseValue(
+        pick([
+          'instagram_stories_interactions',
+          'ig_stories_interactions',
+          'stories_interactions',
+          'instagram_story_interactions',
+          'ig_story_interactions',
+          'stories_profile_visits',
+          'instagram_stories_profile_visits',
+          'ig_stories_profile_visits',
+          'instagram_story_profile_visits',
+          'ig_story_profile_visits',
+          'stories_profile_visit',
+        ])
+      )
     );
     setInstagramMetric(
       'Stories',
