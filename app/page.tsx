@@ -234,8 +234,11 @@ export default function Dashboard() {
     }
   }, [selectedWeekId]);
 
-  const handleUploadSuccess = () => {
-    fetchWeeks();
+  const handleUploadSuccess = async () => {
+    await fetchWeeks();
+    if (selectedWeekId) {
+      await fetchWeekData(selectedWeekId);
+    }
   };
 
 
