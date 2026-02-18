@@ -38,6 +38,8 @@ function LineChart({
   points: Array<{ xLabel: string; xDate: Date; y: number }>;
   formatValue: (v: number) => string;
 }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+
   const width = 900;
   const height = 220;
   const padding = { top: 16, right: 16, bottom: 28, left: 44 };
@@ -63,9 +65,35 @@ function LineChart({
   const xLeft = points[0]?.xDate;
   const xRight = points[points.length - 1]?.xDate;
 
+  const hovered = hoverIdx !== null ? coords[hoverIdx] : null;
+  const tooltip = hovered
+    ? {
+        date: format(hovered.xDate, 'MMM d, yyyy'),
+        value: formatValue(hovered.y),
+        x: hovered.x,
+        y: hovered.y,
+      }
+    : null;
+
+  const handleMove: React.MouseEventHandler<SVGSVGElement> = (e) => {
+    if (!coords.length) return;
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const t = coords.length === 1 ? 0 : (x - padding.left) / plotW;
+    const idx = coords.length === 1 ? 0 : Math.round(clamp(t, 0, 1) * (coords.length - 1));
+    setHoverIdx(idx);
+  };
+
   return (
     <div className="w-full overflow-x-auto">
-      <svg width={width} height={height} className="block">
+      <svg
+        width={width}
+        height={height}
+        className="block"
+        onMouseMove={handleMove}
+        onMouseLeave={() => setHoverIdx(null)}
+      >
         {/* grid */}
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
           const y = padding.top + t * plotH;
@@ -87,6 +115,38 @@ function LineChart({
         {coords.map((c, i) => (
           <circle key={i} cx={c.x} cy={c.y} r="3" fill="#0f766e" />
         ))}
+
+        {/* hover guide + tooltip */}
+        {tooltip && (
+          <>
+            <line
+              x1={tooltip.x}
+              x2={tooltip.x}
+              y1={padding.top}
+              y2={height - padding.bottom}
+              stroke="#94a3b8"
+              strokeDasharray="4 4"
+            />
+            <circle cx={tooltip.x} cy={tooltip.y} r="5" fill="#0f766e" stroke="#ffffff" strokeWidth="2" />
+            {(() => {
+              const boxW = 170;
+              const boxH = 46;
+              const x = clamp(tooltip.x + 10, padding.left, width - padding.right - boxW);
+              const y = clamp(tooltip.y - boxH - 10, padding.top, height - padding.bottom - boxH);
+              return (
+                <g>
+                  <rect x={x} y={y} width={boxW} height={boxH} rx={8} fill="#0f172a" opacity={0.92} />
+                  <text x={x + 10} y={y + 18} fontSize="11" fill="#e2e8f0">
+                    {tooltip.date}
+                  </text>
+                  <text x={x + 10} y={y + 36} fontSize="12" fill="#ffffff" fontWeight={700 as any}>
+                    {tooltip.value}
+                  </text>
+                </g>
+              );
+            })()}
+          </>
+        )}
 
         {/* x labels */}
         {xLeft && (
@@ -129,6 +189,15 @@ function MetricCard({
   }, [points, tf, title]);
 
   const latest = series.length ? series[series.length - 1].y : 0;
+  const changePct = useMemo(() => {
+    if (series.length < 2) return null;
+    const first = series[0].y;
+    const last = series[series.length - 1].y;
+    if (first === 0) return last === 0 ? 0 : Infinity;
+    return ((last - first) / Math.abs(first)) * 100;
+  }, [series]);
+
+  const timeframeLabel = tf === 'all' ? 'All time' : tf === '12m' ? '12m' : '3m';
 
   return (
     <Card className="border-2 border-emerald-100">
@@ -152,8 +221,28 @@ function MetricCard({
         </div>
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
-        <div className="text-sm text-slate-600">
-          Latest: <span className="font-semibold text-slate-900">{formatValue(latest)}</span>
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm text-slate-600">
+            Latest: <span className="font-semibold text-slate-900">{formatValue(latest)}</span>
+          </div>
+          <div className="text-sm">
+            <span className="text-slate-500 mr-2">Change ({timeframeLabel}):</span>
+            <span
+              className={`font-semibold ${
+                changePct === null
+                  ? 'text-slate-500'
+                  : changePct === Infinity
+                  ? 'text-emerald-700'
+                  : changePct > 0
+                  ? 'text-emerald-700'
+                  : changePct < 0
+                  ? 'text-red-600'
+                  : 'text-slate-700'
+              }`}
+            >
+              {changePct === null ? '—' : changePct === Infinity ? 'New' : `${changePct > 0 ? '+' : ''}${changePct.toFixed(1)}%`}
+            </span>
+          </div>
         </div>
         <LineChart points={series} formatValue={formatValue} />
       </CardContent>
