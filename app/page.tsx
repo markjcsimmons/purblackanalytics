@@ -16,6 +16,7 @@ import { DataUpload } from '@/components/data-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { PromotionsUpload } from '@/components/promotions-upload';
 import { InsightsDisplay } from '@/components/insights-display';
+import { MetricHistoryCharts, type MetricsHistoryPoint } from '@/components/metric-history-charts';
 import { getSession } from '@/lib/auth';
 import { 
   TrendingUp, 
@@ -80,7 +81,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [accessLevel, setAccessLevel] = useState<'full' | 'limited' | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'insights' | 'ai-search'>('deep-dive');
+  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'insights' | 'ai-search' | 'charts'>('deep-dive');
   const [comparisonData, setComparisonData] = useState<{
     previousWeek: any;
     sameWeekYearAgo: any;
@@ -96,6 +97,9 @@ export default function Dashboard() {
   const [aiSearchWhyError, setAiSearchWhyError] = useState('');
   const [expandedResults, setExpandedResults] = useState<Set<number>>(new Set());
   const [expandedSourceEngines, setExpandedSourceEngines] = useState<Set<string>>(new Set());
+  const [metricsHistory, setMetricsHistory] = useState<MetricsHistoryPoint[]>([]);
+  const [isLoadingCharts, setIsLoadingCharts] = useState(false);
+  const [chartsError, setChartsError] = useState('');
 
   const fetchWeeks = async () => {
     try {
@@ -214,6 +218,22 @@ export default function Dashboard() {
     }
   };
 
+  const loadMetricsHistory = async () => {
+    setIsLoadingCharts(true);
+    setChartsError('');
+    try {
+      const res = await fetch('/api/metrics-history');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Failed to load metrics history (${res.status})`);
+      setMetricsHistory(Array.isArray(data.history) ? data.history : []);
+    } catch (e: any) {
+      console.error('Metrics history load error:', e);
+      setChartsError(e.message || 'Failed to load charts data');
+    } finally {
+      setIsLoadingCharts(false);
+    }
+  };
+
   useEffect(() => {
     // Check access level from localStorage session
     const session = getSession();
@@ -226,6 +246,7 @@ export default function Dashboard() {
 
     fetchWeeks();
     loadSearchResults();
+    loadMetricsHistory();
   }, []);
 
   useEffect(() => {
@@ -636,7 +657,7 @@ export default function Dashboard() {
 
                 {/* Overview workspace */}
                 <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm lg:w-[520px]">
+                  <TabsList className="grid w-full grid-cols-4 rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm lg:w-[640px]">
                     <TabsTrigger
                       value="deep-dive"
                       className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
@@ -654,6 +675,12 @@ export default function Dashboard() {
                       className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
                     >
                       AI / Search
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="charts"
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
+                    >
+                      Charts
                     </TabsTrigger>
                   </TabsList>
 
@@ -1943,6 +1970,30 @@ export default function Dashboard() {
                 )}
               </CardContent>
             </Card>
+                  </TabsContent>
+
+                  <TabsContent value="charts" className="space-y-8">
+                    <Card className="border-2 border-slate-100">
+                      <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/70">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-xl">Charts</CardTitle>
+                            <CardDescription>Historical trends for key KPIs</CardDescription>
+                          </div>
+                          <Button onClick={loadMetricsHistory} disabled={isLoadingCharts} variant="outline">
+                            {isLoadingCharts ? 'Loading...' : 'Refresh data'}
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-6">
+                        {chartsError && <div className="mb-4 text-sm text-red-600">{chartsError}</div>}
+                        {isLoadingCharts ? (
+                          <div className="text-sm text-muted-foreground">Loading chart data…</div>
+                        ) : (
+                          <MetricHistoryCharts history={metricsHistory} />
+                        )}
+                      </CardContent>
+                    </Card>
                   </TabsContent>
                 </Tabs>
               </>

@@ -259,6 +259,42 @@ export function getWeekData(weekId: number) {
   };
 }
 
+export function getOverallMetricsHistory() {
+  const database = getDb();
+  const weeks = database
+    .prepare('SELECT id, week_start_date, week_end_date FROM weeks ORDER BY week_start_date ASC')
+    .all() as Array<{ id: number; week_start_date: string; week_end_date: string }>;
+
+  if (!weeks.length) return [];
+
+  const weekIds = weeks.map((w) => w.id);
+  const placeholders = weekIds.map(() => '?').join(',');
+  const overall = database
+    .prepare(
+      `SELECT week_id, metric_name, metric_value
+       FROM overall_metrics
+       WHERE week_id IN (${placeholders})
+         AND metric_name IN ('* Revenue','* Conversion Rate','* AOV','* Total Sessions')
+      `
+    )
+    .all(...weekIds) as Array<{ week_id: number; metric_name: string; metric_value: number }>;
+
+  const byWeek = new Map<number, Record<string, number>>();
+  for (const row of overall) {
+    const rec = byWeek.get(row.week_id) || {};
+    const normalized = row.metric_name.replace(/^\*\s*/, '');
+    rec[normalized] = row.metric_value;
+    byWeek.set(row.week_id, rec);
+  }
+
+  return weeks.map((w) => ({
+    weekId: w.id,
+    weekStartDate: w.week_start_date,
+    weekEndDate: w.week_end_date,
+    metrics: byWeek.get(w.id) || {},
+  }));
+}
+
 export interface WeekData {
   weekStartDate: string;
   weekEndDate: string;
