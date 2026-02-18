@@ -54,12 +54,12 @@ function LineChart({
 
   const coords = points.map((p, i) => {
     const x = padding.left + (points.length === 1 ? plotW / 2 : (i / (points.length - 1)) * plotW);
-    const y = padding.top + (1 - (p.y - minY) / range) * plotH;
-    return { ...p, x, y };
+    const yPx = padding.top + (1 - (p.y - minY) / range) * plotH;
+    return { ...p, x, yPx };
   });
 
   const path = coords
-    .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.y.toFixed(2)}`)
+    .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`)
     .join(' ');
 
   const xLeft = points[0]?.xDate;
@@ -71,7 +71,7 @@ function LineChart({
         date: format(hovered.xDate, 'MMM d, yyyy'),
         value: formatValue(hovered.y),
         x: hovered.x,
-        y: hovered.y,
+        yPx: hovered.yPx,
       }
     : null;
 
@@ -113,7 +113,7 @@ function LineChart({
         {/* line */}
         <path d={path} fill="none" stroke="#0f766e" strokeWidth="2.5" />
         {coords.map((c, i) => (
-          <circle key={i} cx={c.x} cy={c.y} r="3" fill="#0f766e" />
+          <circle key={i} cx={c.x} cy={c.yPx} r="3" fill="#0f766e" />
         ))}
 
         {/* hover guide + tooltip */}
@@ -127,12 +127,12 @@ function LineChart({
               stroke="#94a3b8"
               strokeDasharray="4 4"
             />
-            <circle cx={tooltip.x} cy={tooltip.y} r="5" fill="#0f766e" stroke="#ffffff" strokeWidth="2" />
+            <circle cx={tooltip.x} cy={tooltip.yPx} r="5" fill="#0f766e" stroke="#ffffff" strokeWidth="2" />
             {(() => {
               const boxW = 170;
               const boxH = 46;
               const x = clamp(tooltip.x + 10, padding.left, width - padding.right - boxW);
-              const y = clamp(tooltip.y - boxH - 10, padding.top, height - padding.bottom - boxH);
+              const y = clamp(tooltip.yPx - boxH - 10, padding.top, height - padding.bottom - boxH);
               return (
                 <g>
                   <rect x={x} y={y} width={boxW} height={boxH} rx={8} fill="#0f172a" opacity={0.92} />
