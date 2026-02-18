@@ -19,6 +19,24 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+function median(values: number[]) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}
+
+function rollingMedian(values: number[], window: number) {
+  const w = Math.max(1, Math.floor(window));
+  const out: number[] = [];
+  for (let i = 0; i < values.length; i++) {
+    const start = Math.max(0, i - (w - 1));
+    const slice = values.slice(start, i + 1);
+    out.push(median(slice));
+  }
+  return out;
+}
+
 function getCutoffDate(points: MetricsHistoryPoint[], months: number) {
   const last = points[points.length - 1];
   const anchor = last ? new Date(last.weekStartDate) : new Date();
@@ -34,9 +52,11 @@ function filterByTimeframe(points: MetricsHistoryPoint[], tf: Timeframe) {
 function LineChart({
   points,
   formatValue,
+  trendPoints,
 }: {
   points: Array<{ xLabel: string; xDate: Date; y: number }>;
   formatValue: (v: number) => string;
+  trendPoints?: Array<{ xLabel: string; xDate: Date; y: number }>;
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -44,7 +64,7 @@ function LineChart({
   const height = 220;
   const padding = { top: 16, right: 16, bottom: 28, left: 44 };
 
-  const ys = points.map((p) => p.y);
+  const ys = points.map((p) => p.y).concat(trendPoints ? trendPoints.map((p) => p.y) : []);
   const minY = ys.length ? Math.min(...ys) : 0;
   const maxY = ys.length ? Math.max(...ys) : 0;
   const range = maxY - minY || 1;
@@ -58,7 +78,17 @@ function LineChart({
     return { ...p, x, yPx };
   });
 
+  const trendCoords = (trendPoints || []).map((p, i) => {
+    const x = padding.left + (trendPoints && trendPoints.length === 1 ? plotW / 2 : (i / ((trendPoints?.length || 1) - 1)) * plotW);
+    const yPx = padding.top + (1 - (p.y - minY) / range) * plotH;
+    return { ...p, x, yPx };
+  });
+
   const path = coords
+    .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`)
+    .join(' ');
+
+  const trendPath = trendCoords
     .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`)
     .join(' ');
 
@@ -66,10 +96,12 @@ function LineChart({
   const xRight = points[points.length - 1]?.xDate;
 
   const hovered = hoverIdx !== null ? coords[hoverIdx] : null;
+  const hoveredTrend = hoverIdx !== null && trendPoints && trendPoints.length === coords.length ? trendPoints[hoverIdx] : null;
   const tooltip = hovered
     ? {
         date: format(hovered.xDate, 'MMM d, yyyy'),
         value: formatValue(hovered.y),
+        trendValue: hoveredTrend ? formatValue(hoveredTrend.y) : null,
         x: hovered.x,
         yPx: hovered.yPx,
       }
@@ -112,6 +144,9 @@ function LineChart({
 
         {/* line */}
         <path d={path} fill="none" stroke="#0f766e" strokeWidth="2.5" />
+        {trendPoints && trendCoords.length > 1 && (
+          <path d={trendPath} fill="none" stroke="#1d4ed8" strokeWidth="2.5" strokeDasharray="6 4" />
+        )}
         {coords.map((c, i) => (
           <circle key={i} cx={c.x} cy={c.yPx} r="3" fill="#0f766e" />
         ))}
@@ -141,6 +176,7 @@ function LineChart({
                   </text>
                   <text x={x + 10} y={y + 36} fontSize="12" fill="#ffffff" fontWeight={700 as any}>
                     {tooltip.value}
+                    {tooltip.trendValue ? `  •  Median: ${tooltip.trendValue}` : ''}
                   </text>
                 </g>
               );
@@ -178,6 +214,8 @@ function MetricCard({
   defaultTimeframe?: Timeframe;
 }) {
   const [tf, setTf] = useState<Timeframe>(defaultTimeframe);
+  const [showMedian, setShowMedian] = useState(false);
+  const medianWindow = 3;
 
   const series = useMemo(() => {
     const filtered = filterByTimeframe(points, tf);
@@ -187,6 +225,13 @@ function MetricCard({
       y: p.metrics[title] ?? 0,
     }));
   }, [points, tf, title]);
+
+  const medianSeries = useMemo(() => {
+    if (!showMedian || series.length < 2) return null;
+    const ys = series.map((p) => p.y);
+    const med = rollingMedian(ys, medianWindow);
+    return series.map((p, i) => ({ ...p, y: med[i] }));
+  }, [series, showMedian]);
 
   const latest = series.length ? series[series.length - 1].y : 0;
   const changePct = useMemo(() => {
@@ -207,7 +252,15 @@ function MetricCard({
             <CardTitle className="text-lg text-slate-900">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant={showMedian ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowMedian((v) => !v)}
+              title={`Rolling median (${medianWindow}-week trailing)`}
+            >
+              Median trend
+            </Button>
             <Button variant={tf === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setTf('all')}>
               All Time
             </Button>
@@ -244,7 +297,7 @@ function MetricCard({
             </span>
           </div>
         </div>
-        <LineChart points={series} formatValue={formatValue} />
+        <LineChart points={series} trendPoints={medianSeries || undefined} formatValue={formatValue} />
       </CardContent>
     </Card>
   );
