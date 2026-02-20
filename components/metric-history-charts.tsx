@@ -205,12 +205,14 @@ function MetricCard({
   description,
   points,
   formatValue,
+  higherIsBetter = true,
   defaultTimeframe = '12m',
 }: {
   title: string;
   description: string;
   points: MetricsHistoryPoint[];
   formatValue: (v: number) => string;
+  higherIsBetter?: boolean;
   defaultTimeframe?: Timeframe;
 }) {
   const [tf, setTf] = useState<Timeframe>(defaultTimeframe);
@@ -243,6 +245,16 @@ function MetricCard({
   }, [series]);
 
   const timeframeLabel = tf === 'all' ? 'All time' : tf === '12m' ? '12m' : '3m';
+  const changeIsGood =
+    changePct === null
+      ? null
+      : changePct === Infinity
+      ? higherIsBetter
+      : changePct > 0
+      ? higherIsBetter
+      : changePct < 0
+      ? !higherIsBetter
+      : null;
 
   return (
     <Card className="border-2 border-emerald-100">
@@ -284,11 +296,9 @@ function MetricCard({
               className={`font-semibold ${
                 changePct === null
                   ? 'text-slate-500'
-                  : changePct === Infinity
+                  : changeIsGood === true
                   ? 'text-emerald-700'
-                  : changePct > 0
-                  ? 'text-emerald-700'
-                  : changePct < 0
+                  : changeIsGood === false
                   ? 'text-red-600'
                   : 'text-slate-700'
               }`}
@@ -368,6 +378,7 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         description="Weekly checkout abandonment rate (%)"
         points={normalized}
         formatValue={(v) => `${clamp(v, 0, 100).toFixed(2)}%`}
+        higherIsBetter={false}
         defaultTimeframe="3m"
       />
     </div>
