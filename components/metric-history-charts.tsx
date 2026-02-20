@@ -320,6 +320,7 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         'Conversion Rate': p.metrics['Conversion Rate'] ?? 0,
         AOV: p.metrics['AOV'] ?? 0,
         'Total Sessions': p.metrics['Total Sessions'] ?? 0,
+        'Checkout Abandonment Rate': p.metrics['Checkout Abandonment Rate'] ?? 0,
       },
     }));
   }, [sorted]);
@@ -360,6 +361,13 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         description="Weekly sessions"
         points={normalized}
         formatValue={(v) => formatNumber(v)}
+        defaultTimeframe="3m"
+      />
+      <MetricCard
+        title="Checkout Abandonment Rate"
+        description="Weekly checkout abandonment rate (%)"
+        points={normalized}
+        formatValue={(v) => `${clamp(v, 0, 100).toFixed(2)}%`}
         defaultTimeframe="3m"
       />
     </div>
