@@ -17,7 +17,7 @@ import { GoogleDocsImport } from '@/components/google-docs-import';
 import { PromotionsUpload } from '@/components/promotions-upload';
 import { InsightsDisplay } from '@/components/insights-display';
 import { MetricHistoryCharts, type MetricsHistoryPoint } from '@/components/metric-history-charts';
-import { getSession } from '@/lib/auth';
+import { getSession, logout } from '@/lib/auth';
 import { 
   TrendingUp, 
   DollarSign, 
@@ -369,7 +369,12 @@ export default function Dashboard() {
                 variant="ghost"
                 size="sm"
                 onClick={async () => {
-                  await fetch('/api/auth/logout', { method: 'POST' });
+                  try {
+                    await fetch('/api/auth/logout', { method: 'POST' });
+                  } catch {
+                    // ignore network/cold start issues; client-side logout still works
+                  }
+                  logout(); // clears localStorage auth session
                   window.location.href = '/login';
                 }}
                 className="flex items-center gap-2"
