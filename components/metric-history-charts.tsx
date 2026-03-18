@@ -310,34 +310,41 @@ function MetricCard({
     return series.map((p, i) => ({ ...p, y: med[i] }));
   }, [series, showMedian]);
 
-  // Period total/avg
+  // Period total/avg (displayed in the stat box)
   const currentVals = useMemo(
     () => currentWindowPoints.map((p) => p.metrics[title] ?? 0),
     [currentWindowPoints, title]
   );
   const periodAgg = aggValues(currentVals, aggMode);
 
+  // Per-week average for the current window — used for all comparisons so
+  // sparse prior windows don't inflate/deflate percentages.
+  const currentPerWeekAvg = currentVals.length ? mean(currentVals) : 0;
+
+  // Require at least half the expected weeks before showing a comparison.
+  const minComparisonWeeks = Math.max(1, Math.ceil(weeks / 2));
+
   // Prior period: N weeks immediately before current window
-  const priorAgg = useMemo(() => {
+  const priorPerWeekAvg = useMemo(() => {
     const windowStart = anchorMs - weeks * WEEK_MS;
     const priorStart = windowStart - weeks * WEEK_MS;
     const priorPts = getWindowPoints(points, priorStart, windowStart - 1);
     const vals = priorPts.map((p) => p.metrics[title] ?? 0);
-    return vals.length ? aggValues(vals, aggMode) : null;
-  }, [points, anchorMs, weeks, title, aggMode]);
+    return vals.length >= minComparisonWeeks ? mean(vals) : null;
+  }, [points, anchorMs, weeks, title, minComparisonWeeks]);
 
   // YoY: same window 52 weeks ago
-  const yoyAgg = useMemo(() => {
+  const yoyPerWeekAvg = useMemo(() => {
     const windowStart = anchorMs - weeks * WEEK_MS;
     const yoyEnd = anchorMs - 52 * WEEK_MS;
     const yoyStart = windowStart - 52 * WEEK_MS;
     const yoyPts = getWindowPoints(points, yoyStart, yoyEnd);
     const vals = yoyPts.map((p) => p.metrics[title] ?? 0);
-    return vals.length ? aggValues(vals, aggMode) : null;
-  }, [points, anchorMs, weeks, title, aggMode]);
+    return vals.length >= minComparisonWeeks ? mean(vals) : null;
+  }, [points, anchorMs, weeks, title, minComparisonWeeks]);
 
-  // Trend: linear regression on ALL data, predict for current window
-  const trendAgg = useMemo(() => {
+  // Trend: linear regression on ALL data, predict per-week avg for current window
+  const trendPerWeekAvg = useMemo(() => {
     const allWithVals = points.filter((p) => Object.prototype.hasOwnProperty.call(p.metrics, title));
     if (allWithVals.length < 2 || !currentWindowPoints.length) return null;
     const t0 = new Date(allWithVals[0].weekStartDate).getTime();
@@ -348,12 +355,13 @@ function MetricCard({
       const x = (new Date(p.weekStartDate).getTime() - t0) / WEEK_MS;
       return slope * x + intercept;
     });
-    return aggValues(predicted, aggMode);
-  }, [points, currentWindowPoints, title, aggMode]);
+    return mean(predicted);
+  }, [points, currentWindowPoints, title]);
 
-  const vsPrior = priorAgg !== null ? pctChange(periodAgg, priorAgg) : null;
-  const vsYoy = yoyAgg !== null ? pctChange(periodAgg, yoyAgg) : null;
-  const vsTrend = trendAgg !== null ? pctChange(periodAgg, trendAgg) : null;
+  // All comparisons use per-week averages on both sides → apples-to-apples
+  const vsPrior = priorPerWeekAvg !== null ? pctChange(currentPerWeekAvg, priorPerWeekAvg) : null;
+  const vsYoy = yoyPerWeekAvg !== null ? pctChange(currentPerWeekAvg, yoyPerWeekAvg) : null;
+  const vsTrend = trendPerWeekAvg !== null ? pctChange(currentPerWeekAvg, trendPerWeekAvg) : null;
 
   const isGood = (pct: number | null) =>
     pct === null ? null : pct > 0 ? higherIsBetter : pct < 0 ? !higherIsBetter : null;
