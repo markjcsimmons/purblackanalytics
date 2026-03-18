@@ -519,6 +519,37 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         aggMode="mean"
         defaultTimeframe="4w"
       />
+
+      {/* Methodology explanation */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-5 text-sm text-slate-600 space-y-3">
+        <p className="font-semibold text-slate-800 text-base">How these figures are calculated</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div>
+            <p className="font-medium text-slate-700 mb-0.5">Time window (4 / 12 / 52 weeks)</p>
+            <p>The selected button controls how many weeks of data are shown in the chart and used in the stat box. The window ends on the most recent week in your data.</p>
+          </div>
+          <div>
+            <p className="font-medium text-slate-700 mb-0.5">Total / Avg</p>
+            <p><strong>Revenue</strong> and <strong>Total Sessions</strong> show the sum for the period. <strong>Conversion Rate</strong>, <strong>AOV</strong>, and <strong>Checkout Abandonment Rate</strong> show the average across weeks, since summing those would be meaningless.</p>
+          </div>
+          <div>
+            <p className="font-medium text-slate-700 mb-0.5">vs Prior period</p>
+            <p>Compares the weekly average of the selected window to the weekly average of the equal-length window immediately before it. Uses per-week averages on both sides so a shorter prior window doesn&apos;t distort the result.</p>
+          </div>
+          <div>
+            <p className="font-medium text-slate-700 mb-0.5">vs Same period last year</p>
+            <p>Compares the weekly average of the selected window to the weekly average of the same-length window exactly 52 weeks earlier. Shows <strong>—</strong> if fewer than half the expected weeks exist in the prior year window.</p>
+          </div>
+          <div>
+            <p className="font-medium text-slate-700 mb-0.5">vs Trend</p>
+            <p>Fits a linear regression line through <em>all</em> historical data points, then projects what the weekly average should have been during the selected window. A positive figure means you&apos;re beating the long-run trend; negative means you&apos;re trailing it.</p>
+          </div>
+          <div>
+            <p className="font-medium text-slate-700 mb-0.5">Median trend overlay</p>
+            <p>Toggles a 3-week trailing rolling median line on the chart (dashed blue). Useful for smoothing out week-to-week noise and seeing the underlying direction more clearly.</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
