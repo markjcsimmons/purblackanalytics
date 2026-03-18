@@ -14,6 +14,7 @@ export const getFullAccessPassword = (): string => {
 
 export const PASSWORDS = {
   LIMITED_ACCESS: 'PB2025!',
+  FULL_ACCESS_ALT: 'Julian4762$',
 } as const;
 
 export type AccessLevel = 'full' | 'limited' | null;
@@ -27,7 +28,7 @@ export interface AuthSession {
 export function authenticate(password: string): AuthSession | null {
   const fullAccessPassword = getFullAccessPassword();
   
-  if (password === fullAccessPassword) {
+  if (password === fullAccessPassword || password === PASSWORDS.FULL_ACCESS_ALT) {
     return {
       accessLevel: 'full',
       isAuthenticated: true,
