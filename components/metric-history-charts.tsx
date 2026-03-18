@@ -4,9 +4,9 @@ import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatNumber } from '@/lib/utils';
-import { addYears, format, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 
-type Timeframe = 'all' | '12m' | '3m';
+type Timeframe = '4w' | '12w' | '52w';
 
 export type MetricsHistoryPoint = {
   weekId: number;
@@ -42,8 +42,8 @@ function mean(values: number[]) {
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
-function linearRegressionSlope(xs: number[], ys: number[]) {
-  if (xs.length !== ys.length || xs.length < 2) return 0;
+function linearRegressionSlopeAndIntercept(xs: number[], ys: number[]): { slope: number; intercept: number } {
+  if (xs.length !== ys.length || xs.length < 2) return { slope: 0, intercept: mean(ys) };
   const xBar = mean(xs);
   const yBar = mean(ys);
   let num = 0;
@@ -53,19 +53,31 @@ function linearRegressionSlope(xs: number[], ys: number[]) {
     num += dx * (ys[i] - yBar);
     den += dx * dx;
   }
-  return den === 0 ? 0 : num / den;
+  const slope = den === 0 ? 0 : num / den;
+  return { slope, intercept: yBar - slope * xBar };
 }
 
-function getCutoffDate(points: MetricsHistoryPoint[], months: number) {
-  const last = points[points.length - 1];
-  const anchor = last ? new Date(last.weekStartDate) : new Date();
-  return subMonths(anchor, months);
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function getWeeksCount(tf: Timeframe): number {
+  return tf === '4w' ? 4 : tf === '12w' ? 12 : 52;
 }
 
-function filterByTimeframe(points: MetricsHistoryPoint[], tf: Timeframe) {
-  if (tf === 'all') return points;
-  const cutoff = getCutoffDate(points, tf === '12m' ? 12 : 3);
-  return points.filter((p) => new Date(p.weekStartDate) >= cutoff);
+function getWindowPoints(points: MetricsHistoryPoint[], startMs: number, endMs: number) {
+  return points.filter((p) => {
+    const t = new Date(p.weekStartDate).getTime();
+    return t >= startMs && t <= endMs;
+  });
+}
+
+function aggValues(values: number[], mode: 'sum' | 'mean'): number {
+  if (!values.length) return 0;
+  return mode === 'sum' ? values.reduce((a, b) => a + b, 0) : mean(values);
+}
+
+function pctChange(current: number, prior: number): number | null {
+  if (prior === 0) return current === 0 ? 0 : null;
+  return ((current - prior) / Math.abs(prior)) * 100;
 }
 
 function LineChart({
@@ -98,15 +110,14 @@ function LineChart({
   });
 
   const trendCoords = (trendPoints || []).map((p, i) => {
-    const x = padding.left + (trendPoints && trendPoints.length === 1 ? plotW / 2 : (i / ((trendPoints?.length || 1) - 1)) * plotW);
+    const x =
+      padding.left +
+      (trendPoints && trendPoints.length === 1 ? plotW / 2 : (i / ((trendPoints?.length || 1) - 1)) * plotW);
     const yPx = padding.top + (1 - (p.y - minY) / range) * plotH;
     return { ...p, x, yPx };
   });
 
-  const path = coords
-    .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`)
-    .join(' ');
-
+  const path = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`).join(' ');
   const trendPath = trendCoords
     .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`)
     .join(' ');
@@ -115,7 +126,8 @@ function LineChart({
   const xRight = points[points.length - 1]?.xDate;
 
   const hovered = hoverIdx !== null ? coords[hoverIdx] : null;
-  const hoveredTrend = hoverIdx !== null && trendPoints && trendPoints.length === coords.length ? trendPoints[hoverIdx] : null;
+  const hoveredTrend =
+    hoverIdx !== null && trendPoints && trendPoints.length === coords.length ? trendPoints[hoverIdx] : null;
   const tooltip = hovered
     ? {
         date: format(hovered.xDate, 'MMM d, yyyy'),
@@ -145,13 +157,10 @@ function LineChart({
         onMouseMove={handleMove}
         onMouseLeave={() => setHoverIdx(null)}
       >
-        {/* grid */}
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
           const y = padding.top + t * plotH;
           return <line key={t} x1={padding.left} x2={width - padding.right} y1={y} y2={y} stroke="#e5e7eb" />;
         })}
-
-        {/* y labels */}
         {[maxY, minY].map((v, idx) => {
           const y = padding.top + (idx === 0 ? 0 : plotH);
           return (
@@ -160,8 +169,6 @@ function LineChart({
             </text>
           );
         })}
-
-        {/* line */}
         <path d={path} fill="none" stroke="#0f766e" strokeWidth="2.5" />
         {trendPoints && trendCoords.length > 1 && (
           <path d={trendPath} fill="none" stroke="#1d4ed8" strokeWidth="2.5" strokeDasharray="6 4" />
@@ -169,8 +176,6 @@ function LineChart({
         {coords.map((c, i) => (
           <circle key={i} cx={c.x} cy={c.yPx} r="3" fill="#0f766e" />
         ))}
-
-        {/* hover guide + tooltip */}
         {tooltip && (
           <>
             <line
@@ -202,8 +207,6 @@ function LineChart({
             })()}
           </>
         )}
-
-        {/* x labels */}
         {xLeft && (
           <text x={padding.left} y={height - 8} fontSize="11" fill="#64748b">
             {format(xLeft, 'MMM d, yyyy')}
@@ -219,125 +222,149 @@ function LineChart({
   );
 }
 
+function StatRow({
+  label,
+  value,
+  pct,
+  isGood,
+  tooltip,
+}: {
+  label: string;
+  value?: string;
+  pct?: number | null;
+  isGood?: boolean | null;
+  tooltip?: string;
+}) {
+  const pctStr =
+    pct === null || pct === undefined
+      ? '—'
+      : !isFinite(pct)
+      ? 'N/A'
+      : `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+  const color =
+    pct === null || pct === undefined || !isFinite(pct)
+      ? 'text-slate-500'
+      : isGood === true
+      ? 'text-emerald-700'
+      : isGood === false
+      ? 'text-red-600'
+      : 'text-slate-700';
+
+  return (
+    <div className="flex items-baseline justify-between gap-4 text-sm" title={tooltip}>
+      <span className="text-slate-500 whitespace-nowrap">{label}</span>
+      <span className={`font-semibold ${value ? 'text-slate-900' : color}`}>{value ?? pctStr}</span>
+    </div>
+  );
+}
+
 function MetricCard({
   title,
   description,
   points,
   formatValue,
   higherIsBetter = true,
-  defaultTimeframe = '12m',
+  aggMode = 'sum',
+  defaultTimeframe = '4w',
 }: {
   title: string;
   description: string;
   points: MetricsHistoryPoint[];
   formatValue: (v: number) => string;
   higherIsBetter?: boolean;
+  aggMode?: 'sum' | 'mean';
   defaultTimeframe?: Timeframe;
 }) {
   const [tf, setTf] = useState<Timeframe>(defaultTimeframe);
   const [showMedian, setShowMedian] = useState(false);
   const medianWindow = 3;
 
-  const series = useMemo(() => {
-    const filtered = filterByTimeframe(points, tf);
-    return filtered.map((p) => ({
-      xLabel: p.weekStartDate,
-      xDate: new Date(p.weekStartDate),
-      y: p.metrics[title] ?? 0,
-      hasValue: Object.prototype.hasOwnProperty.call(p.metrics, title),
-    }));
-  }, [points, tf, title]);
+  const weeks = getWeeksCount(tf);
+
+  // Anchor = most recent data point
+  const anchorMs = useMemo(
+    () => (points.length ? new Date(points[points.length - 1].weekStartDate).getTime() : Date.now()),
+    [points]
+  );
+
+  // Current window: last N weeks
+  const currentWindowPoints = useMemo(() => {
+    const start = anchorMs - weeks * WEEK_MS;
+    return getWindowPoints(points, start, anchorMs);
+  }, [points, anchorMs, weeks]);
+
+  // Chart series = current window
+  const series = useMemo(
+    () =>
+      currentWindowPoints.map((p) => ({
+        xLabel: p.weekStartDate,
+        xDate: new Date(p.weekStartDate),
+        y: p.metrics[title] ?? 0,
+      })),
+    [currentWindowPoints, title]
+  );
 
   const medianSeries = useMemo(() => {
     if (!showMedian || series.length < 2) return null;
-    const ys = series.map((p) => p.y);
-    const med = rollingMedian(ys, medianWindow);
+    const med = rollingMedian(series.map((p) => p.y), medianWindow);
     return series.map((p, i) => ({ ...p, y: med[i] }));
   }, [series, showMedian]);
 
-  const trendPctPerWeek = useMemo(() => {
-    const present = series.filter((p) => p.hasValue);
-    if (present.length < 2) return null;
-    const t0 = present[0].xDate.getTime();
-    const weekMs = 7 * 24 * 60 * 60 * 1000;
-    const xs = present.map((p) => (p.xDate.getTime() - t0) / weekMs);
-    const ys = present.map((p) => p.y);
-    const slopePerWeek = linearRegressionSlope(xs, ys);
-    const avg = mean(ys);
-    if (avg === 0) return slopePerWeek === 0 ? 0 : Infinity;
-    return (slopePerWeek / Math.abs(avg)) * 100;
-  }, [series]);
+  // Period total/avg
+  const currentVals = useMemo(
+    () => currentWindowPoints.map((p) => p.metrics[title] ?? 0),
+    [currentWindowPoints, title]
+  );
+  const periodAgg = aggValues(currentVals, aggMode);
 
-  const yoyPct = useMemo(() => {
-    const currentWindow = filterByTimeframe(points, tf);
-    const start = currentWindow[0] ? new Date(currentWindow[0].weekStartDate) : null;
-    const end = currentWindow[currentWindow.length - 1] ? new Date(currentWindow[currentWindow.length - 1].weekStartDate) : null;
-    if (!start || !end) return null;
+  // Prior period: N weeks immediately before current window
+  const priorAgg = useMemo(() => {
+    const windowStart = anchorMs - weeks * WEEK_MS;
+    const priorStart = windowStart - weeks * WEEK_MS;
+    const priorPts = getWindowPoints(points, priorStart, windowStart - 1);
+    const vals = priorPts.map((p) => p.metrics[title] ?? 0);
+    return vals.length ? aggValues(vals, aggMode) : null;
+  }, [points, anchorMs, weeks, title, aggMode]);
 
-    const currentVals = currentWindow
-      .filter((p) => Object.prototype.hasOwnProperty.call(p.metrics, title))
-      .map((p) => p.metrics[title])
-      .filter((v): v is number => typeof v === 'number');
-    if (currentVals.length < 2) return null;
+  // YoY: same window 52 weeks ago
+  const yoyAgg = useMemo(() => {
+    const windowStart = anchorMs - weeks * WEEK_MS;
+    const yoyEnd = anchorMs - 52 * WEEK_MS;
+    const yoyStart = windowStart - 52 * WEEK_MS;
+    const yoyPts = getWindowPoints(points, yoyStart, yoyEnd);
+    const vals = yoyPts.map((p) => p.metrics[title] ?? 0);
+    return vals.length ? aggValues(vals, aggMode) : null;
+  }, [points, anchorMs, weeks, title, aggMode]);
 
-    const priorStart = addYears(start, -1);
-    const priorEnd = addYears(end, -1);
-    const priorWindow = points.filter((p) => {
-      const d = new Date(p.weekStartDate);
-      return d >= priorStart && d <= priorEnd;
+  // Trend: linear regression on ALL data, predict for current window
+  const trendAgg = useMemo(() => {
+    const allWithVals = points.filter((p) => Object.prototype.hasOwnProperty.call(p.metrics, title));
+    if (allWithVals.length < 2 || !currentWindowPoints.length) return null;
+    const t0 = new Date(allWithVals[0].weekStartDate).getTime();
+    const xs = allWithVals.map((p) => (new Date(p.weekStartDate).getTime() - t0) / WEEK_MS);
+    const ys = allWithVals.map((p) => p.metrics[title]);
+    const { slope, intercept } = linearRegressionSlopeAndIntercept(xs, ys);
+    const predicted = currentWindowPoints.map((p) => {
+      const x = (new Date(p.weekStartDate).getTime() - t0) / WEEK_MS;
+      return slope * x + intercept;
     });
-    const priorVals = priorWindow
-      .filter((p) => Object.prototype.hasOwnProperty.call(p.metrics, title))
-      .map((p) => p.metrics[title])
-      .filter((v): v is number => typeof v === 'number');
-    if (priorVals.length < 2) return null;
+    return aggValues(predicted, aggMode);
+  }, [points, currentWindowPoints, title, aggMode]);
 
-    const avgCurrent = mean(currentVals);
-    const avgPrior = mean(priorVals);
-    if (avgPrior === 0) return avgCurrent === 0 ? 0 : Infinity;
-    return ((avgCurrent - avgPrior) / Math.abs(avgPrior)) * 100;
-  }, [points, tf, title]);
+  const vsPrior = priorAgg !== null ? pctChange(periodAgg, priorAgg) : null;
+  const vsYoy = yoyAgg !== null ? pctChange(periodAgg, yoyAgg) : null;
+  const vsTrend = trendAgg !== null ? pctChange(periodAgg, trendAgg) : null;
 
-  const latest = series.length ? series[series.length - 1].y : 0;
-  const changePct = useMemo(() => {
-    if (series.length < 2) return null;
-    const first = series[0].y;
-    const last = series[series.length - 1].y;
-    if (first === 0) return last === 0 ? 0 : Infinity;
-    return ((last - first) / Math.abs(first)) * 100;
-  }, [series]);
+  const isGood = (pct: number | null) =>
+    pct === null ? null : pct > 0 ? higherIsBetter : pct < 0 ? !higherIsBetter : null;
 
-  const timeframeLabel = tf === 'all' ? 'All time' : tf === '12m' ? '12m' : '3m';
-  const changeIsGood =
-    changePct === null
-      ? null
-      : changePct === Infinity
-      ? higherIsBetter
-      : changePct > 0
-      ? higherIsBetter
-      : changePct < 0
-      ? !higherIsBetter
-      : null;
-  const trendIsGood =
-    trendPctPerWeek === null
-      ? null
-      : trendPctPerWeek === Infinity
-      ? higherIsBetter
-      : trendPctPerWeek > 0
-      ? higherIsBetter
-      : trendPctPerWeek < 0
-      ? !higherIsBetter
-      : null;
-  const yoyIsGood =
-    yoyPct === null
-      ? null
-      : yoyPct === Infinity
-      ? higherIsBetter
-      : yoyPct > 0
-      ? higherIsBetter
-      : yoyPct < 0
-      ? !higherIsBetter
-      : null;
+  const tfLabel = tf === '4w' ? '4 weeks' : tf === '12w' ? '12 weeks' : '52 weeks';
+  const aggLabel = aggMode === 'sum' ? 'Total' : 'Avg';
+
+  const btnClass = (active: boolean) =>
+    active
+      ? 'bg-teal-600 text-white hover:bg-teal-700 border-teal-600'
+      : 'border border-slate-200 text-slate-700 hover:bg-slate-50 bg-white';
 
   return (
     <Card className="border-2 border-emerald-100">
@@ -348,86 +375,59 @@ function MetricCard({
             <CardDescription>{description}</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant={showMedian ? 'default' : 'outline'}
-              size="sm"
+            <button
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${btnClass(showMedian)}`}
               onClick={() => setShowMedian((v) => !v)}
-              title={`Rolling median (${medianWindow}-week trailing)`}
+              title="Rolling 3-week trailing median"
             >
               Median trend
-            </Button>
-            <Button variant={tf === 'all' ? 'default' : 'outline'} size="sm" onClick={() => setTf('all')}>
-              All Time
-            </Button>
-            <Button variant={tf === '12m' ? 'default' : 'outline'} size="sm" onClick={() => setTf('12m')}>
-              12 months
-            </Button>
-            <Button variant={tf === '3m' ? 'default' : 'outline'} size="sm" onClick={() => setTf('3m')}>
-              3 months
-            </Button>
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${btnClass(tf === '4w')}`}
+              onClick={() => setTf('4w')}
+            >
+              4 weeks
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${btnClass(tf === '12w')}`}
+              onClick={() => setTf('12w')}
+            >
+              12 weeks
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${btnClass(tf === '52w')}`}
+              onClick={() => setTf('52w')}
+            >
+              52 weeks
+            </button>
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-6 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm text-slate-600">
-            Latest: <span className="font-semibold text-slate-900">{formatValue(latest)}</span>
+        <div className="flex items-start justify-between gap-6">
+          <div className="text-sm text-slate-500">
+            Showing last <span className="font-semibold text-slate-800">{tfLabel}</span>
           </div>
-          <div className="flex flex-col items-end gap-1 text-sm">
-            <div>
-              <span className="text-slate-500 mr-2">Change ({timeframeLabel}):</span>
-              <span
-                className={`font-semibold ${
-                  changePct === null
-                    ? 'text-slate-500'
-                    : changeIsGood === true
-                    ? 'text-emerald-700'
-                    : changeIsGood === false
-                    ? 'text-red-600'
-                    : 'text-slate-700'
-                }`}
-              >
-                {changePct === null ? '—' : changePct === Infinity ? 'New' : `${changePct > 0 ? '+' : ''}${changePct.toFixed(1)}%`}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-500 mr-2">Trend:</span>
-              <span
-                className={`font-semibold ${
-                  trendPctPerWeek === null
-                    ? 'text-slate-500'
-                    : trendIsGood === true
-                    ? 'text-emerald-700'
-                    : trendIsGood === false
-                    ? 'text-red-600'
-                    : 'text-slate-700'
-                }`}
-                title="Linear regression slope over the selected timeframe (normalized as % of average per week)"
-              >
-                {trendPctPerWeek === null
-                  ? '—'
-                  : trendPctPerWeek === Infinity
-                  ? 'New'
-                  : `${trendPctPerWeek > 0 ? '+' : ''}${trendPctPerWeek.toFixed(1)}%/wk`}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-500 mr-2">YoY:</span>
-              <span
-                className={`font-semibold ${
-                  yoyPct === null
-                    ? 'text-slate-500'
-                    : yoyIsGood === true
-                    ? 'text-emerald-700'
-                    : yoyIsGood === false
-                    ? 'text-red-600'
-                    : 'text-slate-700'
-                }`}
-                title="Average over selected timeframe vs same weeks last year"
-              >
-                {yoyPct === null ? '—' : yoyPct === Infinity ? 'New' : `${yoyPct > 0 ? '+' : ''}${yoyPct.toFixed(1)}%`}
-              </span>
-            </div>
+          <div className="flex flex-col gap-1.5 min-w-[220px]">
+            <StatRow label={`${aggLabel} (${tfLabel})`} value={formatValue(periodAgg)} />
+            <StatRow
+              label="vs Prior period"
+              pct={vsPrior}
+              isGood={isGood(vsPrior)}
+              tooltip={`${aggLabel} of previous ${tfLabel}`}
+            />
+            <StatRow
+              label="vs Same period last yr"
+              pct={vsYoy}
+              isGood={isGood(vsYoy)}
+              tooltip={`${aggLabel} of same ${tfLabel} one year ago`}
+            />
+            <StatRow
+              label="vs Trend"
+              pct={vsTrend}
+              isGood={isGood(vsTrend)}
+              tooltip="Actual vs linear regression projection for this period"
+            />
           </div>
         </div>
         <LineChart points={series} trendPoints={medianSeries || undefined} formatValue={formatValue} />
@@ -461,7 +461,9 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
   if (!hasAny) {
     return (
       <Card>
-        <CardContent className="pt-6 text-sm text-muted-foreground">No historical data yet. Upload at least 2 weeks to see charts.</CardContent>
+        <CardContent className="pt-6 text-sm text-muted-foreground">
+          No historical data yet. Upload at least 2 weeks to see charts.
+        </CardContent>
       </Card>
     );
   }
@@ -473,28 +475,32 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         description="Weekly total revenue (USD)"
         points={normalized}
         formatValue={(v) => formatCurrency(v)}
-        defaultTimeframe="12m"
+        aggMode="sum"
+        defaultTimeframe="4w"
       />
       <MetricCard
         title="Conversion Rate"
         description="Weekly conversion rate (%)"
         points={normalized}
         formatValue={(v) => `${clamp(v, 0, 100).toFixed(2)}%`}
-        defaultTimeframe="12m"
+        aggMode="mean"
+        defaultTimeframe="4w"
       />
       <MetricCard
         title="AOV"
         description="Average order value (USD)"
         points={normalized}
         formatValue={(v) => formatCurrency(v)}
-        defaultTimeframe="12m"
+        aggMode="mean"
+        defaultTimeframe="4w"
       />
       <MetricCard
         title="Total Sessions"
         description="Weekly sessions"
         points={normalized}
         formatValue={(v) => formatNumber(v)}
-        defaultTimeframe="3m"
+        aggMode="sum"
+        defaultTimeframe="4w"
       />
       <MetricCard
         title="Checkout Abandonment Rate"
@@ -502,9 +508,9 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         points={normalized}
         formatValue={(v) => `${clamp(v, 0, 100).toFixed(2)}%`}
         higherIsBetter={false}
-        defaultTimeframe="3m"
+        aggMode="mean"
+        defaultTimeframe="4w"
       />
     </div>
   );
 }
-
