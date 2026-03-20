@@ -3,6 +3,29 @@ import OpenAI from 'openai';
 // Lazy-load OpenAI client to prevent build-time initialization
 let openai: OpenAI | null = null;
 
+// Use gpt-4o-mini: ~10x higher rate limits, ~15x cheaper, same quality for analytics insights
+const INSIGHTS_MODEL = 'gpt-4o-mini';
+
+// Retry an async fn up to maxRetries times on 429, with exponential backoff
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  let lastError: any;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      if (error?.status === 429 && attempt < maxRetries - 1) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        console.warn(`[OpenAI] Rate limited (429). Retrying in ${delayMs}ms… (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise((res) => setTimeout(res, delayMs));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw lastError;
+}
+
 function getOpenAIClient(): OpenAI {
   if (!openai) {
     const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
@@ -183,8 +206,8 @@ Return ONLY a JSON object with an "insights" array, no additional text. Format:
 }`;
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await withRetry(() => client.chat.completions.create({
+      model: INSIGHTS_MODEL,
       messages: [
         {
           role: 'system',
@@ -197,7 +220,7 @@ Return ONLY a JSON object with an "insights" array, no additional text. Format:
       ],
       temperature: 0.7,
       response_format: { type: 'json_object' },
-    });
+    }));
 
     const content = response.choices[0].message.content || '';
     console.log('[Promotion Insights] Raw AI response content (first 500 chars):', content.substring(0, 500));
@@ -945,8 +968,8 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
     }
     
     const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await withRetry(() => client.chat.completions.create({
+      model: INSIGHTS_MODEL,
       messages: [
         {
           role: 'system',
@@ -959,7 +982,7 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
       ],
       temperature: 0.7,
       response_format: { type: 'json_object' },
-    });
+    }));
 
     const content = response.choices[0].message.content;
     if (!content) throw new Error('No response from OpenAI');
