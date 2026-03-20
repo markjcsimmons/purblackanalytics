@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -85,12 +85,12 @@ Output format (plain text):
 `;
 }
 
-const INSIGHTS_MODEL = 'gpt-4o-mini';
+const INSIGHTS_MODEL = 'claude-opus-4-6';
 
-function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY is required to run AI search "why" analysis.');
-  return new OpenAI({ apiKey });
+function getClient(): Anthropic {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is required to run AI search "why" analysis.');
+  return new Anthropic({ apiKey });
 }
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
@@ -100,7 +100,8 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       return await fn();
     } catch (error: any) {
       lastError = error;
-      if (error?.status === 429 && attempt < maxRetries - 1) {
+      const retryable = error?.status === 529 || error?.status === 500;
+      if (retryable && attempt < maxRetries - 1) {
         const delayMs = Math.pow(2, attempt) * 1000;
         await new Promise((res) => setTimeout(res, delayMs));
       } else {
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing query or results' }, { status: 400 });
     }
 
-    const client = getOpenAIClient();
+    const client = getClient();
     const resultsCompact = compactResults(results);
 
     const prompt = `You are an expert in AI search visibility and citation mechanics.
@@ -193,18 +194,14 @@ Competitor selection rules:
 - Use brandsFound plus any obvious brand names from titles/hostnames.
 - Include up to 6 competitors per engine (prioritize those appearing highest).`;
 
-    const response = await withRetry(() => client.chat.completions.create({
+    const response = await withRetry(() => client.messages.create({
       model: INSIGHTS_MODEL,
-      messages: [
-        { role: 'system', content: 'Return valid JSON only.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.1,
-      max_tokens: 900,
-      response_format: { type: 'json_object' },
+      system: 'Return valid JSON only.',
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: prompt }],
     }));
 
-    const content = response.choices[0]?.message?.content || '{}';
+    const content = response.content.find((b: any) => b.type === 'text')?.text || '{}';
     let parsed: any;
     try {
       parsed = JSON.parse(content);
@@ -227,18 +224,14 @@ Rules:
 Malformed JSON:
 ${content}`;
 
-          const repaired = await withRetry(() => client.chat.completions.create({
+          const repaired = await withRetry(() => client.messages.create({
             model: INSIGHTS_MODEL,
-            messages: [
-              { role: 'system', content: 'Return valid JSON only.' },
-              { role: 'user', content: repairPrompt },
-            ],
-            temperature: 0,
-            max_tokens: 900,
-            response_format: { type: 'json_object' },
+            system: 'Return valid JSON only.',
+            max_tokens: 2048,
+            messages: [{ role: 'user', content: repairPrompt }],
           }));
 
-          const repairedContent = repaired.choices[0]?.message?.content || '{}';
+          const repairedContent = repaired.content.find((b: any) => b.type === 'text')?.text || '{}';
           try {
             parsed = JSON.parse(repairedContent);
           } catch {
@@ -266,7 +259,7 @@ ${content}`;
     // If JSON formatting failed, fall back to a plain-text analysis so the user still gets an answer.
     if (isJsonish) {
       try {
-        const client = getOpenAIClient();
+        const client = getClient();
         const plainTextPrompt = buildPlainTextPrompt({
           query: body?.query,
           brand: (body?.brand as string | undefined) || 'Pürblack',
@@ -274,16 +267,13 @@ ${content}`;
           brandAliases: (body?.brandAliases as string[] | undefined) || ['Pürblack', 'Purblack', 'Pur black'],
           resultsCompact: compactResults((body?.results as SearchResult[]) || []),
         });
-        const fallback = await withRetry(() => client.chat.completions.create({
+        const fallback = await withRetry(() => client.messages.create({
           model: INSIGHTS_MODEL,
-          messages: [
-            { role: 'system', content: 'Return plain text only.' },
-            { role: 'user', content: plainTextPrompt },
-          ],
-          temperature: 0.2,
-          max_tokens: 900,
+          system: 'Return plain text only.',
+          max_tokens: 2048,
+          messages: [{ role: 'user', content: plainTextPrompt }],
         }));
-        const text = fallback.choices[0]?.message?.content || '';
+        const text = fallback.content.find((b: any) => b.type === 'text')?.text || '';
         return NextResponse.json({
           analysis: {
             summary: '',
