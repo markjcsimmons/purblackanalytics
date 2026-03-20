@@ -85,10 +85,30 @@ Output format (plain text):
 `;
 }
 
+const INSIGHTS_MODEL = 'gpt-4o-mini';
+
 function getOpenAIClient(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY is required to run AI search "why" analysis.');
   return new OpenAI({ apiKey });
+}
+
+async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
+  let lastError: any;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      if (error?.status === 429 && attempt < maxRetries - 1) {
+        const delayMs = Math.pow(2, attempt) * 1000;
+        await new Promise((res) => setTimeout(res, delayMs));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw lastError;
 }
 
 export async function POST(request: NextRequest) {
@@ -173,17 +193,16 @@ Competitor selection rules:
 - Use brandsFound plus any obvious brand names from titles/hostnames.
 - Include up to 6 competitors per engine (prioritize those appearing highest).`;
 
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o',
+    const response = await withRetry(() => client.chat.completions.create({
+      model: INSIGHTS_MODEL,
       messages: [
         { role: 'system', content: 'Return valid JSON only.' },
         { role: 'user', content: prompt },
       ],
       temperature: 0.1,
       max_tokens: 900,
-      // Keep JSON mode; we also have parsing/repair fallbacks below.
       response_format: { type: 'json_object' },
-    });
+    }));
 
     const content = response.choices[0]?.message?.content || '{}';
     let parsed: any;
@@ -208,8 +227,8 @@ Rules:
 Malformed JSON:
 ${content}`;
 
-          const repaired = await client.chat.completions.create({
-            model: 'gpt-4o',
+          const repaired = await withRetry(() => client.chat.completions.create({
+            model: INSIGHTS_MODEL,
             messages: [
               { role: 'system', content: 'Return valid JSON only.' },
               { role: 'user', content: repairPrompt },
@@ -217,7 +236,7 @@ ${content}`;
             temperature: 0,
             max_tokens: 900,
             response_format: { type: 'json_object' },
-          });
+          }));
 
           const repairedContent = repaired.choices[0]?.message?.content || '{}';
           try {
@@ -255,15 +274,15 @@ ${content}`;
           brandAliases: (body?.brandAliases as string[] | undefined) || ['Pürblack', 'Purblack', 'Pur black'],
           resultsCompact: compactResults((body?.results as SearchResult[]) || []),
         });
-        const fallback = await client.chat.completions.create({
-          model: 'gpt-4o',
+        const fallback = await withRetry(() => client.chat.completions.create({
+          model: INSIGHTS_MODEL,
           messages: [
             { role: 'system', content: 'Return plain text only.' },
             { role: 'user', content: plainTextPrompt },
           ],
           temperature: 0.2,
           max_tokens: 900,
-        });
+        }));
         const text = fallback.choices[0]?.message?.content || '';
         return NextResponse.json({
           analysis: {
