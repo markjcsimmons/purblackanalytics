@@ -287,9 +287,10 @@ function MetricCard({
     [points]
   );
 
-  // Current window: last N weeks
+  // Current window: exactly N weeks ending at anchor.
+  // Use (weeks - 1) so the inclusive filter [start, anchor] returns exactly N points.
   const currentWindowPoints = useMemo(() => {
-    const start = anchorMs - weeks * WEEK_MS;
+    const start = anchorMs - (weeks - 1) * WEEK_MS;
     return getWindowPoints(points, start, anchorMs);
   }, [points, anchorMs, weeks]);
 
@@ -324,20 +325,23 @@ function MetricCard({
   // Require at least half the expected weeks before showing a comparison.
   const minComparisonWeeks = Math.max(1, Math.ceil(weeks / 2));
 
-  // Prior period: N weeks immediately before current window
+  // Prior period: the N weeks immediately before the current window.
+  // Current window spans [anchor - (weeks-1)*WEEK_MS, anchor].
+  // Prior window spans [anchor - (2*weeks-1)*WEEK_MS, anchor - weeks*WEEK_MS].
   const priorPerWeekAvg = useMemo(() => {
-    const windowStart = anchorMs - weeks * WEEK_MS;
-    const priorStart = windowStart - weeks * WEEK_MS;
-    const priorPts = getWindowPoints(points, priorStart, windowStart - 1);
+    const currentStart = anchorMs - (weeks - 1) * WEEK_MS;
+    const priorEnd = currentStart - WEEK_MS;
+    const priorStart = priorEnd - (weeks - 1) * WEEK_MS;
+    const priorPts = getWindowPoints(points, priorStart, priorEnd);
     const vals = priorPts.map((p) => p.metrics[title] ?? 0);
     return vals.length >= minComparisonWeeks ? mean(vals) : null;
   }, [points, anchorMs, weeks, title, minComparisonWeeks]);
 
-  // YoY: same window 52 weeks ago
+  // YoY: same N-week window exactly 52 weeks ago
   const yoyPerWeekAvg = useMemo(() => {
-    const windowStart = anchorMs - weeks * WEEK_MS;
+    const currentStart = anchorMs - (weeks - 1) * WEEK_MS;
     const yoyEnd = anchorMs - 52 * WEEK_MS;
-    const yoyStart = windowStart - 52 * WEEK_MS;
+    const yoyStart = currentStart - 52 * WEEK_MS;
     const yoyPts = getWindowPoints(points, yoyStart, yoyEnd);
     const vals = yoyPts.map((p) => p.metrics[title] ?? 0);
     return vals.length >= minComparisonWeeks ? mean(vals) : null;

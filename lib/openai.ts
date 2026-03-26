@@ -1,12 +1,12 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
-// Lazy-load Anthropic client to prevent build-time initialization
-let anthropicClient: Anthropic | null = null;
+// Lazy-load OpenAI client to prevent build-time initialization
+let openai: OpenAI | null = null;
 
-// Claude Opus 4.6 — best intelligence, generous rate limits, no OpenAI dependency
-const INSIGHTS_MODEL = 'claude-opus-4-6';
+// Use gpt-4o-mini: ~10x higher rate limits, ~15x cheaper, same quality for analytics insights
+const INSIGHTS_MODEL = 'gpt-4o-mini';
 
-// Retry an async fn up to maxRetries times on 529/overloaded, with exponential backoff
+// Retry an async fn up to maxRetries times on 429, with exponential backoff
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: any;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -14,10 +14,9 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       return await fn();
     } catch (error: any) {
       lastError = error;
-      const retryable = error?.status === 529 || error?.status === 500;
-      if (retryable && attempt < maxRetries - 1) {
-        const delayMs = Math.pow(2, attempt) * 1000;
-        console.warn(`[Anthropic] Retryable error (${error?.status}). Retrying in ${delayMs}ms… (attempt ${attempt + 1}/${maxRetries})`);
+      if (error?.status === 429 && attempt < maxRetries - 1) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        console.warn(`[OpenAI] Rate limited (429). Retrying in ${delayMs}ms… (attempt ${attempt + 1}/${maxRetries})`);
         await new Promise((res) => setTimeout(res, delayMs));
       } else {
         throw error;
@@ -27,23 +26,23 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   throw lastError;
 }
 
-function getOpenAIClient(): Anthropic {
-  if (!anthropicClient) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
+    
     if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is required.');
+      throw new Error('OPENAI_API_KEY, OPEN_AI_KEY, or OPEN_API_KEY environment variable is required.');
     }
-    anthropicClient = new Anthropic({ apiKey });
+    
+    if (!apiKey.startsWith('sk-')) {
+      throw new Error('Invalid OpenAI API key format. Key should start with "sk-".');
+    }
+    
+    openai = new OpenAI({
+      apiKey: apiKey,
+    });
   }
-  return anthropicClient;
-}
-
-// Helper: extract text from Anthropic response
-function extractText(response: Anthropic.Message): string {
-  for (const block of response.content) {
-    if (block.type === 'text') return block.text;
-  }
-  return '';
+  return openai as OpenAI;
 }
 
 export interface Insight {
@@ -207,14 +206,23 @@ Return ONLY a JSON object with an "insights" array, no additional text. Format:
 }`;
 
   try {
-    const response = await withRetry(() => client.messages.create({
+    const response = await withRetry(() => client.chat.completions.create({
       model: INSIGHTS_MODEL,
-      system: 'You are an expert ecommerce marketing analyst. Always respond with valid JSON only. Provide very specific insights with exact numbers, percentages, and comparisons.',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an expert ecommerce marketing analyst. Always respond with valid JSON only. Provide very specific insights with exact numbers, percentages, and comparisons.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
     }));
 
-    const content = extractText(response);
+    const content = response.choices[0].message.content || '';
     console.log('[Promotion Insights] Raw AI response content (first 500 chars):', content.substring(0, 500));
     let insights: Insight[] = [];
 
@@ -294,7 +302,10 @@ Return ONLY a JSON object with an "insights" array, no additional text. Format:
   } catch (error: any) {
     console.error('[Promotion Insights] OpenAI API error:', error);
     if (error.status === 401) {
-      throw new Error('Anthropic API authentication failed. Please check your ANTHROPIC_API_KEY in Render.');
+      throw new Error('OpenAI API authentication failed. The API key may be invalid or expired. Please check your OPENAI_API_KEY in Render.');
+    }
+    if (error.status === 429) {
+      throw new Error('OpenAI API rate limit exceeded. Please try again in a moment.');
     }
 
     throw new Error('Failed to generate promotion insights: ' + (error.message || 'Unknown error') + '. Check server logs for details.');
@@ -957,15 +968,24 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
     }
     
     const client = getOpenAIClient();
-    const response = await withRetry(() => client.messages.create({
+    const response = await withRetry(() => client.chat.completions.create({
       model: INSIGHTS_MODEL,
-      system: `You are an expert ecommerce marketing analyst. Provide insights in JSON format only, no additional text.${businessContext ? ' CRITICAL: Business context was provided - you MUST reference it explicitly in at least 3-4 insights. Do not provide generic insights that ignore the context.' : ''}`,
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert ecommerce marketing analyst. Provide insights in JSON format only, no additional text.${businessContext ? ' CRITICAL: Business context was provided - you MUST reference it explicitly in at least 3-4 insights. Do not provide generic insights that ignore the context.' : ''}`,
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
     }));
 
-    const content = extractText(response);
-    if (!content) throw new Error('No response from Anthropic');
+    const content = response.choices[0].message.content;
+    if (!content) throw new Error('No response from OpenAI');
 
     const parsed = JSON.parse(content);
     
@@ -1000,7 +1020,10 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
       throw new Error('OpenAI API key issue: ' + error.message + '. Please verify the key is set correctly in Render and restart the service.');
     }
     if (error.status === 401) {
-      throw new Error('Anthropic API authentication failed. Please check your ANTHROPIC_API_KEY in Render.');
+      throw new Error('OpenAI API authentication failed. The API key may be invalid or expired. Please check your OPENAI_API_KEY in Render.');
+    }
+    if (error.status === 429) {
+      throw new Error('OpenAI API rate limit exceeded. Please try again in a moment.');
     }
     
     throw new Error('Failed to generate insights: ' + (error.message || 'Unknown error') + '. Check server logs for details.');
