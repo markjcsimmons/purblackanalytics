@@ -201,7 +201,7 @@ Competitor selection rules:
       messages: [{ role: 'user', content: prompt }],
     }));
 
-    const content = response.content.find((b: any) => b.type === 'text')?.text || '{}';
+    const content = (response.content.find((b: any) => b.type === 'text') as any)?.text || '{}';
     let parsed: any;
     try {
       parsed = JSON.parse(content);
@@ -231,7 +231,7 @@ ${content}`;
             messages: [{ role: 'user', content: repairPrompt }],
           }));
 
-          const repairedContent = repaired.content.find((b: any) => b.type === 'text')?.text || '{}';
+          const repairedContent = (repaired.content.find((b: any) => b.type === 'text') as any)?.text || '{}';
           try {
             parsed = JSON.parse(repairedContent);
           } catch {
@@ -273,7 +273,7 @@ ${content}`;
           max_tokens: 2048,
           messages: [{ role: 'user', content: plainTextPrompt }],
         }));
-        const text = fallback.content.find((b: any) => b.type === 'text')?.text || '';
+        const text = (fallback.content.find((b: any) => b.type === 'text') as any)?.text || '';
         return NextResponse.json({
           analysis: {
             summary: '',

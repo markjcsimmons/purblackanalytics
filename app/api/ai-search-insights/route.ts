@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       messages: [{ role: 'user', content: prompt }],
     }));
 
-    const content = response.content.find((b: any) => b.type === 'text')?.text || '{}';
+    const content = (response.content.find((b: any) => b.type === 'text') as any)?.text || '{}';
     const parsed = JSON.parse(content);
     const insights = Array.isArray(parsed.insights) ? parsed.insights : [];
 
