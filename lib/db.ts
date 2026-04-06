@@ -274,7 +274,10 @@ export function getOverallMetricsHistory() {
       `SELECT week_id, metric_name, metric_value
        FROM overall_metrics
        WHERE week_id IN (${placeholders})
-         AND metric_name IN ('* Revenue','* Conversion Rate','* AOV','* Total Sessions','* Checkout Abandonment Rate')
+         AND metric_name IN (
+           '* Revenue','* Conversion Rate','* AOV','* Total Sessions','* Checkout Abandonment Rate',
+           '* Total Discounts','* Comp Discounts','* Promo Discounts'
+         )
       `
     )
     .all(...weekIds) as Array<{ week_id: number; metric_name: string; metric_value: number }>;

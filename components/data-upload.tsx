@@ -203,6 +203,15 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       if (parseValue(row.checkout_abandonment_rate) > 0) {
         data.overallMetrics['* Checkout Abandonment Rate'] = parseValue(row.checkout_abandonment_rate);
       }
+      if (parseValue(row.total_discounts) > 0) {
+        data.overallMetrics['* Total Discounts'] = parseValue(row.total_discounts);
+      }
+      if (parseValue(row.comp_discounts) > 0) {
+        data.overallMetrics['* Comp Discounts'] = parseValue(row.comp_discounts);
+      }
+      if (parseValue(row.promo_discounts) > 0) {
+        data.overallMetrics['* Promo Discounts'] = parseValue(row.promo_discounts);
+      }
 
       // Marketing Channels - Google Ads
       if (parseValue(row.google_ads_revenue) > 0 || parseValue(row.google_ads_spend) > 0) {

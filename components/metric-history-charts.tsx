@@ -84,10 +84,12 @@ function LineChart({
   points,
   formatValue,
   trendPoints,
+  adjustedPoints,
 }: {
   points: Array<{ xLabel: string; xDate: Date; y: number }>;
   formatValue: (v: number) => string;
   trendPoints?: Array<{ xLabel: string; xDate: Date; y: number }>;
+  adjustedPoints?: Array<{ xLabel: string; xDate: Date; y: number }>;
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -95,7 +97,9 @@ function LineChart({
   const height = 220;
   const padding = { top: 16, right: 16, bottom: 28, left: 44 };
 
-  const ys = points.map((p) => p.y).concat(trendPoints ? trendPoints.map((p) => p.y) : []);
+  const ys = points.map((p) => p.y)
+    .concat(trendPoints ? trendPoints.map((p) => p.y) : [])
+    .concat(adjustedPoints ? adjustedPoints.map((p) => p.y) : []);
   const minY = ys.length ? Math.min(...ys) : 0;
   const maxY = ys.length ? Math.max(...ys) : 0;
   const range = maxY - minY || 1;
@@ -117,6 +121,17 @@ function LineChart({
     return { ...p, x, yPx };
   });
 
+  const adjustedCoords = (adjustedPoints || []).map((p, i) => {
+    const x =
+      padding.left +
+      (adjustedPoints && adjustedPoints.length === 1 ? plotW / 2 : (i / ((adjustedPoints?.length || 1) - 1)) * plotW);
+    const yPx = padding.top + (1 - (p.y - minY) / range) * plotH;
+    return { ...p, x, yPx };
+  });
+  const adjustedPath = adjustedCoords
+    .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`)
+    .join(' ');
+
   const path = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`).join(' ');
   const trendPath = trendCoords
     .map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(2)} ${c.yPx.toFixed(2)}`)
@@ -128,11 +143,14 @@ function LineChart({
   const hovered = hoverIdx !== null ? coords[hoverIdx] : null;
   const hoveredTrend =
     hoverIdx !== null && trendPoints && trendPoints.length === coords.length ? trendPoints[hoverIdx] : null;
+  const hoveredAdjusted =
+    hoverIdx !== null && adjustedPoints && adjustedPoints.length === coords.length ? adjustedPoints[hoverIdx] : null;
   const tooltip = hovered
     ? {
         date: format(hovered.xDate, 'MMM d, yyyy'),
         value: formatValue(hovered.y),
         trendValue: hoveredTrend ? formatValue(hoveredTrend.y) : null,
+        adjustedValue: hoveredAdjusted ? formatValue(hoveredAdjusted.y) : null,
         x: hovered.x,
         yPx: hovered.yPx,
       }
@@ -173,6 +191,9 @@ function LineChart({
         {trendPoints && trendCoords.length > 1 && (
           <path d={trendPath} fill="none" stroke="#1d4ed8" strokeWidth="2.5" strokeDasharray="6 4" />
         )}
+        {adjustedPoints && adjustedCoords.length > 1 && (
+          <path d={adjustedPath} fill="none" stroke="#d97706" strokeWidth="2.5" strokeDasharray="4 3" />
+        )}
         {coords.map((c, i) => (
           <circle key={i} cx={c.x} cy={c.yPx} r="3" fill="#0f766e" />
         ))}
@@ -201,6 +222,7 @@ function LineChart({
                   <text x={x + 10} y={y + 36} fontSize="12" fill="#ffffff" fontWeight={700 as any}>
                     {tooltip.value}
                     {tooltip.trendValue ? `  •  Median: ${tooltip.trendValue}` : ''}
+                    {tooltip.adjustedValue ? `  •  Adj: ${tooltip.adjustedValue}` : ''}
                   </text>
                 </g>
               );
@@ -266,6 +288,7 @@ function MetricCard({
   higherIsBetter = true,
   aggMode = 'sum',
   defaultTimeframe = '4w',
+  adjustedKey,
 }: {
   title: string;
   description: string;
@@ -274,9 +297,11 @@ function MetricCard({
   higherIsBetter?: boolean;
   aggMode?: 'sum' | 'mean';
   defaultTimeframe?: Timeframe;
+  adjustedKey?: string;
 }) {
   const [tf, setTf] = useState<Timeframe>(defaultTimeframe);
   const [showMedian, setShowMedian] = useState(false);
+  const [showAdjusted, setShowAdjusted] = useState(false);
   const medianWindow = 3;
 
   const weeks = getWeeksCount(tf);
@@ -310,6 +335,28 @@ function MetricCard({
     const med = rollingMedian(series.map((p) => p.y), medianWindow);
     return series.map((p, i) => ({ ...p, y: med[i] }));
   }, [series, showMedian]);
+
+  // Adjusted series: base metric + adjustedKey metric (e.g. Revenue + Comp Discounts)
+  const hasAdjustedData = useMemo(() => {
+    if (!adjustedKey) return false;
+    return currentWindowPoints.some((p) => (p.metrics[adjustedKey] ?? 0) > 0);
+  }, [adjustedKey, currentWindowPoints]);
+
+  const adjustedSeries = useMemo(() => {
+    if (!adjustedKey || !showAdjusted) return undefined;
+    return series.map((s, i) => ({
+      ...s,
+      y: s.y + (currentWindowPoints[i]?.metrics[adjustedKey] ?? 0),
+    }));
+  }, [adjustedKey, showAdjusted, series, currentWindowPoints]);
+
+  const adjustedPeriodAgg = useMemo(() => {
+    if (!adjustedKey || !showAdjusted) return null;
+    const adjustedVals = currentWindowPoints.map(
+      (p) => (p.metrics[title] ?? 0) + (p.metrics[adjustedKey] ?? 0)
+    );
+    return aggValues(adjustedVals, aggMode);
+  }, [adjustedKey, showAdjusted, currentWindowPoints, title, aggMode]);
 
   // Period total/avg (displayed in the stat box)
   const currentVals = useMemo(
@@ -444,6 +491,15 @@ function MetricCard({
             >
               Median trend
             </button>
+            {adjustedKey && hasAdjustedData && (
+              <button
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${btnClass(showAdjusted)}`}
+                onClick={() => setShowAdjusted((v) => !v)}
+                title="Add back comp/gift order value to show true commercial revenue"
+              >
+                Show adjusted
+              </button>
+            )}
             <button
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${btnClass(tf === '4w')}`}
               onClick={() => setTf('4w')}
@@ -472,6 +528,12 @@ function MetricCard({
           </div>
           <div className="flex flex-col gap-1.5 min-w-[240px]">
             <StatRow label={`${aggLabel} (${tfLabel})`} value={formatValue(periodAgg)} />
+            {adjustedPeriodAgg !== null && (
+              <div className="flex items-baseline justify-between gap-4 text-sm">
+                <span className="text-amber-600 whitespace-nowrap">Adjusted {aggLabel}</span>
+                <span className="font-semibold text-amber-700">{formatValue(adjustedPeriodAgg)}</span>
+              </div>
+            )}
             <div className="border-t border-slate-100 my-0.5" />
             <StatRow
               label="vs Prior period"
@@ -506,7 +568,7 @@ function MetricCard({
             />
           </div>
         </div>
-        <LineChart points={series} trendPoints={medianSeries || undefined} formatValue={formatValue} />
+        <LineChart points={series} trendPoints={medianSeries || undefined} adjustedPoints={adjustedSeries} formatValue={formatValue} />
       </CardContent>
     </Card>
   );
@@ -530,6 +592,9 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         AOV: p.metrics['AOV'] ?? 0,
         'Total Sessions': p.metrics['Total Sessions'] ?? 0,
         'Checkout Abandonment Rate': p.metrics['Checkout Abandonment Rate'] ?? 0,
+        'Comp Discounts': p.metrics['Comp Discounts'] ?? 0,
+        'Total Discounts': p.metrics['Total Discounts'] ?? 0,
+        'Promo Discounts': p.metrics['Promo Discounts'] ?? 0,
       },
     }));
   }, [sorted]);
@@ -553,6 +618,7 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         formatValue={(v) => formatCurrency(v)}
         aggMode="sum"
         defaultTimeframe="4w"
+        adjustedKey="Comp Discounts"
       />
       <MetricCard
         title="Conversion Rate"

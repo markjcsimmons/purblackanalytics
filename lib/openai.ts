@@ -808,6 +808,35 @@ NOW ANALYZE THE DATA BELOW, ENSURING YOU REFERENCE THE CONTEXT ABOVE IN MULTIPLE
 
 OVERALL STORE PERFORMANCE:
 ${overallMetricsText}
+${(() => {
+  const compDiscountMetric = overallMetrics.find((m: any) =>
+    m.metric_name === '* Comp Discounts' || m.metric_name === 'Comp Discounts'
+  );
+  const revenueMetric = overallMetrics.find((m: any) =>
+    m.metric_name === '* Revenue' || m.metric_name === 'Revenue'
+  );
+  const promoDiscountMetric = overallMetrics.find((m: any) =>
+    m.metric_name === '* Promo Discounts' || m.metric_name === 'Promo Discounts'
+  );
+  const totalDiscountMetric = overallMetrics.find((m: any) =>
+    m.metric_name === '* Total Discounts' || m.metric_name === 'Total Discounts'
+  );
+  if (!compDiscountMetric || !revenueMetric) return '';
+  const reported = Number(revenueMetric.metric_value) || 0;
+  const compDiscounts = Number(compDiscountMetric.metric_value) || 0;
+  const promoDiscounts = Number(promoDiscountMetric?.metric_value) || 0;
+  const totalDiscounts = Number(totalDiscountMetric?.metric_value) || 0;
+  const adjusted = reported + compDiscounts;
+  return `
+⚠️ REVENUE CONTEXT — REPORTED vs ADJUSTED:
+Shopify's reported revenue is NET after all discounts, which includes $0-cost internal comp orders (staff, influencer gifts, ops replacements) that have no commercial value.
+- Reported revenue: $${reported.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+- Comp discounts (internal, $0-net orders): $${compDiscounts.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}${promoDiscounts > 0 ? `\n- Promotional discounts (real paying customers): $${promoDiscounts.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : ''}${totalDiscounts > 0 ? `\n- Total discounts: $${totalDiscounts.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : ''}
+- Adjusted (commercial) revenue: $${adjusted.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+
+When commenting on revenue, reference BOTH figures. Use "reported revenue" and "adjusted revenue" to distinguish them. Do NOT treat comp discounts as a promotional success — they represent cost, not income.
+`;
+})()
 
 MARKETING CHANNELS:
 ${channelsFormatted}

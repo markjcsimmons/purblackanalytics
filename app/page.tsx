@@ -454,9 +454,21 @@ export default function Dashboard() {
                       <div className="text-4xl font-black bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">
                         {formatCurrency(getMetricValue(weekData.overallMetrics, 'Revenue'))}
                       </div>
-                      <p className="text-xs text-green-700 font-medium mb-2">
+                      <p className="text-xs text-green-700 font-medium mb-1">
                         {getMetricValue(weekData.overallMetrics, 'Orders')} orders
                       </p>
+                      {(() => {
+                        const compDiscounts = getMetricValue(weekData.overallMetrics, 'Comp Discounts');
+                        if (compDiscounts <= 0) return null;
+                        const reported = getMetricValue(weekData.overallMetrics, 'Revenue');
+                        const adjusted = reported + compDiscounts;
+                        return (
+                          <p className="text-xs text-amber-700 font-medium mb-1">
+                            Adjusted: {formatCurrency(adjusted)}{' '}
+                            <span className="text-amber-500 font-normal">(+{formatCurrency(compDiscounts)} comps)</span>
+                          </p>
+                        );
+                      })()}
                       {comparisonData && (() => {
                         const currentValue = getMetricValue(weekData.overallMetrics, 'Revenue');
                         const prevWeekValue = comparisonData.previousWeek 
