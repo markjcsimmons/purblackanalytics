@@ -279,6 +279,45 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         }
       }
 
+      // Marketing Channels - Facebook Ads
+      const facebookRevenue = parseValue(pick(['facebook_ads_revenue', 'facebook_revenue', 'fb_ads_revenue', 'fb_revenue']));
+      const facebookSpend = parseValue(pick(['facebook_ads_spend', 'facebook_spend', 'fb_ads_spend', 'fb_spend', 'facebook_ads_cost', 'facebook_cost']));
+      if (facebookRevenue > 0 || facebookSpend > 0) {
+        if (!data.marketingChannels['Facebook Ads']) {
+          data.marketingChannels['Facebook Ads'] = {};
+        }
+        if (facebookRevenue > 0) {
+          data.marketingChannels['Facebook Ads']['* Revenue'] = facebookRevenue;
+        }
+        if (facebookSpend > 0) {
+          data.marketingChannels['Facebook Ads']['* Spend'] = facebookSpend;
+        }
+        const facebookOrders = parseValue(pick(['facebook_ads_orders', 'facebook_orders', 'fb_ads_orders', 'fb_orders']));
+        if (facebookOrders > 0) {
+          data.marketingChannels['Facebook Ads']['* Orders'] = facebookOrders;
+        }
+        const facebookProfit = parseValue(pick(['facebook_ads_profit', 'facebook_profit', 'fb_ads_profit', 'fb_profit']));
+        if (facebookProfit !== 0) {
+          data.marketingChannels['Facebook Ads']['* Profit'] = facebookProfit;
+        }
+        const facebookRoas = parseValue(pick(['facebook_ads_roas', 'facebook_roas', 'fb_ads_roas', 'fb_roas']));
+        if (facebookRoas > 0) {
+          data.marketingChannels['Facebook Ads']['* ROAS'] = facebookRoas;
+        }
+        const facebookImpressions = parseValue(pick(['facebook_ads_impressions', 'facebook_impressions', 'fb_ads_impressions', 'fb_impressions']));
+        if (facebookImpressions > 0) {
+          data.marketingChannels['Facebook Ads']['* Impressions'] = facebookImpressions;
+        }
+        const facebookReach = parseValue(pick(['facebook_ads_reach', 'facebook_reach', 'fb_ads_reach', 'fb_reach']));
+        if (facebookReach > 0) {
+          data.marketingChannels['Facebook Ads']['* Reach'] = facebookReach;
+        }
+        const facebookClicks = parseValue(pick(['facebook_ads_clicks', 'facebook_clicks', 'fb_ads_clicks', 'fb_clicks']));
+        if (facebookClicks > 0) {
+          data.marketingChannels['Facebook Ads']['* Clicks'] = facebookClicks;
+        }
+      }
+
       // Marketing Channels - SEO
       if (parseValue(row.seo_impressions) > 0 || parseValue(row.seo_funnel_clicks) > 0) {
         if (!data.marketingChannels['SEO']) {
@@ -416,10 +455,15 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
       for (let i = 1; i <= 5; i++) {
         const productName = row[`top_product_${i}_name`]?.trim();
         const productUnits = parseValue(row[`top_product_${i}_units`]);
-        
+
         if (productName && productUnits > 0) {
-          // Store full product name with /products/ prefix for identification
+          // Store units with /products/ prefix
           data.overallMetrics[`/products/${productName}`] = productUnits;
+          // Store net sales with /products/sales/ prefix
+          const productNetSales = parseValue(row[`top_product_${i}_net_sales`]);
+          if (productNetSales > 0) {
+            data.overallMetrics[`/products/sales/${productName}`] = productNetSales;
+          }
         }
       }
 

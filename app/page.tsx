@@ -1124,72 +1124,55 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent className="pt-6">
                     {(() => {
-                      // Look for products with /products/ prefix first
-                      let products = weekData.overallMetrics
-                        .filter((m: any) => m.metric_name.startsWith('/products/') && m.metric_name !== '/products/');
-                      
-                      // If no products found, try alternative formats
-                      if (products.length === 0) {
-                        // Try looking for metrics that might be products (e.g., product names without prefix)
-                        products = weekData.overallMetrics
-                          .filter((m: any) => {
-                            const name = m.metric_name.toLowerCase();
-                            // Exclude known non-product metrics
-                            return !name.includes('revenue') && 
-                                   !name.includes('orders') && 
-                                   !name.includes('aov') && 
-                                   !name.includes('conversion') && 
-                                   !name.includes('sessions') &&
-                                   !name.includes('spend') &&
-                                   !name.includes('clicks') &&
-                                   !name.startsWith('*') &&
-                                   m.metric_value > 0 &&
-                                   m.metric_value < 10000; // Reasonable order count range
-                          });
-                      }
-                      
-                      if (products.length === 0) {
+                      // Unit entries: /products/<name>  (not /products/sales/<name>)
+                      const unitEntries = weekData.overallMetrics.filter(
+                        (m: any) => m.metric_name.startsWith('/products/') && !m.metric_name.startsWith('/products/sales/')
+                      );
+                      // Net sales entries: /products/sales/<name>
+                      const salesMap: Record<string, number> = {};
+                      weekData.overallMetrics
+                        .filter((m: any) => m.metric_name.startsWith('/products/sales/'))
+                        .forEach((m: any) => {
+                          const name = m.metric_name.replace('/products/sales/', '');
+                          salesMap[name] = m.metric_value;
+                        });
+
+                      if (unitEntries.length === 0) {
                         return (
                           <div className="text-center py-8 text-muted-foreground">
                             <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
                             <p>No product data available</p>
-                            <p className="text-xs mt-2">Products should be uploaded with metric names starting with &quot;/products/&quot;</p>
+                            <p className="text-xs mt-2">Upload CSV with top_product_1_name, top_product_1_units (and optionally top_product_1_net_sales)</p>
                           </div>
                         );
                       }
-                      
+
                       return (
                         <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2">
-                          {products
-                        .sort((a: any, b: any) => b.metric_value - a.metric_value)
-                        .slice(0, 6)
-                        .map((product: any, idx: number) => {
-                              let productName = product.metric_name;
-                              
-                              // Handle /products/ prefix format - just remove the prefix to get full name
-                              if (productName.startsWith('/products/')) {
-                                productName = productName.replace('/products/', '');
-                              } else {
-                                // For other formats, just capitalize first letter of each word
-                                productName = productName
-                                  .split(/[-_\s]/)
-                                  .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                            .join(' ');
-                              }
-                              
-                          return (
+                          {unitEntries
+                            .sort((a: any, b: any) => b.metric_value - a.metric_value)
+                            .slice(0, 6)
+                            .map((product: any, idx: number) => {
+                              const rawName = product.metric_name.replace('/products/', '');
+                              const netSales = salesMap[rawName];
+                              return (
                                 <div key={idx} className="flex items-start gap-3 p-3 bg-gradient-to-r from-white to-pink-50 border border-pink-200 rounded-lg">
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
-                                {idx + 1}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                    <div className="font-semibold text-sm leading-relaxed break-words">{productName}</div>
-                                    <div className="text-xs text-muted-foreground mt-1">{formatNumber(product.metric_value)} orders</div>
-                              </div>
-                            </div>
-                          );
+                                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm">
+                                    {idx + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-sm leading-relaxed break-words">{rawName}</div>
+                                    <div className="flex items-center gap-3 mt-1 flex-wrap">
+                                      <span className="text-xs text-muted-foreground">{product.metric_value} units sold</span>
+                                      {netSales !== undefined && (
+                                        <span className="text-xs font-semibold text-green-700">{formatCurrency(netSales)}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
                             })}
-                    </div>
+                        </div>
                       );
                     })()}
                   </CardContent>
@@ -2120,31 +2103,33 @@ export default function Dashboard() {
                       <div className="grid gap-4 md:grid-cols-3">
                           {metrics
                             .filter((metric: any) => {
-                              // Hide spend metrics for all channels except Google Ads
+                              // Show spend/cost for Google Ads and Facebook Ads only
                               const metricLower = metric.metric_name.toLowerCase();
                               const isSpend = metricLower.includes('spend') || metricLower.includes('cost');
-                              if (isSpend && channel !== 'Google Ads') {
+                              if (isSpend && channel !== 'Google Ads' && channel !== 'Facebook Ads') {
                                 return false;
                               }
                               return true;
                             })
                             .map((metric: any) => {
                             const currentValue = metric.metric_value;
-                            const prevWeekValue = comparisonData?.previousWeek 
+                            const prevWeekValue = comparisonData?.previousWeek
                               ? getComparisonValue(metric.metric_name, comparisonData.previousWeek)
                               : null;
-                            const yearAgoValue = comparisonData?.sameWeekYearAgo 
+                            const yearAgoValue = comparisonData?.sameWeekYearAgo
                               ? getComparisonValue(metric.metric_name, comparisonData.sameWeekYearAgo)
                               : null;
-                            
+
                             const prevWeekChange = calculateChange(currentValue, prevWeekValue);
                             const yearAgoChange = calculateChange(currentValue, yearAgoValue);
 
-                            const isCurrency = metric.metric_name.toLowerCase().includes('revenue') || 
-                               metric.metric_name.toLowerCase().includes('spend') || 
-                                              metric.metric_name.toLowerCase().includes('cost');
-                            const isRate = metric.metric_name.toLowerCase().includes('rate') ||
-                                          metric.metric_name.toLowerCase().includes('roas');
+                            const metricNameLower = metric.metric_name.toLowerCase();
+                            const isCurrency = metricNameLower.includes('revenue') ||
+                               metricNameLower.includes('spend') ||
+                               metricNameLower.includes('cost') ||
+                               metricNameLower.includes('profit');
+                            const isRate = metricNameLower.includes('rate');
+                            const isRoas = metricNameLower.includes('roas');
 
                             return (
                               <div key={metric.id} className="space-y-2 p-4 border rounded-lg bg-gradient-to-br from-white to-gray-50">
@@ -2153,9 +2138,11 @@ export default function Dashboard() {
                                   <p className="text-2xl font-bold">
                                     {isCurrency
                                       ? formatCurrency(currentValue)
-                                      : isRate
-                                ? metric.metric_value.toFixed(2)
-                                      : formatNumber(currentValue)}
+                                      : isRoas
+                                        ? `${currentValue.toFixed(2)}x`
+                                        : isRate
+                                          ? `${metric.metric_value.toFixed(2)}%`
+                                          : formatNumber(currentValue)}
                                   </p>
                                   
                                   {/* Previous Week Comparison */}
@@ -2171,9 +2158,9 @@ export default function Dashboard() {
                                         </span>
                                       )}
                                       <span className="text-xs text-muted-foreground">
-                                        ({isCurrency ? formatCurrency(prevWeekValue) : isRate ? prevWeekValue.toFixed(2) : formatNumber(prevWeekValue)})
+                                        ({isCurrency ? formatCurrency(prevWeekValue) : isRoas ? `${prevWeekValue.toFixed(2)}x` : isRate ? `${prevWeekValue.toFixed(2)}%` : formatNumber(prevWeekValue)})
                                       </span>
-                          </div>
+                                    </div>
                                   )}
 
                                   {/* Year Ago Comparison */}
@@ -2189,7 +2176,7 @@ export default function Dashboard() {
                                         </span>
                                       )}
                                       <span className="text-xs text-muted-foreground">
-                                        ({isCurrency ? formatCurrency(yearAgoValue) : isRate ? yearAgoValue.toFixed(2) : formatNumber(yearAgoValue)})
+                                        ({isCurrency ? formatCurrency(yearAgoValue) : isRoas ? `${yearAgoValue.toFixed(2)}x` : isRate ? `${yearAgoValue.toFixed(2)}%` : formatNumber(yearAgoValue)})
                                       </span>
                                     </div>
                                   )}
