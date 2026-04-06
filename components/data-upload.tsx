@@ -459,8 +459,8 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         if (productName && productUnits > 0) {
           // Store units with /products/ prefix
           data.overallMetrics[`/products/${productName}`] = productUnits;
-          // Store net sales with /products/sales/ prefix
-          const productNetSales = parseValue(row[`top_product_${i}_net_sales`]);
+          // Store net sales/revenue with /products/sales/ prefix
+          const productNetSales = parseValue(row[`top_product_${i}_net_sales`] ?? row[`top_product_${i}_revenue`]);
           if (productNetSales > 0) {
             data.overallMetrics[`/products/sales/${productName}`] = productNetSales;
           }
