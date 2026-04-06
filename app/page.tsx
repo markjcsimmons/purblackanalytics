@@ -1150,7 +1150,15 @@ export default function Dashboard() {
                       return (
                         <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2">
                           {unitEntries
-                            .sort((a: any, b: any) => b.metric_value - a.metric_value)
+                            .sort((a: any, b: any) => {
+                              const aName = a.metric_name.replace('/products/', '');
+                              const bName = b.metric_name.replace('/products/', '');
+                              const aSales = salesMap[aName] ?? 0;
+                              const bSales = salesMap[bName] ?? 0;
+                              // Sort by net sales if available, fall back to units
+                              if (aSales > 0 || bSales > 0) return bSales - aSales;
+                              return b.metric_value - a.metric_value;
+                            })
                             .slice(0, 6)
                             .map((product: any, idx: number) => {
                               const rawName = product.metric_name.replace('/products/', '');
