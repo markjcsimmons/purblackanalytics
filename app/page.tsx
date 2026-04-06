@@ -263,6 +263,25 @@ export default function Dashboard() {
   };
 
 
+  // Returns the 4-week slope for a metric from metricsHistory as a % per week.
+  // Used to show trend direction on each overview stat card.
+  const get4wkTrend = (metricKey: string): { pctPerWk: number; label: string; color: string } | null => {
+    const sorted = [...metricsHistory].sort((a, b) => a.weekStartDate.localeCompare(b.weekStartDate));
+    const last4 = sorted.slice(-4).filter((p) => Object.prototype.hasOwnProperty.call(p.metrics, metricKey));
+    if (last4.length < 2) return null;
+    const vals = last4.map((p) => p.metrics[metricKey]);
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    if (avg === 0) return null;
+    // Simple slope: (last - first) / (n - 1) weeks, normalised to % of avg
+    const slope = (vals[vals.length - 1] - vals[0]) / (vals.length - 1);
+    const pctPerWk = (slope / Math.abs(avg)) * 100;
+    const arrow = pctPerWk > 0.5 ? '↑' : pctPerWk < -0.5 ? '↓' : '→';
+    const sign = pctPerWk > 0 ? '+' : '';
+    const label = `${arrow} ${sign}${pctPerWk.toFixed(1)}%/wk (4-wk)`;
+    const color = pctPerWk > 0.5 ? 'text-emerald-700' : pctPerWk < -0.5 ? 'text-red-600' : 'text-slate-500';
+    return { pctPerWk, label, color };
+  };
+
   const renderMarkdownBold = (text: string) => {
     if (!text) return '';
     // Escape HTML first to prevent XSS
@@ -452,6 +471,7 @@ export default function Dashboard() {
                         const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
                           ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
                           : null;
+                        const revTrend = get4wkTrend('Revenue');
                         return (
                           <div className="space-y-1 mt-2 pt-2 border-t border-green-200">
                             {prevWeekValue !== null && prevWeekChange !== null && (
@@ -474,6 +494,12 @@ export default function Dashboard() {
                                   {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
                                   {Math.abs(yearAgoChange).toFixed(1)}%
                                 </span>
+                              </div>
+                            )}
+                            {revTrend && (
+                              <div className="flex items-center justify-between text-xs pt-1 border-t border-green-100">
+                                <span className="text-green-600">Trend:</span>
+                                <span className={`font-semibold ${revTrend.color}`}>{revTrend.label}</span>
                               </div>
                             )}
                           </div>
@@ -511,6 +537,7 @@ export default function Dashboard() {
                         const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
                           ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
                           : null;
+                        const crTrend = get4wkTrend('Conversion Rate');
                         return (
                           <div className="space-y-1 mt-2 pt-2 border-t border-blue-200">
                             {prevWeekValue !== null && prevWeekChange !== null && (
@@ -533,6 +560,12 @@ export default function Dashboard() {
                                   {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
                                   {Math.abs(yearAgoChange).toFixed(1)}%
                                 </span>
+                              </div>
+                            )}
+                            {crTrend && (
+                              <div className="flex items-center justify-between text-xs pt-1 border-t border-blue-100">
+                                <span className="text-blue-600">Trend:</span>
+                                <span className={`font-semibold ${crTrend.color}`}>{crTrend.label}</span>
                               </div>
                             )}
                           </div>
@@ -570,6 +603,7 @@ export default function Dashboard() {
                         const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
                           ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
                           : null;
+                        const aovTrend = get4wkTrend('AOV');
                         return (
                           <div className="space-y-1 mt-2 pt-2 border-t border-purple-200">
                             {prevWeekValue !== null && prevWeekChange !== null && (
@@ -592,6 +626,12 @@ export default function Dashboard() {
                                   {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
                                   {Math.abs(yearAgoChange).toFixed(1)}%
                                 </span>
+                              </div>
+                            )}
+                            {aovTrend && (
+                              <div className="flex items-center justify-between text-xs pt-1 border-t border-purple-100">
+                                <span className="text-purple-600">Trend:</span>
+                                <span className={`font-semibold ${aovTrend.color}`}>{aovTrend.label}</span>
                               </div>
                             )}
                           </div>
@@ -629,6 +669,7 @@ export default function Dashboard() {
                         const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
                           ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
                           : null;
+                        const sessTrend = get4wkTrend('Total Sessions');
                         return (
                           <div className="space-y-1 mt-2 pt-2 border-t border-orange-200">
                             {prevWeekValue !== null && prevWeekChange !== null && (
@@ -651,6 +692,12 @@ export default function Dashboard() {
                                   {yearAgoChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : yearAgoChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
                                   {Math.abs(yearAgoChange).toFixed(1)}%
                                 </span>
+                              </div>
+                            )}
+                            {sessTrend && (
+                              <div className="flex items-center justify-between text-xs pt-1 border-t border-orange-100">
+                                <span className="text-orange-600">Trend:</span>
+                                <span className={`font-semibold ${sessTrend.color}`}>{sessTrend.label}</span>
                               </div>
                             )}
                           </div>

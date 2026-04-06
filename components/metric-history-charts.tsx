@@ -347,25 +347,43 @@ function MetricCard({
     return vals.length >= minComparisonWeeks ? mean(vals) : null;
   }, [points, anchorMs, weeks, title, minComparisonWeeks]);
 
-  // Trend: linear regression on ALL data, predict per-week avg for current window
-  const trendPerWeekAvg = useMemo(() => {
+  // Trend slope: linear regression over ALL data expressed as % of average per week.
+  // Negative = declining, positive = growing. Used for direction indicator and border colour.
+  const trendSlopePctPerWeek = useMemo(() => {
     const allWithVals = points.filter((p) => Object.prototype.hasOwnProperty.call(p.metrics, title));
-    if (allWithVals.length < 2 || !currentWindowPoints.length) return null;
+    if (allWithVals.length < 2) return null;
     const t0 = new Date(allWithVals[0].weekStartDate).getTime();
     const xs = allWithVals.map((p) => (new Date(p.weekStartDate).getTime() - t0) / WEEK_MS);
     const ys = allWithVals.map((p) => p.metrics[title]);
-    const { slope, intercept } = linearRegressionSlopeAndIntercept(xs, ys);
-    const predicted = currentWindowPoints.map((p) => {
-      const x = (new Date(p.weekStartDate).getTime() - t0) / WEEK_MS;
-      return slope * x + intercept;
-    });
-    return mean(predicted);
-  }, [points, currentWindowPoints, title]);
+    const { slope } = linearRegressionSlopeAndIntercept(xs, ys);
+    const avg = mean(ys);
+    if (avg === 0) return null;
+    return (slope / Math.abs(avg)) * 100;
+  }, [points, title]);
 
-  // All comparisons use per-week averages on both sides → apples-to-apples
+  // Momentum: average of second half of the window vs average of first half.
+  // Captures within-period direction regardless of how the window compares to history.
+  const momentumPct = useMemo(() => {
+    if (currentWindowPoints.length < 4) return null;
+    const mid = Math.floor(currentWindowPoints.length / 2);
+    const firstAvg = mean(currentWindowPoints.slice(0, mid).map((p) => p.metrics[title] ?? 0));
+    const secondAvg = mean(currentWindowPoints.slice(mid).map((p) => p.metrics[title] ?? 0));
+    if (firstAvg === 0) return null;
+    return ((secondAvg - firstAvg) / Math.abs(firstAvg)) * 100;
+  }, [currentWindowPoints, title]);
+
+  // vs Peak: latest week vs the highest point in the current window.
+  const vsPeakPct = useMemo(() => {
+    if (!currentVals.length) return null;
+    const peak = Math.max(...currentVals);
+    const latest = currentVals[currentVals.length - 1];
+    if (peak === 0) return null;
+    return ((latest - peak) / Math.abs(peak)) * 100;
+  }, [currentVals]);
+
+  // All backward-looking comparisons use per-week averages → apples-to-apples
   const vsPrior = priorPerWeekAvg !== null ? pctChange(currentPerWeekAvg, priorPerWeekAvg) : null;
   const vsYoy = yoyPerWeekAvg !== null ? pctChange(currentPerWeekAvg, yoyPerWeekAvg) : null;
-  const vsTrend = trendPerWeekAvg !== null ? pctChange(currentPerWeekAvg, trendPerWeekAvg) : null;
 
   const isGood = (pct: number | null) =>
     pct === null ? null : pct > 0 ? higherIsBetter : pct < 0 ? !higherIsBetter : null;
@@ -373,13 +391,45 @@ function MetricCard({
   const tfLabel = tf === '4w' ? '4 weeks' : tf === '12w' ? '12 weeks' : '52 weeks';
   const aggLabel = aggMode === 'sum' ? 'Total' : 'Avg';
 
+  // Card border colour reflects the long-run trend direction
+  const borderClass =
+    trendSlopePctPerWeek === null
+      ? 'border-emerald-100'
+      : higherIsBetter
+      ? trendSlopePctPerWeek > 0.5
+        ? 'border-emerald-300'
+        : trendSlopePctPerWeek < -0.5
+        ? 'border-red-300'
+        : 'border-amber-200'
+      : trendSlopePctPerWeek < -0.5
+      ? 'border-emerald-300'
+      : trendSlopePctPerWeek > 0.5
+      ? 'border-red-300'
+      : 'border-amber-200';
+
+  // Trend slope label e.g. "↓ −1.8%/wk" or "↑ +0.4%/wk"
+  const trendSlopeLabel = (() => {
+    if (trendSlopePctPerWeek === null) return '—';
+    const arrow = trendSlopePctPerWeek > 0 ? '↑' : trendSlopePctPerWeek < 0 ? '↓' : '→';
+    const sign = trendSlopePctPerWeek > 0 ? '+' : '';
+    return `${arrow} ${sign}${trendSlopePctPerWeek.toFixed(1)}%/wk`;
+  })();
+  const trendSlopeIsGood =
+    trendSlopePctPerWeek === null
+      ? null
+      : trendSlopePctPerWeek > 0
+      ? higherIsBetter
+      : trendSlopePctPerWeek < 0
+      ? !higherIsBetter
+      : null;
+
   const btnClass = (active: boolean) =>
     active
       ? 'bg-teal-600 text-white hover:bg-teal-700 border-teal-600'
       : 'border border-slate-200 text-slate-700 hover:bg-slate-50 bg-white';
 
   return (
-    <Card className="border-2 border-emerald-100">
+    <Card className={`border-2 ${borderClass}`}>
       <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -420,25 +470,39 @@ function MetricCard({
           <div className="text-sm text-slate-500">
             Showing last <span className="font-semibold text-slate-800">{tfLabel}</span>
           </div>
-          <div className="flex flex-col gap-1.5 min-w-[220px]">
+          <div className="flex flex-col gap-1.5 min-w-[240px]">
             <StatRow label={`${aggLabel} (${tfLabel})`} value={formatValue(periodAgg)} />
+            <div className="border-t border-slate-100 my-0.5" />
             <StatRow
               label="vs Prior period"
               pct={vsPrior}
               isGood={isGood(vsPrior)}
-              tooltip={`${aggLabel} of previous ${tfLabel}`}
+              tooltip={`Weekly avg of these ${tfLabel} vs the previous ${tfLabel}`}
             />
             <StatRow
               label="vs Same period last yr"
               pct={vsYoy}
               isGood={isGood(vsYoy)}
-              tooltip={`${aggLabel} of same ${tfLabel} one year ago`}
+              tooltip={`Weekly avg of same ${tfLabel} one year ago`}
+            />
+            <div className="border-t border-slate-100 my-0.5" />
+            <div className="flex items-baseline justify-between gap-4 text-sm" title="Long-run linear regression slope across all historical data">
+              <span className="text-slate-500 whitespace-nowrap">Trend direction</span>
+              <span className={`font-semibold ${trendSlopeIsGood === true ? 'text-emerald-700' : trendSlopeIsGood === false ? 'text-red-600' : 'text-slate-500'}`}>
+                {trendSlopeLabel}
+              </span>
+            </div>
+            <StatRow
+              label={`Momentum (½ → ½)`}
+              pct={momentumPct}
+              isGood={isGood(momentumPct)}
+              tooltip={`Average of first half of the ${tfLabel} window vs second half — shows within-period direction`}
             />
             <StatRow
-              label="vs Trend"
-              pct={vsTrend}
-              isGood={isGood(vsTrend)}
-              tooltip="Actual vs linear regression projection for this period"
+              label="Latest vs period peak"
+              pct={vsPeakPct}
+              isGood={isGood(vsPeakPct)}
+              tooltip="Most recent week vs the highest point in the selected window"
             />
           </div>
         </div>
