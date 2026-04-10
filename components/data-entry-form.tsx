@@ -795,19 +795,6 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
               rows={3}
             />
           </div>
-          <div className="space-y-2 mt-4">
-            <Label htmlFor="romansRecommendations">Roman&apos;s Recommendations (Optional)</Label>
-            <Textarea
-              id="romansRecommendations"
-              placeholder="Enter Roman's recommendations and insights for this week..."
-              value={formData.romansRecommendations}
-              onChange={(e) => handleChange('romansRecommendations', e.target.value)}
-              rows={5}
-            />
-            <p className="text-xs text-muted-foreground">
-              Use <strong>**bold text**</strong> for emphasis in your recommendations.
-            </p>
-          </div>
         </CardContent>
       </Card>
 
