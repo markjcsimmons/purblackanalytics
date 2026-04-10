@@ -1,12 +1,10 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 
-// Lazy-load OpenAI client to prevent build-time initialization
-let openai: OpenAI | null = null;
+let anthropicClient: Anthropic | null = null;
 
-// Use gpt-4o-mini: ~10x higher rate limits, ~15x cheaper, same quality for analytics insights
-const INSIGHTS_MODEL = 'gpt-4o-mini';
+const INSIGHTS_MODEL = 'claude-haiku-4-5-20251001';
 
-// Retry an async fn up to maxRetries times on 429, with exponential backoff
+// Retry an async fn up to maxRetries times on 429/overload, with exponential backoff
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   let lastError: any;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -14,9 +12,10 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
       return await fn();
     } catch (error: any) {
       lastError = error;
-      if (error?.status === 429 && attempt < maxRetries - 1) {
-        const delayMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
-        console.warn(`[OpenAI] Rate limited (429). Retrying in ${delayMs}ms… (attempt ${attempt + 1}/${maxRetries})`);
+      const isRetryable = error?.status === 429 || error?.status === 529;
+      if (isRetryable && attempt < maxRetries - 1) {
+        const delayMs = Math.pow(2, attempt) * 1000;
+        console.warn(`[Anthropic] Rate limited (${error.status}). Retrying in ${delayMs}ms… (attempt ${attempt + 1}/${maxRetries})`);
         await new Promise((res) => setTimeout(res, delayMs));
       } else {
         throw error;
@@ -26,23 +25,15 @@ async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promise<T> {
   throw lastError;
 }
 
-function getOpenAIClient(): OpenAI {
-  if (!openai) {
-    const apiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY || process.env.OPEN_API_KEY;
-    
+function getOpenAIClient(): Anthropic {
+  if (!anthropicClient) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY, OPEN_AI_KEY, or OPEN_API_KEY environment variable is required.');
+      throw new Error('ANTHROPIC_API_KEY environment variable is required.');
     }
-    
-    if (!apiKey.startsWith('sk-')) {
-      throw new Error('Invalid OpenAI API key format. Key should start with "sk-".');
-    }
-    
-    openai = new OpenAI({
-      apiKey: apiKey,
-    });
+    anthropicClient = new Anthropic({ apiKey });
   }
-  return openai as OpenAI;
+  return anthropicClient;
 }
 
 export interface Insight {
@@ -206,23 +197,14 @@ Return ONLY a JSON object with an "insights" array, no additional text. Format:
 }`;
 
   try {
-    const response = await withRetry(() => client.chat.completions.create({
+    const response = await withRetry(() => client.messages.create({
       model: INSIGHTS_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are an expert ecommerce marketing analyst. Always respond with valid JSON only. Provide very specific insights with exact numbers, percentages, and comparisons.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
+      max_tokens: 2048,
+      system: 'You are an expert ecommerce marketing analyst. Always respond with valid JSON only. Provide very specific insights with exact numbers, percentages, and comparisons.',
+      messages: [{ role: 'user', content: prompt }],
     }));
 
-    const content = response.choices[0].message.content || '';
+    const content = (response.content[0].type === 'text' ? response.content[0].text : '') || '';
     console.log('[Promotion Insights] Raw AI response content (first 500 chars):', content.substring(0, 500));
     let insights: Insight[] = [];
 
@@ -1000,24 +982,15 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
     }
     
     const client = getOpenAIClient();
-    const response = await withRetry(() => client.chat.completions.create({
+    const response = await withRetry(() => client.messages.create({
       model: INSIGHTS_MODEL,
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert ecommerce marketing analyst. Provide insights in JSON format only, no additional text.${businessContext ? ' CRITICAL: Business context was provided - you MUST reference it explicitly in at least 3-4 insights. Do not provide generic insights that ignore the context.' : ''}`,
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' },
+      max_tokens: 4096,
+      system: `You are an expert ecommerce marketing analyst. Provide insights in JSON format only, no additional text.${businessContext ? ' CRITICAL: Business context was provided - you MUST reference it explicitly in at least 3-4 insights. Do not provide generic insights that ignore the context.' : ''}`,
+      messages: [{ role: 'user', content: prompt }],
     }));
 
-    const content = response.choices[0].message.content;
-    if (!content) throw new Error('No response from OpenAI');
+    const content = response.content[0].type === 'text' ? response.content[0].text : '';
+    if (!content) throw new Error('No response from Anthropic');
 
     const parsed = JSON.parse(content);
     
