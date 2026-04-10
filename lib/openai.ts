@@ -989,8 +989,12 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
       messages: [{ role: 'user', content: prompt }],
     }));
 
-    const content = response.content[0].type === 'text' ? response.content[0].text : '';
-    if (!content) throw new Error('No response from Anthropic');
+    const rawContent = response.content[0].type === 'text' ? response.content[0].text : '';
+    if (!rawContent) throw new Error('No response from Anthropic');
+
+    // Strip markdown code fences if present (Claude sometimes wraps JSON in ```json ... ```)
+    const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    const content = jsonMatch ? jsonMatch[1].trim() : rawContent.trim();
 
     const parsed = JSON.parse(content);
     
@@ -1022,13 +1026,13 @@ ${historicalData && historicalData.length > 0 ? '- Historical pattern analysis: 
     
     // Provide more specific error messages
     if (error.message && error.message.includes('API key')) {
-      throw new Error('OpenAI API key issue: ' + error.message + '. Please verify the key is set correctly in Render and restart the service.');
+      throw new Error('Anthropic API key issue: ' + error.message + '. Please verify ANTHROPIC_API_KEY is set correctly in Render.');
     }
     if (error.status === 401) {
-      throw new Error('OpenAI API authentication failed. The API key may be invalid or expired. Please check your OPENAI_API_KEY in Render.');
+      throw new Error('Anthropic API authentication failed. Please check your ANTHROPIC_API_KEY in Render.');
     }
     if (error.status === 429) {
-      throw new Error('OpenAI API rate limit exceeded. Please try again in a moment.');
+      throw new Error('Anthropic API rate limit exceeded. Please try again in a moment.');
     }
     
     throw new Error('Failed to generate insights: ' + (error.message || 'Unknown error') + '. Check server logs for details.');
