@@ -280,7 +280,7 @@ function StatRow({
   );
 }
 
-function MetricCard({
+export function MetricCard({
   title,
   description,
   points,

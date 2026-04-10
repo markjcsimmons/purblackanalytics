@@ -17,6 +17,7 @@ import { GoogleDocsImport } from '@/components/google-docs-import';
 import { PromotionsUpload } from '@/components/promotions-upload';
 import { InsightsDisplay } from '@/components/insights-display';
 import { MetricHistoryCharts, type MetricsHistoryPoint } from '@/components/metric-history-charts';
+import { ChannelHistoryCharts } from '@/components/channel-history-charts';
 import { getSession, logout } from '@/lib/auth';
 import { 
   TrendingUp, 
@@ -100,6 +101,7 @@ export default function Dashboard() {
   const [metricsHistory, setMetricsHistory] = useState<MetricsHistoryPoint[]>([]);
   const [isLoadingCharts, setIsLoadingCharts] = useState(false);
   const [chartsError, setChartsError] = useState('');
+  const [channelsHistory, setChannelsHistory] = useState<Record<string, MetricsHistoryPoint[]>>({});
 
   const fetchWeeks = async () => {
     try {
@@ -234,6 +236,17 @@ export default function Dashboard() {
     }
   };
 
+  const loadChannelsHistory = async () => {
+    try {
+      const res = await fetch('/api/channels-history');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Failed to load channel history (${res.status})`);
+      setChannelsHistory(data.history && typeof data.history === 'object' ? data.history : {});
+    } catch (e: any) {
+      console.error('Channel history load error:', e);
+    }
+  };
+
   useEffect(() => {
     // Check access level from localStorage session
     const session = getSession();
@@ -247,6 +260,7 @@ export default function Dashboard() {
     fetchWeeks();
     loadSearchResults();
     loadMetricsHistory();
+    loadChannelsHistory();
   }, []);
 
   useEffect(() => {
@@ -260,6 +274,8 @@ export default function Dashboard() {
     if (selectedWeekId) {
       await fetchWeekData(selectedWeekId);
     }
+    loadMetricsHistory();
+    loadChannelsHistory();
   };
 
 
@@ -2154,6 +2170,15 @@ export default function Dashboard() {
                   </Card>
                   );
                 })}
+
+                {/* Channel Trend Analysis */}
+                <div className="pt-2">
+                  <div className="mb-4">
+                    <h2 className="text-2xl font-bold text-slate-800">Channel Trend Analysis</h2>
+                    <p className="text-sm text-slate-500 mt-1">Historical trends, momentum and direction for each marketing channel</p>
+                  </div>
+                  <ChannelHistoryCharts channelHistory={channelsHistory} />
+                </div>
 
                 {/* Social Media (Instagram) - moved from Overview */}
                 <Card className="border-2 border-pink-100">

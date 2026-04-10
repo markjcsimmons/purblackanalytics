@@ -298,6 +298,66 @@ export function getOverallMetricsHistory() {
   }));
 }
 
+export interface MetricsHistoryPoint {
+  weekId: number;
+  weekStartDate: string;
+  weekEndDate: string;
+  metrics: Record<string, number>;
+}
+
+export function getChannelMetricsHistory(): Record<string, MetricsHistoryPoint[]> {
+  const database = getDb();
+  const weeks = database
+    .prepare('SELECT id, week_start_date, week_end_date FROM weeks ORDER BY week_start_date ASC')
+    .all() as Array<{ id: number; week_start_date: string; week_end_date: string }>;
+
+  if (!weeks.length) return {};
+
+  const weekIds = weeks.map((w) => w.id);
+  const placeholders = weekIds.map(() => '?').join(',');
+  const rows = database
+    .prepare(
+      `SELECT week_id, channel_name, metric_name, metric_value
+       FROM marketing_channels
+       WHERE week_id IN (${placeholders})`
+    )
+    .all(...weekIds) as Array<{
+      week_id: number;
+      channel_name: string;
+      metric_name: string;
+      metric_value: number;
+    }>;
+
+  // Build a map: channel -> week_id -> metrics
+  const byChannel = new Map<string, Map<number, Record<string, number>>>();
+  for (const row of rows) {
+    if (!byChannel.has(row.channel_name)) {
+      byChannel.set(row.channel_name, new Map());
+    }
+    const byWeek = byChannel.get(row.channel_name)!;
+    if (!byWeek.has(row.week_id)) {
+      byWeek.set(row.week_id, {});
+    }
+    const normalized = row.metric_name.replace(/^\*\s*/, '');
+    byWeek.get(row.week_id)![normalized] = row.metric_value;
+  }
+
+  // Convert to the Record<string, MetricsHistoryPoint[]> format
+  const result: Record<string, MetricsHistoryPoint[]> = {};
+  Array.from(byChannel.entries()).forEach(([channel, byWeek]) => {
+    result[channel] = weeks
+      .filter((w) => byWeek.has(w.id))
+      .map((w) => ({
+        weekId: w.id,
+        weekStartDate: w.week_start_date,
+        weekEndDate: w.week_end_date,
+        metrics: byWeek.get(w.id) || {},
+      }));
+  });
+
+  return result;
+}
+
 export interface WeekData {
   weekStartDate: string;
   weekEndDate: string;
