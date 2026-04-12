@@ -574,6 +574,257 @@ export function MetricCard({
   );
 }
 
+// ── Pearson correlation ────────────────────────────────────────────────────
+function pearsonR(xs: number[], ys: number[]): number | null {
+  if (xs.length !== ys.length || xs.length < 3) return null;
+  const xBar = mean(xs);
+  const yBar = mean(ys);
+  let num = 0, denX = 0, denY = 0;
+  for (let i = 0; i < xs.length; i++) {
+    const dx = xs[i] - xBar;
+    const dy = ys[i] - yBar;
+    num += dx * dy;
+    denX += dx * dx;
+    denY += dy * dy;
+  }
+  const den = Math.sqrt(denX * denY);
+  return den === 0 ? null : num / den;
+}
+
+function rInterpretation(r: number): { strength: string; color: string } {
+  const abs = Math.abs(r);
+  if (abs >= 0.7) return { strength: r > 0 ? 'strong positive' : 'strong negative', color: r > 0 ? 'text-emerald-700' : 'text-red-600' };
+  if (abs >= 0.4) return { strength: r > 0 ? 'moderate positive' : 'moderate negative', color: r > 0 ? 'text-emerald-600' : 'text-orange-600' };
+  if (abs >= 0.2) return { strength: r > 0 ? 'weak positive' : 'weak negative', color: 'text-slate-500' };
+  return { strength: 'no clear', color: 'text-slate-400' };
+}
+
+// ── Scatter plot ───────────────────────────────────────────────────────────
+function ScatterPlot({
+  pairs,
+  xLabel,
+  yLabel,
+  xFormat,
+  yFormat,
+}: {
+  pairs: Array<{ x: number; y: number; label: string }>;
+  xLabel: string;
+  yLabel: string;
+  xFormat: (v: number) => string;
+  yFormat: (v: number) => string;
+}) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+
+  const width = 420;
+  const height = 200;
+  const pad = { top: 12, right: 12, bottom: 32, left: 48 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+
+  const xs = pairs.map((p) => p.x);
+  const ys = pairs.map((p) => p.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const rangeX = maxX - minX || 1;
+  const rangeY = maxY - minY || 1;
+
+  const toSvg = (x: number, y: number) => ({
+    cx: pad.left + ((x - minX) / rangeX) * plotW,
+    cy: pad.top + (1 - (y - minY) / rangeY) * plotH,
+  });
+
+  // Regression line
+  const { slope, intercept } = linearRegressionSlopeAndIntercept(xs, ys);
+  const rLineY = (x: number) => slope * x + intercept;
+  const rLine = [
+    toSvg(minX, rLineY(minX)),
+    toSvg(maxX, rLineY(maxX)),
+  ];
+
+  const r = pearsonR(xs, ys);
+  const interp = r !== null ? rInterpretation(r) : null;
+
+  return (
+    <div>
+      <svg width={width} height={height} className="block w-full">
+        {/* Grid lines */}
+        {[0, 0.5, 1].map((t) => {
+          const y = pad.top + t * plotH;
+          return <line key={t} x1={pad.left} x2={width - pad.right} y1={y} y2={y} stroke="#f1f5f9" strokeWidth={1} />;
+        })}
+        {/* Axis labels */}
+        <text x={pad.left - 4} y={pad.top + plotH / 2} textAnchor="middle" fontSize={9} fill="#94a3b8"
+          transform={`rotate(-90, ${pad.left - 4}, ${pad.top + plotH / 2})`}>{yLabel}</text>
+        <text x={pad.left + plotW / 2} y={height - 4} textAnchor="middle" fontSize={9} fill="#94a3b8">{xLabel}</text>
+        {/* Y axis ticks */}
+        {[0, 0.5, 1].map((t) => {
+          const val = minY + t * rangeY;
+          const y = pad.top + (1 - t) * plotH;
+          return <text key={t} x={pad.left - 4} y={y + 3} textAnchor="end" fontSize={8} fill="#94a3b8">{yFormat(val)}</text>;
+        })}
+        {/* Regression line */}
+        <line x1={rLine[0].cx} y1={rLine[0].cy} x2={rLine[1].cx} y2={rLine[1].cy}
+          stroke={r !== null && r > 0 ? '#10b981' : '#f87171'} strokeWidth={1.5} strokeDasharray="4 2" opacity={0.6} />
+        {/* Dots */}
+        {pairs.map((p, i) => {
+          const { cx, cy } = toSvg(p.x, p.y);
+          return (
+            <circle key={i} cx={cx} cy={cy} r={hoverIdx === i ? 5 : 3.5}
+              fill={hoverIdx === i ? '#6366f1' : '#818cf8'} opacity={0.8}
+              style={{ cursor: 'pointer' }}
+              onMouseEnter={() => setHoverIdx(i)}
+              onMouseLeave={() => setHoverIdx(null)}
+            />
+          );
+        })}
+        {/* Tooltip */}
+        {hoverIdx !== null && (() => {
+          const p = pairs[hoverIdx];
+          const { cx, cy } = toSvg(p.x, p.y);
+          const tx = cx > width * 0.7 ? cx - 110 : cx + 8;
+          const ty = cy < pad.top + 40 ? cy + 6 : cy - 32;
+          return (
+            <g>
+              <rect x={tx} y={ty} width={105} height={30} rx={4} fill="white" stroke="#e2e8f0" strokeWidth={1} />
+              <text x={tx + 6} y={ty + 11} fontSize={8} fill="#475569">{p.label}</text>
+              <text x={tx + 6} y={ty + 22} fontSize={8} fill="#475569">{xFormat(p.x)} → {yFormat(p.y)}</text>
+            </g>
+          );
+        })()}
+      </svg>
+      {r !== null && interp && (
+        <p className="text-[10px] text-slate-500 mt-0.5">
+          r = <span className={`font-semibold ${interp.color}`}>{r.toFixed(2)}</span>
+          {' '}— {interp.strength} correlation ({pairs.length} weeks)
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Discount correlation section ───────────────────────────────────────────
+function DiscountCorrelationSection({ points }: { points: MetricsHistoryPoint[] }) {
+  // Only weeks with both discount and orders data
+  const withOrders = points.filter((p) => (p.metrics['Orders'] ?? 0) > 0 && (p.metrics['Gross Sales'] ?? 0) > 0);
+  const withRevenue = points.filter((p) => (p.metrics['Revenue'] ?? 0) > 0 && (p.metrics['Gross Sales'] ?? 0) > 0);
+
+  if (withOrders.length < 4 && withRevenue.length < 4) return null;
+
+  const fmtCurr = (v: number) => formatCurrency(v);
+  const fmtOrders = (v: number) => formatNumber(Math.round(v));
+  const fmtPct = (v: number) => `${v.toFixed(1)}%`;
+
+  // Pairs builder: x = discount % of gross, y = outcome
+  const promoPairs = (arr: MetricsHistoryPoint[], yKey: string) =>
+    arr
+      .filter((p) => (p.metrics['Promo Discount Value'] ?? 0) > 0)
+      .map((p) => ({
+        x: (p.metrics['Promo Discount Value'] / p.metrics['Gross Sales']) * 100,
+        y: p.metrics[yKey] ?? 0,
+        label: p.weekStartDate,
+      }));
+
+  const classicPairs = (arr: MetricsHistoryPoint[], yKey: string) =>
+    arr
+      .filter((p) => (p.metrics['Classic Discount Value'] ?? 0) > 0)
+      .map((p) => ({
+        x: (p.metrics['Classic Discount Value'] / p.metrics['Gross Sales']) * 100,
+        y: p.metrics[yKey] ?? 0,
+        label: p.weekStartDate,
+      }));
+
+  const compPairs = (arr: MetricsHistoryPoint[], yKey: string) =>
+    arr
+      .filter((p) => (p.metrics['Comp Order Value'] ?? 0) > 0)
+      .map((p) => ({
+        x: p.metrics['Comp Order Value'],
+        y: p.metrics[yKey] ?? 0,
+        label: p.weekStartDate,
+      }));
+
+  const promoVsOrders  = withOrders.length >= 4  ? promoPairs(withOrders,  'Orders')  : [];
+  const promoVsRevenue = withRevenue.length >= 4 ? promoPairs(withRevenue, 'Revenue') : [];
+  const classicVsOrders  = withOrders.length >= 4  ? classicPairs(withOrders,  'Orders')  : [];
+  const classicVsRevenue = withRevenue.length >= 4 ? classicPairs(withRevenue, 'Revenue') : [];
+  const compVsRevenue = withRevenue.length >= 4 ? compPairs(withRevenue, 'Revenue') : [];
+
+  type PlotDef = { title: string; subtitle: string; pairs: Array<{x:number;y:number;label:string}>; xLabel: string; yLabel: string; xFormat: (v:number)=>string; yFormat: (v:number)=>string };
+  const plots: PlotDef[] = [
+    promoVsOrders.length >= 3 && {
+      title: 'Promo discounts → Order volume',
+      subtitle: 'Do heavier promo weeks generate more orders?',
+      pairs: promoVsOrders,
+      xLabel: 'Promo discount % of gross', yLabel: 'Orders',
+      xFormat: fmtPct, yFormat: fmtOrders,
+    },
+    promoVsRevenue.length >= 3 && {
+      title: 'Promo discounts → Revenue',
+      subtitle: 'Do promos lift net revenue, or just reduce margin?',
+      pairs: promoVsRevenue,
+      xLabel: 'Promo discount % of gross', yLabel: 'Net Revenue',
+      xFormat: fmtPct, yFormat: fmtCurr,
+    },
+    classicVsOrders.length >= 3 && {
+      title: 'Discount codes → Order volume',
+      subtitle: 'Do code-driven discounts drive incremental orders?',
+      pairs: classicVsOrders,
+      xLabel: 'Code discount % of gross', yLabel: 'Orders',
+      xFormat: fmtPct, yFormat: fmtOrders,
+    },
+    classicVsRevenue.length >= 3 && {
+      title: 'Discount codes → Revenue',
+      subtitle: 'Net revenue impact of discount code weeks',
+      pairs: classicVsRevenue,
+      xLabel: 'Code discount % of gross', yLabel: 'Net Revenue',
+      xFormat: fmtPct, yFormat: fmtCurr,
+    },
+    compVsRevenue.length >= 3 && {
+      title: 'Comp giveaways → Revenue',
+      subtitle: 'Goodwill check — does comp spend correlate with revenue at all?',
+      pairs: compVsRevenue,
+      xLabel: 'Comp order value ($)', yLabel: 'Net Revenue',
+      xFormat: fmtCurr, yFormat: fmtCurr,
+    },
+  ].filter(Boolean) as PlotDef[];
+
+  if (!plots.length) return null;
+
+  return (
+    <>
+      <div className="flex items-center gap-3 pt-2">
+        <div className="h-px flex-1 bg-slate-200" />
+        <span className="text-sm font-semibold text-slate-500 px-2">Discount Impact Analysis</span>
+        <div className="h-px flex-1 bg-slate-200" />
+      </div>
+      <Card className="border-slate-200">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Do discounts drive sales?</CardTitle>
+          <CardDescription className="text-xs">
+            Each dot is one week. The dashed line is the trend. r is the Pearson correlation (−1 to +1) — closer to ±1 means a stronger relationship, near 0 means no pattern. Correlation does not prove causation.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {plots.map((plot) => (
+              <div key={plot.title}>
+                <p className="text-xs font-semibold text-slate-700 mb-0.5">{plot.title}</p>
+                <p className="text-[10px] text-slate-400 mb-2">{plot.subtitle}</p>
+                <ScatterPlot
+                  pairs={plot.pairs}
+                  xLabel={plot.xLabel}
+                  yLabel={plot.yLabel}
+                  xFormat={plot.xFormat}
+                  yFormat={plot.yFormat}
+                />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+}
+
 export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[] }) {
   const sorted = useMemo(() => {
     const h = [...history];
@@ -605,6 +856,7 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         'Promo Order Count': p.metrics['Promo Order Count'] ?? 0,
         'Classic Discount Count': p.metrics['Classic Discount Count'] ?? 0,
         'Promo Sales': p.metrics['Promo Sales'] ?? 0,
+        'Orders': p.metrics['Orders'] ?? 0,
       },
     }));
   }, [sorted]);
@@ -724,6 +976,9 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
           />
         </>
       )}
+
+      {/* Discount correlation analysis */}
+      {hasShopifyData && <DiscountCorrelationSection points={normalized} />}
 
       {/* Methodology explanation */}
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-5 text-sm text-slate-600 space-y-3">
