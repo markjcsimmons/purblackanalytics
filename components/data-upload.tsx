@@ -233,6 +233,12 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         if (parseValue(row.google_ads_sessions) > 0) {
           data.marketingChannels['Google Ads']['* Sessions'] = parseValue(row.google_ads_sessions);
         }
+        // Compute ROAS from revenue/spend if both present
+        const gRevenue = parseValue(row.google_ads_revenue);
+        const gSpend = parseValue(row.google_ads_spend);
+        if (gRevenue > 0 && gSpend > 0) {
+          data.marketingChannels['Google Ads']['* ROAS'] = gRevenue / gSpend;
+        }
       }
 
       // Marketing Channels - Email & SMS
