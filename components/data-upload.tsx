@@ -279,9 +279,9 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         }
       }
 
-      // Marketing Channels - Facebook Ads
-      const facebookRevenue = parseValue(pick(['facebook_ads_revenue', 'facebook_revenue', 'fb_ads_revenue', 'fb_revenue']));
-      const facebookSpend = parseValue(pick(['facebook_ads_spend', 'facebook_spend', 'fb_ads_spend', 'fb_spend', 'facebook_ads_cost', 'facebook_cost']));
+      // Marketing Channels - Facebook Ads (supports facebook_ads_*, fb_*, and meta_* column prefixes)
+      const facebookRevenue = parseValue(pick(['facebook_ads_revenue', 'facebook_revenue', 'fb_ads_revenue', 'fb_revenue', 'meta_revenue']));
+      const facebookSpend = parseValue(pick(['facebook_ads_spend', 'facebook_spend', 'fb_ads_spend', 'fb_spend', 'facebook_ads_cost', 'facebook_cost', 'meta_spend']));
       if (facebookRevenue > 0 || facebookSpend > 0) {
         if (!data.marketingChannels['Facebook Ads']) {
           data.marketingChannels['Facebook Ads'] = {};
@@ -292,27 +292,27 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
         if (facebookSpend > 0) {
           data.marketingChannels['Facebook Ads']['* Spend'] = facebookSpend;
         }
-        const facebookOrders = parseValue(pick(['facebook_ads_orders', 'facebook_orders', 'fb_ads_orders', 'fb_orders']));
+        const facebookOrders = parseValue(pick(['facebook_ads_orders', 'facebook_orders', 'fb_ads_orders', 'fb_orders', 'meta_orders']));
         if (facebookOrders > 0) {
           data.marketingChannels['Facebook Ads']['* Orders'] = facebookOrders;
         }
-        const facebookProfit = parseValue(pick(['facebook_ads_profit', 'facebook_profit', 'fb_ads_profit', 'fb_profit']));
+        const facebookProfit = parseValue(pick(['facebook_ads_profit', 'facebook_profit', 'fb_ads_profit', 'fb_profit', 'meta_profit']));
         if (facebookProfit !== 0) {
           data.marketingChannels['Facebook Ads']['* Profit'] = facebookProfit;
         }
-        const facebookRoas = parseValue(pick(['facebook_ads_roas', 'facebook_roas', 'fb_ads_roas', 'fb_roas']));
+        const facebookRoas = parseValue(pick(['facebook_ads_roas', 'facebook_roas', 'fb_ads_roas', 'fb_roas', 'meta_roas']));
         if (facebookRoas > 0) {
           data.marketingChannels['Facebook Ads']['* ROAS'] = facebookRoas;
         }
-        const facebookImpressions = parseValue(pick(['facebook_ads_impressions', 'facebook_impressions', 'fb_ads_impressions', 'fb_impressions']));
+        const facebookImpressions = parseValue(pick(['facebook_ads_impressions', 'facebook_impressions', 'fb_ads_impressions', 'fb_impressions', 'meta_impressions']));
         if (facebookImpressions > 0) {
           data.marketingChannels['Facebook Ads']['* Impressions'] = facebookImpressions;
         }
-        const facebookReach = parseValue(pick(['facebook_ads_reach', 'facebook_reach', 'fb_ads_reach', 'fb_reach']));
+        const facebookReach = parseValue(pick(['facebook_ads_reach', 'facebook_reach', 'fb_ads_reach', 'fb_reach', 'meta_reach']));
         if (facebookReach > 0) {
           data.marketingChannels['Facebook Ads']['* Reach'] = facebookReach;
         }
-        const facebookClicks = parseValue(pick(['facebook_ads_clicks', 'facebook_clicks', 'fb_ads_clicks', 'fb_clicks']));
+        const facebookClicks = parseValue(pick(['facebook_ads_clicks', 'facebook_clicks', 'fb_ads_clicks', 'fb_clicks', 'meta_clicks']));
         if (facebookClicks > 0) {
           data.marketingChannels['Facebook Ads']['* Clicks'] = facebookClicks;
         }
