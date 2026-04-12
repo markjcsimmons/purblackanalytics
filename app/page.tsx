@@ -1205,10 +1205,13 @@ export default function Dashboard() {
 
                 {/* Revenue Waterfall — uses the most recent week that has Shopify report data */}
                 {(() => {
-                  // Find most recent history point with Gross Sales data
-                  const sorted = [...metricsHistory].sort((a, b) => b.weekStartDate.localeCompare(a.weekStartDate));
-                  const waterfallPoint = sorted.find((p) => (p.metrics['Gross Sales'] ?? 0) > 0);
-                  if (!waterfallPoint) return null;
+                  // Shopify points sorted ascending
+                  const shopifyAsc = [...metricsHistory]
+                    .sort((a, b) => a.weekStartDate.localeCompare(b.weekStartDate))
+                    .filter((p) => (p.metrics['Gross Sales'] ?? 0) > 0);
+                  if (shopifyAsc.length === 0) return null;
+
+                  const waterfallPoint = shopifyAsc[shopifyAsc.length - 1];
 
                   const grossSales = waterfallPoint.metrics['Gross Sales'] ?? 0;
                   const netSales = waterfallPoint.metrics['Revenue'] ?? 0;
@@ -1219,88 +1222,181 @@ export default function Dashboard() {
                   const compCount = waterfallPoint.metrics['Comp Order Count'] ?? 0;
                   const promoCount = waterfallPoint.metrics['Promo Order Count'] ?? 0;
                   const classicCount = waterfallPoint.metrics['Classic Discount Count'] ?? 0;
-                  // Total orders from weekData if matching week, otherwise omit
                   const isCurrentWeek = weekData && weekData.week?.week_start_date === waterfallPoint.weekStartDate;
                   const totalOrders = isCurrentWeek ? getMetricValue(weekData!.overallMetrics, 'Orders') : 0;
                   const weekLabel = `${waterfallPoint.weekStartDate} – ${waterfallPoint.weekEndDate}`;
 
-                  const trueRevenue = netSales - refunds;
+                  const tcr = (p: MetricsHistoryPoint) => (p.metrics['Revenue'] ?? 0) - (p.metrics['Refunds'] ?? 0);
+                  const currentTcr = tcr(waterfallPoint);
                   const pct = (v: number, base: number) => base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
 
+                  // Prior week comparison
+                  const wDate = new Date(waterfallPoint.weekStartDate + 'T00:00:00');
+                  const priorDate = new Date(wDate);
+                  priorDate.setDate(priorDate.getDate() - 7);
+                  const priorDateStr = priorDate.toISOString().slice(0, 10);
+                  const priorPoint = shopifyAsc.find((p) => p.weekStartDate === priorDateStr) ?? null;
+                  const priorTcr = priorPoint ? tcr(priorPoint) : null;
+                  const vsPriorPct = priorTcr !== null && priorTcr !== 0
+                    ? ((currentTcr - priorTcr) / Math.abs(priorTcr)) * 100
+                    : null;
+                  const vsPriorAbs = priorTcr !== null ? currentTcr - priorTcr : null;
+
+                  // Year-ago comparison (52 weeks = 364 days, ±3 day tolerance)
+                  const yearAgoDate = new Date(wDate);
+                  yearAgoDate.setDate(yearAgoDate.getDate() - 364);
+                  const yearAgoPoint = shopifyAsc.find((p) => {
+                    const diff = Math.abs(new Date(p.weekStartDate + 'T00:00:00').getTime() - yearAgoDate.getTime());
+                    return diff <= 3 * 24 * 60 * 60 * 1000;
+                  }) ?? null;
+                  const yearAgoTcr = yearAgoPoint ? tcr(yearAgoPoint) : null;
+                  const vsYoyPct = yearAgoTcr !== null && yearAgoTcr !== 0
+                    ? ((currentTcr - yearAgoTcr) / Math.abs(yearAgoTcr)) * 100
+                    : null;
+                  const vsYoyAbs = yearAgoTcr !== null ? currentTcr - yearAgoTcr : null;
+
+                  // 4-week TCR trend slope
+                  const last4 = shopifyAsc.slice(-4);
+                  let tcrTrendPct: number | null = null;
+                  let tcrTrendLabel = '';
+                  let tcrTrendColor = 'text-slate-500';
+                  if (last4.length >= 2) {
+                    const tcrVals = last4.map((p) => tcr(p));
+                    const avg = tcrVals.reduce((a, b) => a + b, 0) / tcrVals.length;
+                    if (avg !== 0) {
+                      const slope = (tcrVals[tcrVals.length - 1] - tcrVals[0]) / (tcrVals.length - 1);
+                      tcrTrendPct = (slope / Math.abs(avg)) * 100;
+                      const arrow = tcrTrendPct > 0.5 ? '↑' : tcrTrendPct < -0.5 ? '↓' : '→';
+                      const sign = tcrTrendPct > 0 ? '+' : '';
+                      tcrTrendLabel = `${arrow} ${sign}${tcrTrendPct.toFixed(1)}%/wk (4-wk)`;
+                      tcrTrendColor = tcrTrendPct > 0.5 ? 'text-emerald-700' : tcrTrendPct < -0.5 ? 'text-red-600' : 'text-slate-500';
+                    }
+                  }
+
+                  // Card border colour driven by TCR trend
+                  const borderClass = tcrTrendPct === null
+                    ? 'border-violet-100'
+                    : tcrTrendPct > 0.5
+                    ? 'border-emerald-300'
+                    : tcrTrendPct < -0.5
+                    ? 'border-red-300'
+                    : 'border-amber-300';
+
                   return (
-                    <Card className="border-2 border-violet-100">
+                    <Card className={`border-2 ${borderClass}`}>
                       <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50/50 pb-3">
                         <CardTitle className="text-xl text-slate-800">Revenue Breakdown</CardTitle>
-                        <p className="text-sm text-slate-500">Week of {weekLabel} · Gross sales → discounts → net → refunds</p>
+                        <p className="text-sm text-slate-500">Week of {weekLabel}</p>
                       </CardHeader>
-                      <CardContent className="pt-4">
-                        <div className="space-y-0">
-                          {/* Gross Sales */}
-                          <div className="flex items-baseline justify-between py-2 border-b border-slate-100">
-                            <span className="text-sm font-semibold text-slate-700">Gross Sales</span>
-                            <span className="text-lg font-bold text-slate-800">{formatCurrency(grossSales)}</span>
+                      <CardContent className="pt-4 space-y-0">
+
+                        {/* ── Hero: True Commercial Revenue ── */}
+                        <div className="flex items-baseline justify-between py-2">
+                          <span className="text-base font-semibold text-emerald-800">True Commercial Revenue</span>
+                          <span className="text-3xl font-bold text-emerald-700">{formatCurrency(currentTcr)}</span>
+                        </div>
+
+                        {/* Comparisons */}
+                        <div className="space-y-1 pb-3">
+                          {/* vs Prior week */}
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-500">vs Prior week</span>
+                            {vsPriorPct !== null && vsPriorAbs !== null ? (
+                              <span className={`flex items-center gap-1 font-medium ${vsPriorPct > 0 ? 'text-emerald-700' : vsPriorPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                {vsPriorPct > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : vsPriorPct < 0 ? <ArrowDownRight className="h-3.5 w-3.5" /> : null}
+                                {vsPriorPct > 0 ? '+' : ''}{vsPriorPct.toFixed(1)}%
+                                <span className="text-slate-400 font-normal">({vsPriorAbs > 0 ? '+' : ''}{formatCurrency(vsPriorAbs)})</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-xs">—</span>
+                            )}
                           </div>
 
-                          {/* Comp orders */}
-                          {compValue > 0 && (
-                            <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
-                              <span className="text-sm text-slate-500">
-                                − Comp / free orders{compCount > 0 ? ` (${compCount} orders)` : ''}
+                          {/* vs Year ago */}
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-500">vs Year ago</span>
+                            {vsYoyPct !== null && vsYoyAbs !== null ? (
+                              <span className={`flex items-center gap-1 font-medium ${vsYoyPct > 0 ? 'text-emerald-700' : vsYoyPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                {vsYoyPct > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : vsYoyPct < 0 ? <ArrowDownRight className="h-3.5 w-3.5" /> : null}
+                                {vsYoyPct > 0 ? '+' : ''}{vsYoyPct.toFixed(1)}%
+                                <span className="text-slate-400 font-normal">({vsYoyAbs > 0 ? '+' : ''}{formatCurrency(vsYoyAbs)})</span>
                               </span>
-                              <span className="text-sm font-semibold text-amber-700">−{formatCurrency(compValue)}<span className="text-xs font-normal text-slate-400">{pct(compValue, grossSales)}</span></span>
-                            </div>
-                          )}
-
-                          {/* Promo discounts */}
-                          {promoDiscount > 0 && (
-                            <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
-                              <span className="text-sm text-slate-500">
-                                − Promotional discounts{promoCount > 0 ? ` (${promoCount} orders)` : ''}
-                              </span>
-                              <span className="text-sm font-semibold text-orange-700">−{formatCurrency(promoDiscount)}<span className="text-xs font-normal text-slate-400">{pct(promoDiscount, grossSales)}</span></span>
-                            </div>
-                          )}
-
-                          {/* Classic discounts */}
-                          {classicDiscount > 0 && (
-                            <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
-                              <span className="text-sm text-slate-500">
-                                − Discount codes{classicCount > 0 ? ` (${classicCount} orders)` : ''}
-                              </span>
-                              <span className="text-sm font-semibold text-orange-600">−{formatCurrency(classicDiscount)}<span className="text-xs font-normal text-slate-400">{pct(classicDiscount, grossSales)}</span></span>
-                            </div>
-                          )}
-
-                          {/* Net Sales */}
-                          <div className="flex items-baseline justify-between py-2 border-b border-slate-200 bg-slate-50 px-2 rounded">
-                            <span className="text-sm font-bold text-slate-700">= Net Sales (reported)</span>
-                            <span className="text-lg font-bold text-green-700">{formatCurrency(netSales)}</span>
+                            ) : (
+                              <span className="text-slate-400 text-xs">—</span>
+                            )}
                           </div>
 
-                          {/* Refunds */}
-                          {refunds > 0 && (
-                            <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
-                              <span className="text-sm text-slate-500">− Refunds</span>
-                              <span className="text-sm font-semibold text-red-600">−{formatCurrency(refunds)}<span className="text-xs font-normal text-slate-400">{pct(refunds, netSales)}</span></span>
-                            </div>
-                          )}
-
-                          {/* True Revenue */}
-                          {refunds > 0 && (
-                            <div className="flex items-baseline justify-between py-3 bg-emerald-50 px-2 rounded mt-1">
-                              <span className="text-sm font-bold text-emerald-800">= True Commercial Revenue</span>
-                              <span className="text-lg font-bold text-emerald-700">{formatCurrency(trueRevenue)}</span>
-                            </div>
-                          )}
-
-                          {/* Discount summary footer */}
-                          {totalOrders > 0 && (compCount + promoCount + classicCount) > 0 && (
-                            <div className="pt-3 mt-1 border-t border-slate-100 text-xs text-slate-500 space-y-1">
-                              <p><span className="font-medium">{((compCount + promoCount + classicCount) / totalOrders * 100).toFixed(0)}%</span> of orders had a discount this week</p>
-                              <p>Gross discount as % of gross sales: <span className="font-medium">{pct(compValue + promoDiscount + classicDiscount, grossSales).replace(/[()]/g, '')}</span></p>
+                          {/* 4-week trend */}
+                          {tcrTrendLabel && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-slate-500">4-wk trend</span>
+                              <span className={`font-medium ${tcrTrendColor}`}>{tcrTrendLabel}</span>
                             </div>
                           )}
                         </div>
+
+                        {/* ── Divider ── */}
+                        <div className="border-t border-slate-200 pt-3">
+
+                        {/* Gross Sales */}
+                        <div className="flex items-baseline justify-between py-2 border-b border-slate-100">
+                          <span className="text-sm font-semibold text-slate-600">Gross Sales</span>
+                          <span className="text-base font-bold text-slate-700">{formatCurrency(grossSales)}</span>
+                        </div>
+
+                        {/* Comp orders */}
+                        {compValue > 0 && (
+                          <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
+                            <span className="text-sm text-slate-500">
+                              − Comp / free orders{compCount > 0 ? ` (${compCount})` : ''}
+                            </span>
+                            <span className="text-sm font-semibold text-amber-700">−{formatCurrency(compValue)}<span className="text-xs font-normal text-slate-400">{pct(compValue, grossSales)}</span></span>
+                          </div>
+                        )}
+
+                        {/* Promo discounts */}
+                        {promoDiscount > 0 && (
+                          <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
+                            <span className="text-sm text-slate-500">
+                              − Promotional discounts{promoCount > 0 ? ` (${promoCount})` : ''}
+                            </span>
+                            <span className="text-sm font-semibold text-orange-700">−{formatCurrency(promoDiscount)}<span className="text-xs font-normal text-slate-400">{pct(promoDiscount, grossSales)}</span></span>
+                          </div>
+                        )}
+
+                        {/* Classic discounts */}
+                        {classicDiscount > 0 && (
+                          <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
+                            <span className="text-sm text-slate-500">
+                              − Discount codes{classicCount > 0 ? ` (${classicCount})` : ''}
+                            </span>
+                            <span className="text-sm font-semibold text-orange-600">−{formatCurrency(classicDiscount)}<span className="text-xs font-normal text-slate-400">{pct(classicDiscount, grossSales)}</span></span>
+                          </div>
+                        )}
+
+                        {/* Net Sales */}
+                        <div className="flex items-baseline justify-between py-2 border-b border-slate-200 bg-slate-50 px-2 rounded">
+                          <span className="text-sm font-bold text-slate-600">= Net Sales (reported)</span>
+                          <span className="text-base font-bold text-green-700">{formatCurrency(netSales)}</span>
+                        </div>
+
+                        {/* Refunds */}
+                        {refunds > 0 && (
+                          <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
+                            <span className="text-sm text-slate-500">− Refunds</span>
+                            <span className="text-sm font-semibold text-red-600">−{formatCurrency(refunds)}<span className="text-xs font-normal text-slate-400">{pct(refunds, netSales)}</span></span>
+                          </div>
+                        )}
+
+                        {/* Discount summary footer */}
+                        {totalOrders > 0 && (compCount + promoCount + classicCount) > 0 && (
+                          <div className="pt-3 mt-1 border-t border-slate-100 text-xs text-slate-500 space-y-1">
+                            <p><span className="font-medium">{((compCount + promoCount + classicCount) / totalOrders * 100).toFixed(0)}%</span> of orders had a discount this week</p>
+                            <p>Gross discount as % of gross sales: <span className="font-medium">{pct(compValue + promoDiscount + classicDiscount, grossSales).replace(/[()]/g, '')}</span></p>
+                          </div>
+                        )}
+                        </div>
+
                       </CardContent>
                     </Card>
                   );
