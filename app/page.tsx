@@ -1255,23 +1255,25 @@ export default function Dashboard() {
                     : null;
                   const vsYoyAbs = yearAgoTcr !== null ? currentTcr - yearAgoTcr : null;
 
-                  // 4-week TCR trend slope
-                  const last4 = shopifyAsc.slice(-4);
-                  let tcrTrendPct: number | null = null;
-                  let tcrTrendLabel = '';
-                  let tcrTrendColor = 'text-slate-500';
-                  if (last4.length >= 2) {
-                    const tcrVals = last4.map((p) => tcr(p));
-                    const avg = tcrVals.reduce((a, b) => a + b, 0) / tcrVals.length;
-                    if (avg !== 0) {
-                      const slope = (tcrVals[tcrVals.length - 1] - tcrVals[0]) / (tcrVals.length - 1);
-                      tcrTrendPct = (slope / Math.abs(avg)) * 100;
-                      const arrow = tcrTrendPct > 0.5 ? '↑' : tcrTrendPct < -0.5 ? '↓' : '→';
-                      const sign = tcrTrendPct > 0 ? '+' : '';
-                      tcrTrendLabel = `${arrow} ${sign}${tcrTrendPct.toFixed(1)}%/wk (4-wk)`;
-                      tcrTrendColor = tcrTrendPct > 0.5 ? 'text-emerald-700' : tcrTrendPct < -0.5 ? 'text-red-600' : 'text-slate-500';
-                    }
-                  }
+                  // TCR trend slope helper
+                  const tcrSlope = (points: MetricsHistoryPoint[]) => {
+                    if (points.length < 2) return null;
+                    const vals = points.map((p) => tcr(p));
+                    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+                    if (avg === 0) return null;
+                    const slope = (vals[vals.length - 1] - vals[0]) / (vals.length - 1);
+                    const pctPerWk = (slope / Math.abs(avg)) * 100;
+                    const arrow = pctPerWk > 0.5 ? '↑' : pctPerWk < -0.5 ? '↓' : '→';
+                    const sign = pctPerWk > 0 ? '+' : '';
+                    const label = `${arrow} ${sign}${pctPerWk.toFixed(1)}%/wk`;
+                    const color = pctPerWk > 0.5 ? 'text-emerald-700' : pctPerWk < -0.5 ? 'text-red-600' : 'text-slate-500';
+                    return { pctPerWk, label, color };
+                  };
+
+                  const trend4  = tcrSlope(shopifyAsc.slice(-4));
+                  const trend12 = tcrSlope(shopifyAsc.slice(-12));
+                  const trend52 = tcrSlope(shopifyAsc.slice(-52));
+                  const tcrTrendPct = trend4?.pctPerWk ?? null;
 
                   // Card border colour driven by TCR trend
                   const borderClass = tcrTrendPct === null
@@ -1309,11 +1311,11 @@ export default function Dashboard() {
                           <span className="text-2xl font-bold text-emerald-700">{formatCurrency(currentTcr)}</span>
                         </div>
 
-                        {/* Comparisons — compact 3-column grid */}
-                        <div className="grid grid-cols-3 gap-1 text-xs">
+                        {/* Comparisons — 5-column grid */}
+                        <div className="grid grid-cols-5 gap-1 text-xs">
                           {/* vs Prior week */}
                           <div className="bg-slate-50 rounded px-2 py-1.5">
-                            <div className="text-slate-400 mb-0.5">vs Prior week</div>
+                            <div className="text-slate-400 mb-0.5 truncate">vs Prior wk</div>
                             {vsPriorPct !== null && vsPriorAbs !== null ? (
                               <div className={`font-semibold flex items-center gap-0.5 ${vsPriorPct > 0 ? 'text-emerald-700' : vsPriorPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
                                 {vsPriorPct > 0 ? <ArrowUpRight className="h-3 w-3" /> : vsPriorPct < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
@@ -1325,7 +1327,7 @@ export default function Dashboard() {
 
                           {/* vs Year ago */}
                           <div className="bg-slate-50 rounded px-2 py-1.5">
-                            <div className="text-slate-400 mb-0.5">vs Year ago</div>
+                            <div className="text-slate-400 mb-0.5 truncate">vs Year ago</div>
                             {vsYoyPct !== null && vsYoyAbs !== null ? (
                               <div className={`font-semibold flex items-center gap-0.5 ${vsYoyPct > 0 ? 'text-emerald-700' : vsYoyPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
                                 {vsYoyPct > 0 ? <ArrowUpRight className="h-3 w-3" /> : vsYoyPct < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
@@ -1337,15 +1339,32 @@ export default function Dashboard() {
 
                           {/* 4-week trend */}
                           <div className="bg-slate-50 rounded px-2 py-1.5">
-                            <div className="text-slate-400 mb-0.5">4-wk trend</div>
-                            {tcrTrendLabel ? (
-                              <div className={`font-semibold ${tcrTrendColor}`}>{tcrTrendLabel.replace(' (4-wk)', '')}</div>
+                            <div className="text-slate-400 mb-0.5 truncate">4-wk trend</div>
+                            {trend4 ? (
+                              <div className={`font-semibold ${trend4.color}`}>{trend4.label}</div>
+                            ) : <div className="text-slate-300">—</div>}
+                          </div>
+
+                          {/* 12-week trend */}
+                          <div className="bg-slate-50 rounded px-2 py-1.5">
+                            <div className="text-slate-400 mb-0.5 truncate">12-wk trend</div>
+                            {trend12 ? (
+                              <div className={`font-semibold ${trend12.color}`}>{trend12.label}</div>
+                            ) : <div className="text-slate-300">—</div>}
+                          </div>
+
+                          {/* 52-week trend */}
+                          <div className="bg-slate-50 rounded px-2 py-1.5">
+                            <div className="text-slate-400 mb-0.5 truncate">52-wk trend</div>
+                            {trend52 ? (
+                              <div className={`font-semibold ${trend52.color}`}>{trend52.label}</div>
                             ) : <div className="text-slate-300">—</div>}
                           </div>
                         </div>
 
                         {/* ── Waterfall detail ── */}
                         <div className="border-t border-slate-200 pt-2">
+                          <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1.5">This week's revenue waterfall — amounts deducted from gross sales</div>
                           {/* Gross Sales header */}
                           <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-200">
                             <span className="text-xs font-semibold text-slate-600">Gross Sales</span>
