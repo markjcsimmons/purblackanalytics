@@ -1222,7 +1222,7 @@ export default function Dashboard() {
                         Object.entries(
                           weekData.marketingChannels.reduce((acc: any, item: any) => {
                             if (!acc[item.channel_name]) {
-                              acc[item.channel_name] = { revenue: 0, spend: 0, conversions: 0, clicks: 0, affiliatesSignedUp: 0 };
+                              acc[item.channel_name] = { revenue: 0, spend: 0, conversions: 0, clicks: 0, affiliatesSignedUp: 0, roas: 0 };
                             }
                             const metricLower = item.metric_name.toLowerCase();
                             // Recognize revenue, sales, or attributed revenue
@@ -1231,6 +1231,9 @@ export default function Dashboard() {
                             }
                             if (metricLower.includes('spend') || metricLower.includes('cost')) {
                               acc[item.channel_name].spend = item.metric_value;
+                            }
+                            if (metricLower.includes('roas')) {
+                              acc[item.channel_name].roas = item.metric_value;
                             }
                             if (metricLower.includes('conversion')) {
                               acc[item.channel_name].conversions = item.metric_value;
@@ -1245,6 +1248,8 @@ export default function Dashboard() {
                           }, {})
                         ).map(([channel, data]: [string, any]) => {
                           const roi = data.spend > 0 ? ((data.revenue - data.spend) / data.spend * 100) : 0;
+                          // Use stored ROAS if available, otherwise compute from revenue/spend
+                          const roas = data.roas > 0 ? data.roas : (data.spend > 0 ? data.revenue / data.spend : 0);
                           const isAffiliate = channel.toLowerCase().includes('affiliate');
                           
                           // Get revenue comparison data
@@ -1301,6 +1306,20 @@ export default function Dashboard() {
                                   <span className="text-muted-foreground">Revenue:</span>
                                   <span className="font-bold text-green-700">{formatCurrency(data.revenue)}</span>
                                 </div>
+                                {data.spend > 0 && (
+                                  <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Spend:</span>
+                                    <span className="font-semibold text-slate-700">{formatCurrency(data.spend)}</span>
+                                  </div>
+                                )}
+                                {roas > 0 && (
+                                  <div className="flex justify-between items-baseline">
+                                    <span className="text-muted-foreground">ROAS:</span>
+                                    <span className={`font-bold text-xl ${roas >= 1 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {roas.toFixed(2)}x
+                                    </span>
+                                  </div>
+                                )}
                                 {isAffiliate && (
                                   <div className="flex justify-between">
                                     <span className="text-muted-foreground">Affiliates signed up:</span>
@@ -1340,21 +1359,6 @@ export default function Dashboard() {
                                       </div>
                                     )}
                                   </div>
-                                )}
-                                {channel === 'Google Ads' && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Spend:</span>
-                                  <span className="text-red-600">{formatCurrency(data.spend)}</span>
-                                </div>
-                                )}
-                                {channel === 'Google Ads' && (
-                                <div className="flex justify-between items-center pt-2 border-t">
-                                  <span className="text-muted-foreground font-semibold">ROI:</span>
-                                  <span className={`font-bold text-lg flex items-center gap-1 ${roi > 0 ? 'text-green-600' : roi < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                    {roi > 0 ? <ArrowUpRight className="h-4 w-4" /> : roi < 0 ? <ArrowDownRight className="h-4 w-4" /> : null}
-                                    {roi.toFixed(0)}%
-                                  </span>
-                                </div>
                                 )}
                               </div>
                             </div>
