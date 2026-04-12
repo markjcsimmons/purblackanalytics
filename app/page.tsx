@@ -1217,7 +1217,7 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent className="pt-6">
                     {/* Channel Summary Cards with Enhanced Affiliates */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 mb-6">
                       {weekData && weekData.marketingChannels && Array.isArray(weekData.marketingChannels) && 
                         Object.entries(
                           weekData.marketingChannels.reduce((acc: any, item: any) => {
