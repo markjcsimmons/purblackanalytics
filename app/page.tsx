@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { DataEntryForm } from '@/components/data-entry-form';
 import { DataUpload } from '@/components/data-upload';
+import { ShopifyReportsUpload } from '@/components/shopify-reports-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { PromotionsUpload } from '@/components/promotions-upload';
 import { InsightsDisplay } from '@/components/insights-display';
@@ -1202,6 +1203,103 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
+                {/* Revenue Waterfall — only shown when Shopify report data is present */}
+                {weekData && (() => {
+                  const grossSales = getMetricValue(weekData.overallMetrics, 'Gross Sales');
+                  if (grossSales <= 0) return null;
+
+                  const netSales = getMetricValue(weekData.overallMetrics, 'Revenue');
+                  const refunds = getMetricValue(weekData.overallMetrics, 'Refunds');
+                  const compValue = getMetricValue(weekData.overallMetrics, 'Comp Order Value');
+                  const promoDiscount = getMetricValue(weekData.overallMetrics, 'Promo Discount Value');
+                  const classicDiscount = getMetricValue(weekData.overallMetrics, 'Classic Discount Value');
+                  const compCount = getMetricValue(weekData.overallMetrics, 'Comp Order Count');
+                  const promoCount = getMetricValue(weekData.overallMetrics, 'Promo Order Count');
+                  const classicCount = getMetricValue(weekData.overallMetrics, 'Classic Discount Count');
+                  const totalOrders = getMetricValue(weekData.overallMetrics, 'Orders');
+
+                  const trueRevenue = netSales - refunds;
+                  const pct = (v: number, base: number) => base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
+
+                  return (
+                    <Card className="border-2 border-violet-100">
+                      <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50/50 pb-3">
+                        <CardTitle className="text-xl text-slate-800">Revenue Breakdown</CardTitle>
+                        <p className="text-sm text-slate-500">Gross sales → discounts → net → refunds</p>
+                      </CardHeader>
+                      <CardContent className="pt-4">
+                        <div className="space-y-0">
+                          {/* Gross Sales */}
+                          <div className="flex items-baseline justify-between py-2 border-b border-slate-100">
+                            <span className="text-sm font-semibold text-slate-700">Gross Sales</span>
+                            <span className="text-lg font-bold text-slate-800">{formatCurrency(grossSales)}</span>
+                          </div>
+
+                          {/* Comp orders */}
+                          {compValue > 0 && (
+                            <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
+                              <span className="text-sm text-slate-500">
+                                − Comp / free orders{compCount > 0 ? ` (${compCount} orders)` : ''}
+                              </span>
+                              <span className="text-sm font-semibold text-amber-700">−{formatCurrency(compValue)}<span className="text-xs font-normal text-slate-400">{pct(compValue, grossSales)}</span></span>
+                            </div>
+                          )}
+
+                          {/* Promo discounts */}
+                          {promoDiscount > 0 && (
+                            <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
+                              <span className="text-sm text-slate-500">
+                                − Promotional discounts{promoCount > 0 ? ` (${promoCount} orders)` : ''}
+                              </span>
+                              <span className="text-sm font-semibold text-orange-700">−{formatCurrency(promoDiscount)}<span className="text-xs font-normal text-slate-400">{pct(promoDiscount, grossSales)}</span></span>
+                            </div>
+                          )}
+
+                          {/* Classic discounts */}
+                          {classicDiscount > 0 && (
+                            <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
+                              <span className="text-sm text-slate-500">
+                                − Discount codes{classicCount > 0 ? ` (${classicCount} orders)` : ''}
+                              </span>
+                              <span className="text-sm font-semibold text-orange-600">−{formatCurrency(classicDiscount)}<span className="text-xs font-normal text-slate-400">{pct(classicDiscount, grossSales)}</span></span>
+                            </div>
+                          )}
+
+                          {/* Net Sales */}
+                          <div className="flex items-baseline justify-between py-2 border-b border-slate-200 bg-slate-50 px-2 rounded">
+                            <span className="text-sm font-bold text-slate-700">= Net Sales (reported)</span>
+                            <span className="text-lg font-bold text-green-700">{formatCurrency(netSales)}</span>
+                          </div>
+
+                          {/* Refunds */}
+                          {refunds > 0 && (
+                            <div className="flex items-baseline justify-between py-2 border-b border-slate-100 pl-4">
+                              <span className="text-sm text-slate-500">− Refunds</span>
+                              <span className="text-sm font-semibold text-red-600">−{formatCurrency(refunds)}<span className="text-xs font-normal text-slate-400">{pct(refunds, netSales)}</span></span>
+                            </div>
+                          )}
+
+                          {/* True Revenue */}
+                          {refunds > 0 && (
+                            <div className="flex items-baseline justify-between py-3 bg-emerald-50 px-2 rounded mt-1">
+                              <span className="text-sm font-bold text-emerald-800">= True Commercial Revenue</span>
+                              <span className="text-lg font-bold text-emerald-700">{formatCurrency(trueRevenue)}</span>
+                            </div>
+                          )}
+
+                          {/* Discount summary footer */}
+                          {totalOrders > 0 && (compCount + promoCount + classicCount) > 0 && (
+                            <div className="pt-3 mt-1 border-t border-slate-100 text-xs text-slate-500 space-y-1">
+                              <p><span className="font-medium">{((compCount + promoCount + classicCount) / totalOrders * 100).toFixed(0)}%</span> of orders had a discount this week</p>
+                              <p>Gross discount as % of gross sales: <span className="font-medium">{pct(compValue + promoDiscount + classicDiscount, grossSales).replace(/[()]/g, '')}</span></p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
                 {/* Section 2: 📢 MARKETING CHANNELS */}
                 <Card className="border-2 border-blue-100">
                   <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/50">
@@ -2361,6 +2459,7 @@ export default function Dashboard() {
                 <DataUpload onUploadSuccess={handleUploadSuccess} />
                 <GoogleDocsImport onUploadSuccess={handleUploadSuccess} />
               </div>
+              <ShopifyReportsUpload onUploadSuccess={handleUploadSuccess} />
               <PromotionsUpload />
             <DataEntryForm onSuccess={handleUploadSuccess} />
           </TabsContent>

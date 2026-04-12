@@ -276,7 +276,11 @@ export function getOverallMetricsHistory() {
        WHERE week_id IN (${placeholders})
          AND metric_name IN (
            '* Revenue','* Conversion Rate','* AOV','* Total Sessions','* Checkout Abandonment Rate',
-           '* Total Discounts','* Comp Discounts','* Promo Discounts'
+           '* Total Discounts','* Comp Discounts','* Promo Discounts',
+           '* Gross Sales','* Refunds',
+           '* Comp Order Count','* Comp Order Value',
+           '* Promo Order Count','* Promo Sales','* Promo Discount Value',
+           '* Classic Discount Count','* Classic Discount Sales','* Classic Discount Value'
          )
       `
     )
@@ -303,6 +307,27 @@ export interface MetricsHistoryPoint {
   weekStartDate: string;
   weekEndDate: string;
   metrics: Record<string, number>;
+}
+
+// Upsert specific overall_metrics for an existing week (matched by week_start_date).
+// Does not touch any other metrics for that week.
+export function upsertOverallMetrics(weekStartDate: string, metrics: Record<string, number>): boolean {
+  const database = getDb();
+  const week = database.prepare('SELECT id FROM weeks WHERE week_start_date = ?').get(weekStartDate) as { id: number } | undefined;
+  if (!week) return false;
+
+  const del = database.prepare('DELETE FROM overall_metrics WHERE week_id = ? AND metric_name = ?');
+  const ins = database.prepare('INSERT INTO overall_metrics (week_id, metric_name, metric_value) VALUES (?, ?, ?)');
+
+  const upsertMany = database.transaction((entries: Array<[string, number]>) => {
+    for (const [name, value] of entries) {
+      del.run(week.id, name);
+      ins.run(week.id, name, value);
+    }
+  });
+
+  upsertMany(Object.entries(metrics));
+  return true;
 }
 
 export function getChannelMetricsHistory(): Record<string, MetricsHistoryPoint[]> {

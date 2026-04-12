@@ -595,9 +595,25 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         'Comp Discounts': p.metrics['Comp Discounts'] ?? 0,
         'Total Discounts': p.metrics['Total Discounts'] ?? 0,
         'Promo Discounts': p.metrics['Promo Discounts'] ?? 0,
+        // Shopify reports data
+        'Gross Sales': p.metrics['Gross Sales'] ?? 0,
+        'Refunds': p.metrics['Refunds'] ?? 0,
+        'Comp Order Value': p.metrics['Comp Order Value'] ?? 0,
+        'Promo Discount Value': p.metrics['Promo Discount Value'] ?? 0,
+        'Classic Discount Value': p.metrics['Classic Discount Value'] ?? 0,
+        'Comp Order Count': p.metrics['Comp Order Count'] ?? 0,
+        'Promo Order Count': p.metrics['Promo Order Count'] ?? 0,
+        'Classic Discount Count': p.metrics['Classic Discount Count'] ?? 0,
+        'Promo Sales': p.metrics['Promo Sales'] ?? 0,
       },
     }));
   }, [sorted]);
+
+  // Only show Shopify-report cards if at least 2 weeks have gross sales data
+  const hasShopifyData = useMemo(
+    () => sorted.filter((p) => (p.metrics['Gross Sales'] ?? 0) > 0).length >= 2,
+    [sorted]
+  );
 
   if (!hasAny) {
     return (
@@ -653,6 +669,61 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         aggMode="mean"
         defaultTimeframe="4w"
       />
+
+      {/* Discount & Revenue breakdown cards — only when Shopify reports have been uploaded */}
+      {hasShopifyData && (
+        <>
+          <div className="flex items-center gap-3 pt-2">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-sm font-semibold text-slate-500 px-2">Discount & Revenue Detail</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+          <MetricCard
+            title="Gross Sales"
+            description="Gross sales before any discounts (from Shopify reports)"
+            points={normalized}
+            formatValue={(v) => formatCurrency(v)}
+            aggMode="sum"
+            defaultTimeframe="4w"
+          />
+          <MetricCard
+            title="Comp Order Value"
+            description="Value of free/comp orders given away each week"
+            points={normalized}
+            formatValue={(v) => formatCurrency(v)}
+            aggMode="sum"
+            higherIsBetter={false}
+            defaultTimeframe="4w"
+          />
+          <MetricCard
+            title="Promo Discount Value"
+            description="Total discount value from promotional orders"
+            points={normalized}
+            formatValue={(v) => formatCurrency(v)}
+            aggMode="sum"
+            higherIsBetter={false}
+            defaultTimeframe="4w"
+          />
+          <MetricCard
+            title="Classic Discount Value"
+            description="Total discount value from coupon/discount code orders"
+            points={normalized}
+            formatValue={(v) => formatCurrency(v)}
+            aggMode="sum"
+            higherIsBetter={false}
+            defaultTimeframe="4w"
+          />
+          <MetricCard
+            title="Refunds"
+            description="Refunded payments each week"
+            points={normalized}
+            formatValue={(v) => formatCurrency(v)}
+            aggMode="sum"
+            higherIsBetter={false}
+            defaultTimeframe="4w"
+          />
+        </>
+      )}
 
       {/* Methodology explanation */}
       <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-5 text-sm text-slate-600 space-y-3">
