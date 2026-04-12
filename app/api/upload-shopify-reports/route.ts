@@ -11,9 +11,12 @@ function parseNum(val: any): number {
 
 // Parse a CSV string into an array of row objects
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
+  // Strip BOM (byte-order mark) that Excel/Sheets sometimes prepends
+  const cleaned = text.replace(/^\uFEFF/, '');
+  const lines = cleaned.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map((h) => h.trim());
+  // Trim whitespace and any stray BOM from each header
+  const headers = lines[0].split(',').map((h) => h.replace(/\uFEFF/g, '').trim());
   return lines.slice(1).map((line) => {
     // Handle quoted fields
     const values: string[] = [];

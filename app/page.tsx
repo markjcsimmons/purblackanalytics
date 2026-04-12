@@ -1203,20 +1203,26 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Revenue Waterfall — only shown when Shopify report data is present */}
-                {weekData && (() => {
-                  const grossSales = getMetricValue(weekData.overallMetrics, 'Gross Sales');
-                  if (grossSales <= 0) return null;
+                {/* Revenue Waterfall — uses the most recent week that has Shopify report data */}
+                {(() => {
+                  // Find most recent history point with Gross Sales data
+                  const sorted = [...metricsHistory].sort((a, b) => b.weekStartDate.localeCompare(a.weekStartDate));
+                  const waterfallPoint = sorted.find((p) => (p.metrics['Gross Sales'] ?? 0) > 0);
+                  if (!waterfallPoint) return null;
 
-                  const netSales = getMetricValue(weekData.overallMetrics, 'Revenue');
-                  const refunds = getMetricValue(weekData.overallMetrics, 'Refunds');
-                  const compValue = getMetricValue(weekData.overallMetrics, 'Comp Order Value');
-                  const promoDiscount = getMetricValue(weekData.overallMetrics, 'Promo Discount Value');
-                  const classicDiscount = getMetricValue(weekData.overallMetrics, 'Classic Discount Value');
-                  const compCount = getMetricValue(weekData.overallMetrics, 'Comp Order Count');
-                  const promoCount = getMetricValue(weekData.overallMetrics, 'Promo Order Count');
-                  const classicCount = getMetricValue(weekData.overallMetrics, 'Classic Discount Count');
-                  const totalOrders = getMetricValue(weekData.overallMetrics, 'Orders');
+                  const grossSales = waterfallPoint.metrics['Gross Sales'] ?? 0;
+                  const netSales = waterfallPoint.metrics['Revenue'] ?? 0;
+                  const refunds = waterfallPoint.metrics['Refunds'] ?? 0;
+                  const compValue = waterfallPoint.metrics['Comp Order Value'] ?? 0;
+                  const promoDiscount = waterfallPoint.metrics['Promo Discount Value'] ?? 0;
+                  const classicDiscount = waterfallPoint.metrics['Classic Discount Value'] ?? 0;
+                  const compCount = waterfallPoint.metrics['Comp Order Count'] ?? 0;
+                  const promoCount = waterfallPoint.metrics['Promo Order Count'] ?? 0;
+                  const classicCount = waterfallPoint.metrics['Classic Discount Count'] ?? 0;
+                  // Total orders from weekData if matching week, otherwise omit
+                  const isCurrentWeek = weekData && weekData.week?.week_start_date === waterfallPoint.weekStartDate;
+                  const totalOrders = isCurrentWeek ? getMetricValue(weekData!.overallMetrics, 'Orders') : 0;
+                  const weekLabel = `${waterfallPoint.weekStartDate} – ${waterfallPoint.weekEndDate}`;
 
                   const trueRevenue = netSales - refunds;
                   const pct = (v: number, base: number) => base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
@@ -1225,7 +1231,7 @@ export default function Dashboard() {
                     <Card className="border-2 border-violet-100">
                       <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50/50 pb-3">
                         <CardTitle className="text-xl text-slate-800">Revenue Breakdown</CardTitle>
-                        <p className="text-sm text-slate-500">Gross sales → discounts → net → refunds</p>
+                        <p className="text-sm text-slate-500">Week of {weekLabel} · Gross sales → discounts → net → refunds</p>
                       </CardHeader>
                       <CardContent className="pt-4">
                         <div className="space-y-0">
