@@ -1226,7 +1226,9 @@ export default function Dashboard() {
                   const totalOrders = isCurrentWeek ? getMetricValue(weekData!.overallMetrics, 'Orders') : 0;
                   const weekLabel = `${waterfallPoint.weekStartDate} – ${waterfallPoint.weekEndDate}`;
 
-                  const tcr = (p: MetricsHistoryPoint) => (p.metrics['Revenue'] ?? 0) - (p.metrics['Refunds'] ?? 0);
+                  // Net Sales = Gross Sales − Discounts − Refunds (Shopify already deducts refunds)
+                  // So Net Sales IS the true commercial revenue — no further subtraction needed
+                  const tcr = (p: MetricsHistoryPoint) => p.metrics['Revenue'] ?? 0;
                   const currentTcr = tcr(waterfallPoint);
                   const pct = (v: number, base: number) => base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
 
@@ -1302,11 +1304,11 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent className="px-4 pt-3 pb-4 space-y-3">
 
-                        {/* ── Hero: True Commercial Revenue ── */}
+                        {/* ── Hero: Net Sales ── */}
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-sm font-semibold text-emerald-800">True Commercial Revenue</span>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Net Sales minus refunds — cash actually kept</p>
+                            <span className="text-sm font-semibold text-emerald-800">Net Sales</span>
+                            <p className="text-[10px] text-slate-400 mt-0.5">Gross Sales − discounts − refunds. Actual sales revenue, excl. tax &amp; shipping.</p>
                           </div>
                           <span className="text-2xl font-bold text-emerald-700">{formatCurrency(currentTcr)}</span>
                         </div>
@@ -1364,7 +1366,7 @@ export default function Dashboard() {
 
                         {/* ── Waterfall detail ── */}
                         <div className="border-t border-slate-200 pt-2">
-                          <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1.5">This week's revenue waterfall — amounts deducted from gross sales</div>
+                          <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1.5">Waterfall: Gross Sales → deductions → Net Sales</div>
                           {/* Gross Sales header */}
                           <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-200">
                             <span className="text-xs font-semibold text-slate-600">Gross Sales</span>
@@ -1376,17 +1378,17 @@ export default function Dashboard() {
                           {promoDiscount > 0 && <WaterfallRow label="Promotional discounts" count={promoCount} value={promoDiscount} base={grossSales} color="text-orange-700" />}
                           {classicDiscount > 0 && <WaterfallRow label="Discount codes" count={classicCount} value={classicDiscount} base={grossSales} color="text-orange-600" />}
 
-                          {/* Net Sales subtotal */}
-                          <div className="flex items-center justify-between py-1 mt-1 bg-slate-50 px-2 rounded">
-                            <span className="text-xs font-bold text-slate-600">= Net Sales</span>
-                            <span className="text-sm font-bold text-green-700">{formatCurrency(netSales)}</span>
+                          {/* Net Sales = hero figure */}
+                          <div className="flex items-center justify-between py-1 mt-1 bg-emerald-50 px-2 rounded border border-emerald-100">
+                            <span className="text-xs font-bold text-emerald-800">= Net Sales</span>
+                            <span className="text-sm font-bold text-emerald-700">{formatCurrency(netSales)}</span>
                           </div>
 
-                          {/* Refunds */}
+                          {/* Refunds — informational only, already included in Net Sales above */}
                           {refunds > 0 && (
-                            <div className="flex items-center justify-between py-1 pl-3 mt-0.5">
-                              <span className="text-xs text-slate-500">Refunds<span className="text-slate-400"> · {((refunds / netSales) * 100).toFixed(1)}% of net sales</span></span>
-                              <span className="text-xs font-semibold text-red-600">−{formatCurrency(refunds)}</span>
+                            <div className="flex items-center justify-between py-1 pl-3 mt-0.5 opacity-60">
+                              <span className="text-[10px] text-slate-400 italic">of which refunds (already deducted above): {((refunds / grossSales) * 100).toFixed(1)}% of gross</span>
+                              <span className="text-[10px] text-slate-400 italic">{formatCurrency(refunds)}</span>
                             </div>
                           )}
 
