@@ -103,6 +103,7 @@ export default function Dashboard() {
   const [isLoadingCharts, setIsLoadingCharts] = useState(false);
   const [chartsError, setChartsError] = useState('');
   const [channelsHistory, setChannelsHistory] = useState<Record<string, MetricsHistoryPoint[]>>({});
+  const [waterfallWeekStart, setWaterfallWeekStart] = useState<string | null>(null);
 
   const fetchWeeks = async () => {
     try {
@@ -1203,15 +1204,17 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Revenue Waterfall — uses the most recent week that has Shopify report data */}
+                {/* Revenue Waterfall — week selector */}
                 {(() => {
-                  // Shopify points sorted ascending
-                  const shopifyAsc = [...metricsHistory]
-                    .sort((a, b) => a.weekStartDate.localeCompare(b.weekStartDate))
+                  // Shopify points sorted descending for dropdown (most recent first)
+                  const shopifyDesc = [...metricsHistory]
+                    .sort((a, b) => b.weekStartDate.localeCompare(a.weekStartDate))
                     .filter((p) => (p.metrics['Gross Sales'] ?? 0) > 0);
+                  const shopifyAsc = [...shopifyDesc].reverse();
                   if (shopifyAsc.length === 0) return null;
 
-                  const waterfallPoint = shopifyAsc[shopifyAsc.length - 1];
+                  // Use selected week, defaulting to most recent
+                  const waterfallPoint = shopifyDesc.find((p) => p.weekStartDate === waterfallWeekStart) ?? shopifyDesc[0];
 
                   const grossSales = waterfallPoint.metrics['Gross Sales'] ?? 0;
                   const netSales = waterfallPoint.metrics['Revenue'] ?? 0;
@@ -1297,9 +1300,23 @@ export default function Dashboard() {
                   return (
                     <Card className={`border-2 ${borderClass}`}>
                       <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50/50 py-3 px-4">
-                        <div className="flex items-baseline justify-between">
-                          <CardTitle className="text-base text-slate-700">Revenue Breakdown</CardTitle>
-                          <span className="text-xs text-slate-400">week of {weekLabel}</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <CardTitle className="text-base text-slate-700 shrink-0">Revenue Breakdown</CardTitle>
+                          <Select
+                            value={waterfallPoint.weekStartDate}
+                            onValueChange={(val) => setWaterfallWeekStart(val)}
+                          >
+                            <SelectTrigger className="h-7 text-xs w-auto min-w-[170px] border-slate-200 bg-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {shopifyDesc.map((p) => (
+                                <SelectItem key={p.weekStartDate} value={p.weekStartDate} className="text-xs">
+                                  {p.weekStartDate} – {p.weekEndDate}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </CardHeader>
                       <CardContent className="px-4 pt-3 pb-4 space-y-3">
