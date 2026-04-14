@@ -53,14 +53,21 @@ function processStoreMetrics(rows: Record<string, string>[]): Array<{ weekStart:
     .filter((r) => r['Week Start'] || r['week_start'])
     .map((r) => {
       const weekStart = (r['Week Start'] || r['week_start'] || '').trim();
-      const grossSales = parseNum(r['Gross sales'] || r['Gross Sales']);
-      const discounts = Math.abs(parseNum(r['Discounts'])); // stored as negative in Shopify
-      const refunds = Math.abs(parseNum(r['Refunded payments'] || r['Refunds']));
+      const grossSales    = parseNum(r['Gross sales']         || r['Gross Sales']);
+      const discounts     = Math.abs(parseNum(r['Discounts']));
+      const refunds       = Math.abs(parseNum(r['Refunded payments'] || r['Refunds']));
+      const shippingRev   = Math.abs(parseNum(r['Shipping reversals'] || r['Shipping Reversals']));
+      const taxRev        = Math.abs(parseNum(r['Tax reversals']      || r['Tax Reversals']));
+      // Capture Shopify's own Net Sales figure for reconciliation
+      const shopifyNet    = parseNum(r['Net sales'] || r['Net Sales']);
 
       const metrics: Record<string, number> = {};
-      if (grossSales) metrics['* Gross Sales'] = grossSales;
-      if (discounts) metrics['* Total Discount Amount'] = discounts;
-      if (refunds) metrics['* Refunds'] = refunds;
+      if (grossSales)   metrics['* Gross Sales']            = grossSales;
+      if (discounts)    metrics['* Total Discount Amount']  = discounts;
+      if (refunds)      metrics['* Refunds']                = refunds;
+      if (shippingRev)  metrics['* Shipping Reversals']     = shippingRev;
+      if (taxRev)       metrics['* Tax Reversals']          = taxRev;
+      if (shopifyNet)   metrics['* Shopify Net Sales']      = shopifyNet;
       return { weekStart, metrics };
     })
     .filter((r) => r.weekStart && Object.keys(r.metrics).length > 0);

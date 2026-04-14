@@ -1216,22 +1216,44 @@ export default function Dashboard() {
                   // Use selected week, defaulting to most recent
                   const waterfallPoint = shopifyDesc.find((p) => p.weekStartDate === waterfallWeekStart) ?? shopifyDesc[0];
 
-                  const grossSales = waterfallPoint.metrics['Gross Sales'] ?? 0;
-                  const netSales = waterfallPoint.metrics['Revenue'] ?? 0;
-                  const refunds = waterfallPoint.metrics['Refunds'] ?? 0;
-                  const compValue = waterfallPoint.metrics['Comp Order Value'] ?? 0;
-                  const promoDiscount = waterfallPoint.metrics['Promo Discount Value'] ?? 0;
-                  const classicDiscount = waterfallPoint.metrics['Classic Discount Value'] ?? 0;
-                  const compCount = waterfallPoint.metrics['Comp Order Count'] ?? 0;
-                  const promoCount = waterfallPoint.metrics['Promo Order Count'] ?? 0;
-                  const classicCount = waterfallPoint.metrics['Classic Discount Count'] ?? 0;
-                  const isCurrentWeek = weekData && weekData.week?.week_start_date === waterfallPoint.weekStartDate;
-                  const totalOrders = isCurrentWeek ? getMetricValue(weekData!.overallMetrics, 'Orders') : 0;
-                  const weekLabel = `${waterfallPoint.weekStartDate} – ${waterfallPoint.weekEndDate}`;
+                  const grossSales       = waterfallPoint.metrics['Gross Sales'] ?? 0;
+                  const totalDiscounts   = waterfallPoint.metrics['Total Discount Amount'] ?? 0;
+                  const refunds          = waterfallPoint.metrics['Refunds'] ?? 0;
+                  const shippingRev      = waterfallPoint.metrics['Shipping Reversals'] ?? 0;
+                  const taxRev           = waterfallPoint.metrics['Tax Reversals'] ?? 0;
+                  const shopifyNetSales  = waterfallPoint.metrics['Shopify Net Sales'] ?? 0;
+                  const compValue        = waterfallPoint.metrics['Comp Order Value'] ?? 0;
+                  const promoDiscount    = waterfallPoint.metrics['Promo Discount Value'] ?? 0;
+                  const classicDiscount  = waterfallPoint.metrics['Classic Discount Value'] ?? 0;
+                  const compCount        = waterfallPoint.metrics['Comp Order Count'] ?? 0;
+                  const promoCount       = waterfallPoint.metrics['Promo Order Count'] ?? 0;
+                  const classicCount     = waterfallPoint.metrics['Classic Discount Count'] ?? 0;
+                  const csvRevenue       = waterfallPoint.metrics['Revenue'] ?? 0; // weekly CSV figure for reconciliation
+                  const isCurrentWeek    = weekData && weekData.week?.week_start_date === waterfallPoint.weekStartDate;
+                  const totalOrders      = isCurrentWeek ? getMetricValue(weekData!.overallMetrics, 'Orders') : 0;
+                  const weekLabel        = `${waterfallPoint.weekStartDate} – ${waterfallPoint.weekEndDate}`;
 
-                  // Net Sales = Gross Sales − Discounts − Refunds (Shopify already deducts refunds)
-                  // So Net Sales IS the true commercial revenue — no further subtraction needed
-                  const tcr = (p: MetricsHistoryPoint) => p.metrics['Revenue'] ?? 0;
+                  // Correct Net Sales: Gross − Discounts − Refunds + Shipping Reversals + Tax Reversals
+                  // Use Shopify's own Net Sales if available, otherwise calculate from components
+                  const hasFullComponents = grossSales > 0 && (totalDiscounts > 0 || refunds > 0 || shippingRev > 0 || taxRev > 0);
+                  const calculatedNetSales = grossSales - totalDiscounts - refunds + shippingRev + taxRev;
+                  const netSales = shopifyNetSales > 0 ? shopifyNetSales : hasFullComponents ? calculatedNetSales : csvRevenue;
+
+                  // Reconciliation: difference between CSV Revenue and calculated/Shopify Net Sales
+                  const reconciliationDiff = csvRevenue > 0 && netSales > 0 ? csvRevenue - netSales : null;
+
+                  // Net Sales IS the true commercial revenue (all deductions already applied)
+                  const tcr = (p: MetricsHistoryPoint) => {
+                    const gs  = p.metrics['Gross Sales'] ?? 0;
+                    const td  = p.metrics['Total Discount Amount'] ?? 0;
+                    const ref = p.metrics['Refunds'] ?? 0;
+                    const sr  = p.metrics['Shipping Reversals'] ?? 0;
+                    const tr  = p.metrics['Tax Reversals'] ?? 0;
+                    const sn  = p.metrics['Shopify Net Sales'] ?? 0;
+                    if (sn > 0) return sn;
+                    if (gs > 0) return gs - td - ref + sr + tr;
+                    return p.metrics['Revenue'] ?? 0; // fallback to CSV
+                  };
                   const currentTcr = tcr(waterfallPoint);
                   const pct = (v: number, base: number) => base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
 
@@ -1383,36 +1405,76 @@ export default function Dashboard() {
 
                         {/* ── Waterfall detail ── */}
                         <div className="border-t border-slate-200 pt-2">
-                          <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1.5">Waterfall: Gross Sales → deductions → Net Sales</div>
-                          {/* Gross Sales header */}
-                          <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-200">
+                          <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1.5">
+                            Gross Sales − Discounts − Refunds + Reversals = Net Sales
+                          </div>
+
+                          {/* Gross Sales */}
+                          <div className="flex items-center justify-between py-1 border-b border-slate-100">
                             <span className="text-xs font-semibold text-slate-600">Gross Sales</span>
                             <span className="text-sm font-bold text-slate-700">{formatCurrency(grossSales)}</span>
                           </div>
 
-                          {/* Deductions */}
+                          {/* Discount breakdown */}
                           {compValue > 0 && <WaterfallRow label="Comp / free orders" count={compCount} value={compValue} base={grossSales} color="text-amber-700" />}
                           {promoDiscount > 0 && <WaterfallRow label="Promotional discounts" count={promoCount} value={promoDiscount} base={grossSales} color="text-orange-700" />}
                           {classicDiscount > 0 && <WaterfallRow label="Discount codes" count={classicCount} value={classicDiscount} base={grossSales} color="text-orange-600" />}
+                          {/* Show total discounts if we have it but no breakdown */}
+                          {totalDiscounts > 0 && compValue === 0 && promoDiscount === 0 && classicDiscount === 0 && (
+                            <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100">
+                              <span className="text-xs text-slate-500">− Discounts<span className="text-slate-400"> · {((totalDiscounts / grossSales) * 100).toFixed(1)}% of gross</span></span>
+                              <span className="text-xs font-semibold text-orange-700">−{formatCurrency(totalDiscounts)}</span>
+                            </div>
+                          )}
 
-                          {/* Net Sales = hero figure */}
+                          {/* Refunded payments */}
+                          {refunds > 0 && (
+                            <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100">
+                              <span className="text-xs text-slate-500">− Refunded payments<span className="text-slate-400"> · {((refunds / grossSales) * 100).toFixed(1)}% of gross</span></span>
+                              <span className="text-xs font-semibold text-red-600">−{formatCurrency(refunds)}</span>
+                            </div>
+                          )}
+
+                          {/* Shipping reversals (positive — add back) */}
+                          {shippingRev > 0 && (
+                            <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100">
+                              <span className="text-xs text-slate-500">+ Shipping reversals</span>
+                              <span className="text-xs font-semibold text-blue-600">+{formatCurrency(shippingRev)}</span>
+                            </div>
+                          )}
+
+                          {/* Tax reversals (positive — add back) */}
+                          {taxRev > 0 && (
+                            <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100">
+                              <span className="text-xs text-slate-500">+ Tax reversals</span>
+                              <span className="text-xs font-semibold text-blue-600">+{formatCurrency(taxRev)}</span>
+                            </div>
+                          )}
+
+                          {/* Calculated Net Sales */}
                           <div className="flex items-center justify-between py-1 mt-1 bg-emerald-50 px-2 rounded border border-emerald-100">
                             <span className="text-xs font-bold text-emerald-800">= Net Sales</span>
                             <span className="text-sm font-bold text-emerald-700">{formatCurrency(netSales)}</span>
                           </div>
 
-                          {/* Refunds — informational only, already included in Net Sales above */}
-                          {refunds > 0 && (
-                            <div className="flex items-center justify-between py-1 pl-3 mt-0.5 opacity-60">
-                              <span className="text-[10px] text-slate-400 italic">of which refunds (already deducted above): {((refunds / grossSales) * 100).toFixed(1)}% of gross</span>
-                              <span className="text-[10px] text-slate-400 italic">{formatCurrency(refunds)}</span>
+                          {/* Reconciliation vs weekly CSV Revenue */}
+                          {reconciliationDiff !== null && Math.abs(reconciliationDiff) > 1 && (
+                            <div className={`flex items-center justify-between py-1 px-2 mt-1 rounded text-[10px] ${Math.abs(reconciliationDiff) < 50 ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                              <span>Weekly CSV "Revenue" vs calculated Net Sales</span>
+                              <span className="font-semibold">{reconciliationDiff > 0 ? '+' : ''}{formatCurrency(reconciliationDiff)}</span>
+                            </div>
+                          )}
+                          {reconciliationDiff !== null && Math.abs(reconciliationDiff) <= 1 && (
+                            <div className="flex items-center justify-between py-1 px-2 mt-1 rounded text-[10px] bg-green-50 text-green-700">
+                              <span>✓ Weekly CSV Revenue reconciles with Net Sales</span>
+                              <span className="font-semibold">Match</span>
                             </div>
                           )}
 
                           {/* Discount summary footer */}
                           {totalOrders > 0 && (compCount + promoCount + classicCount) > 0 && (
                             <div className="mt-2 pt-2 border-t border-slate-100 text-[10px] text-slate-400">
-                              {((compCount + promoCount + classicCount) / totalOrders * 100).toFixed(0)}% of orders discounted · gross discount {((compValue + promoDiscount + classicDiscount) / grossSales * 100).toFixed(1)}% of gross sales
+                              {((compCount + promoCount + classicCount) / totalOrders * 100).toFixed(0)}% of orders discounted · total discount {(((compValue || totalDiscounts) / grossSales) * 100).toFixed(1)}% of gross sales
                             </div>
                           )}
                         </div>

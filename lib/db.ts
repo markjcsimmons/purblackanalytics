@@ -277,7 +277,8 @@ export function getOverallMetricsHistory() {
          AND metric_name IN (
            '* Revenue','* Conversion Rate','* AOV','* Total Sessions','* Checkout Abandonment Rate',
            '* Total Discounts','* Comp Discounts','* Promo Discounts',
-           '* Gross Sales','* Refunds',
+           '* Gross Sales','* Refunds','* Total Discount Amount',
+           '* Shipping Reversals','* Tax Reversals','* Shopify Net Sales',
            '* Comp Order Count','* Comp Order Value',
            '* Promo Order Count','* Promo Sales','* Promo Discount Value',
            '* Classic Discount Count','* Classic Discount Sales','* Classic Discount Value'

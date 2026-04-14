@@ -849,6 +849,10 @@ export function MetricHistoryCharts({ history }: { history: MetricsHistoryPoint[
         // Shopify reports data
         'Gross Sales': p.metrics['Gross Sales'] ?? 0,
         'Refunds': p.metrics['Refunds'] ?? 0,
+        'Total Discount Amount': p.metrics['Total Discount Amount'] ?? 0,
+        'Shipping Reversals': p.metrics['Shipping Reversals'] ?? 0,
+        'Tax Reversals': p.metrics['Tax Reversals'] ?? 0,
+        'Shopify Net Sales': p.metrics['Shopify Net Sales'] ?? 0,
         'Comp Order Value': p.metrics['Comp Order Value'] ?? 0,
         'Promo Discount Value': p.metrics['Promo Discount Value'] ?? 0,
         'Classic Discount Value': p.metrics['Classic Discount Value'] ?? 0,
