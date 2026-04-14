@@ -1216,45 +1216,25 @@ export default function Dashboard() {
                   // Use selected week, defaulting to most recent
                   const waterfallPoint = shopifyDesc.find((p) => p.weekStartDate === waterfallWeekStart) ?? shopifyDesc[0];
 
-                  const grossSales       = waterfallPoint.metrics['Gross Sales'] ?? 0;
-                  const totalDiscounts   = waterfallPoint.metrics['Total Discount Amount'] ?? 0;
-                  const refunds          = waterfallPoint.metrics['Refunds'] ?? 0;
-                  const shippingRev      = waterfallPoint.metrics['Shipping Reversals'] ?? 0;
-                  const taxRev           = waterfallPoint.metrics['Tax Reversals'] ?? 0;
-                  const shopifyNetSales  = waterfallPoint.metrics['Shopify Net Sales'] ?? 0;
-                  const compValue        = waterfallPoint.metrics['Comp Order Value'] ?? 0;
-                  const promoDiscount    = waterfallPoint.metrics['Promo Discount Value'] ?? 0;
-                  const classicDiscount  = waterfallPoint.metrics['Classic Discount Value'] ?? 0;
-                  const compCount        = waterfallPoint.metrics['Comp Order Count'] ?? 0;
-                  const promoCount       = waterfallPoint.metrics['Promo Order Count'] ?? 0;
-                  const classicCount     = waterfallPoint.metrics['Classic Discount Count'] ?? 0;
-                  const csvRevenue       = waterfallPoint.metrics['Revenue'] ?? 0; // weekly CSV figure for reconciliation
-                  const isCurrentWeek    = weekData && weekData.week?.week_start_date === waterfallPoint.weekStartDate;
-                  const totalOrders      = isCurrentWeek ? getMetricValue(weekData!.overallMetrics, 'Orders') : 0;
-                  const weekLabel        = `${waterfallPoint.weekStartDate} – ${waterfallPoint.weekEndDate}`;
+                  const grossSales      = waterfallPoint.metrics['Gross Sales'] ?? 0;
+                  const totalDiscounts  = waterfallPoint.metrics['Total Discount Amount'] ?? 0;
+                  const refunds         = waterfallPoint.metrics['Refunds'] ?? 0;
+                  const shippingRev     = waterfallPoint.metrics['Shipping Reversals'] ?? 0;
+                  const taxRev          = waterfallPoint.metrics['Tax Reversals'] ?? 0;
+                  const compValue       = waterfallPoint.metrics['Comp Order Value'] ?? 0;
+                  const promoDiscount   = waterfallPoint.metrics['Promo Discount Value'] ?? 0;
+                  const classicDiscount = waterfallPoint.metrics['Classic Discount Value'] ?? 0;
+                  const compCount       = waterfallPoint.metrics['Comp Order Count'] ?? 0;
+                  const promoCount      = waterfallPoint.metrics['Promo Order Count'] ?? 0;
+                  const classicCount    = waterfallPoint.metrics['Classic Discount Count'] ?? 0;
+                  const isCurrentWeek   = weekData && weekData.week?.week_start_date === waterfallPoint.weekStartDate;
+                  const totalOrders     = isCurrentWeek ? getMetricValue(weekData!.overallMetrics, 'Orders') : 0;
+                  const weekLabel       = `${waterfallPoint.weekStartDate} – ${waterfallPoint.weekEndDate}`;
 
-                  // Correct Net Sales: Gross − Discounts − Refunds + Shipping Reversals + Tax Reversals
-                  // Use Shopify's own Net Sales if available, otherwise calculate from components
-                  const hasFullComponents = grossSales > 0 && (totalDiscounts > 0 || refunds > 0 || shippingRev > 0 || taxRev > 0);
-                  const calculatedNetSales = grossSales - totalDiscounts - refunds + shippingRev + taxRev;
-                  const netSales = shopifyNetSales > 0 ? shopifyNetSales : hasFullComponents ? calculatedNetSales : csvRevenue;
-
-                  // Reconciliation: difference between CSV Revenue and calculated/Shopify Net Sales
-                  const reconciliationDiff = csvRevenue > 0 && netSales > 0 ? csvRevenue - netSales : null;
-
-                  // Net Sales IS the true commercial revenue (all deductions already applied)
-                  const tcr = (p: MetricsHistoryPoint) => {
-                    const gs  = p.metrics['Gross Sales'] ?? 0;
-                    const td  = p.metrics['Total Discount Amount'] ?? 0;
-                    const ref = p.metrics['Refunds'] ?? 0;
-                    const sr  = p.metrics['Shipping Reversals'] ?? 0;
-                    const tr  = p.metrics['Tax Reversals'] ?? 0;
-                    const sn  = p.metrics['Shopify Net Sales'] ?? 0;
-                    if (sn > 0) return sn;
-                    if (gs > 0) return gs - td - ref + sr + tr;
-                    return p.metrics['Revenue'] ?? 0; // fallback to CSV
-                  };
-                  const currentTcr = tcr(waterfallPoint);
+                  // Total Revenue in the weekly CSV = Net Sales (confirmed equivalent)
+                  const tcr = (p: MetricsHistoryPoint) => p.metrics['Revenue'] ?? 0;
+                  const netSales = tcr(waterfallPoint);
+                  const currentTcr = netSales;
                   const pct = (v: number, base: number) => base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
 
                   // Prior week comparison
@@ -1456,20 +1436,6 @@ export default function Dashboard() {
                             <span className="text-xs font-bold text-emerald-800">= Net Sales</span>
                             <span className="text-sm font-bold text-emerald-700">{formatCurrency(netSales)}</span>
                           </div>
-
-                          {/* Reconciliation vs weekly CSV Revenue */}
-                          {reconciliationDiff !== null && Math.abs(reconciliationDiff) > 1 && (
-                            <div className={`flex items-center justify-between py-1 px-2 mt-1 rounded text-[10px] ${Math.abs(reconciliationDiff) < 50 ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                              <span>Weekly CSV "Revenue" vs calculated Net Sales</span>
-                              <span className="font-semibold">{reconciliationDiff > 0 ? '+' : ''}{formatCurrency(reconciliationDiff)}</span>
-                            </div>
-                          )}
-                          {reconciliationDiff !== null && Math.abs(reconciliationDiff) <= 1 && (
-                            <div className="flex items-center justify-between py-1 px-2 mt-1 rounded text-[10px] bg-green-50 text-green-700">
-                              <span>✓ Weekly CSV Revenue reconciles with Net Sales</span>
-                              <span className="font-semibold">Match</span>
-                            </div>
-                          )}
 
                           {/* Discount summary footer */}
                           {totalOrders > 0 && (compCount + promoCount + classicCount) > 0 && (
