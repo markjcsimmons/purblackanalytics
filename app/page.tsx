@@ -1296,9 +1296,9 @@ export default function Dashboard() {
 
                   // Helper: render a waterfall deduction row
                   const WaterfallRow = ({ label, count, value, base, color }: { label: string; count: number; value: number; base: number; color: string }) => (
-                    <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100 last:border-0">
-                      <span className="text-xs text-slate-500">{label}{count > 0 ? <span className="text-slate-400"> · {count} orders · {((value / base) * 100).toFixed(1)}% of gross</span> : ''}</span>
-                      <span className={`text-xs font-semibold ${color}`}>−{formatCurrency(value)}</span>
+                    <div className="flex items-center justify-between py-1.5 pl-4 border-b border-slate-100 last:border-0">
+                      <span className="text-sm text-slate-500">{label}{count > 0 ? <span className="text-xs text-slate-400"> · {count} orders · {((value / base) * 100).toFixed(1)}% of gross</span> : ''}</span>
+                      <span className={`text-sm font-semibold ${color}`}>−{formatCurrency(value)}</span>
                     </div>
                   );
 
@@ -1329,57 +1329,57 @@ export default function Dashboard() {
                         {/* ── Hero: Net Sales ── */}
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-sm font-semibold text-emerald-800">Net Sales</span>
-                            <p className="text-[10px] text-slate-400 mt-0.5">Gross Sales − discounts − refunds. Actual sales revenue, excl. tax &amp; shipping.</p>
+                            <span className="text-base font-semibold text-emerald-800">Net Sales</span>
+                            <p className="text-xs text-slate-400 mt-0.5">Gross Sales − discounts − refunds. Actual sales revenue, excl. tax &amp; shipping.</p>
                           </div>
                           <span className="text-2xl font-bold text-emerald-700">{formatCurrency(currentTcr)}</span>
                         </div>
 
                         {/* Comparisons — 5-column grid */}
-                        <div className="grid grid-cols-5 gap-1 text-xs">
+                        <div className="grid grid-cols-5 gap-1 text-sm">
                           {/* vs Prior week */}
-                          <div className="bg-slate-50 rounded px-2 py-1.5">
-                            <div className="text-slate-400 mb-0.5 truncate">vs Prior wk</div>
+                          <div className="bg-slate-50 rounded px-2 py-2">
+                            <div className="text-xs text-slate-400 mb-0.5 truncate">vs Prior wk</div>
                             {vsPriorPct !== null && vsPriorAbs !== null ? (
                               <div className={`font-semibold flex items-center gap-0.5 ${vsPriorPct > 0 ? 'text-emerald-700' : vsPriorPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
-                                {vsPriorPct > 0 ? <ArrowUpRight className="h-3 w-3" /> : vsPriorPct < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                {vsPriorPct > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : vsPriorPct < 0 ? <ArrowDownRight className="h-3.5 w-3.5" /> : null}
                                 {vsPriorPct > 0 ? '+' : ''}{vsPriorPct.toFixed(1)}%
                               </div>
                             ) : <div className="text-slate-300">—</div>}
-                            {vsPriorAbs !== null && <div className="text-slate-400 text-[10px]">{vsPriorAbs > 0 ? '+' : ''}{formatCurrency(vsPriorAbs)}</div>}
+                            {vsPriorAbs !== null && <div className="text-xs text-slate-400">{vsPriorAbs > 0 ? '+' : ''}{formatCurrency(vsPriorAbs)}</div>}
                           </div>
 
                           {/* vs Year ago */}
-                          <div className="bg-slate-50 rounded px-2 py-1.5">
-                            <div className="text-slate-400 mb-0.5 truncate">vs Year ago</div>
+                          <div className="bg-slate-50 rounded px-2 py-2">
+                            <div className="text-xs text-slate-400 mb-0.5 truncate">vs Year ago</div>
                             {vsYoyPct !== null && vsYoyAbs !== null ? (
                               <div className={`font-semibold flex items-center gap-0.5 ${vsYoyPct > 0 ? 'text-emerald-700' : vsYoyPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
-                                {vsYoyPct > 0 ? <ArrowUpRight className="h-3 w-3" /> : vsYoyPct < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                                {vsYoyPct > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : vsYoyPct < 0 ? <ArrowDownRight className="h-3.5 w-3.5" /> : null}
                                 {vsYoyPct > 0 ? '+' : ''}{vsYoyPct.toFixed(1)}%
                               </div>
                             ) : <div className="text-slate-300">—</div>}
-                            {vsYoyAbs !== null && <div className="text-slate-400 text-[10px]">{vsYoyAbs > 0 ? '+' : ''}{formatCurrency(vsYoyAbs)}</div>}
+                            {vsYoyAbs !== null && <div className="text-xs text-slate-400">{vsYoyAbs > 0 ? '+' : ''}{formatCurrency(vsYoyAbs)}</div>}
                           </div>
 
                           {/* 4-week trend */}
-                          <div className="bg-slate-50 rounded px-2 py-1.5">
-                            <div className="text-slate-400 mb-0.5 truncate">4-wk trend</div>
+                          <div className="bg-slate-50 rounded px-2 py-2">
+                            <div className="text-xs text-slate-400 mb-0.5 truncate">4-wk trend</div>
                             {trend4 ? (
                               <div className={`font-semibold ${trend4.color}`}>{trend4.label}</div>
                             ) : <div className="text-slate-300">—</div>}
                           </div>
 
                           {/* 12-week trend */}
-                          <div className="bg-slate-50 rounded px-2 py-1.5">
-                            <div className="text-slate-400 mb-0.5 truncate">12-wk trend</div>
+                          <div className="bg-slate-50 rounded px-2 py-2">
+                            <div className="text-xs text-slate-400 mb-0.5 truncate">12-wk trend</div>
                             {trend12 ? (
                               <div className={`font-semibold ${trend12.color}`}>{trend12.label}</div>
                             ) : <div className="text-slate-300">—</div>}
                           </div>
 
                           {/* 52-week trend */}
-                          <div className="bg-slate-50 rounded px-2 py-1.5">
-                            <div className="text-slate-400 mb-0.5 truncate">52-wk trend</div>
+                          <div className="bg-slate-50 rounded px-2 py-2">
+                            <div className="text-xs text-slate-400 mb-0.5 truncate">52-wk trend</div>
                             {trend52 ? (
                               <div className={`font-semibold ${trend52.color}`}>{trend52.label}</div>
                             ) : <div className="text-slate-300">—</div>}
@@ -1388,13 +1388,13 @@ export default function Dashboard() {
 
                         {/* ── Waterfall detail ── */}
                         <div className="border-t border-slate-200 pt-2">
-                          <div className="text-[10px] text-slate-400 uppercase tracking-wide mb-1.5">
+                          <div className="text-xs text-slate-400 uppercase tracking-wide mb-2">
                             Gross Sales − Discounts − Refunds + Reversals = Net Sales
                           </div>
 
                           {/* Gross Sales */}
-                          <div className="flex items-center justify-between py-1 border-b border-slate-100">
-                            <span className="text-xs font-semibold text-slate-600">Gross Sales</span>
+                          <div className="flex items-center justify-between py-1.5 border-b border-slate-100">
+                            <span className="text-sm font-semibold text-slate-600">Gross Sales</span>
                             <span className="text-sm font-bold text-slate-700">{formatCurrency(grossSales)}</span>
                           </div>
 
@@ -1404,45 +1404,45 @@ export default function Dashboard() {
                           {classicDiscount > 0 && <WaterfallRow label="Discount codes" count={classicCount} value={classicDiscount} base={grossSales} color="text-orange-600" />}
                           {/* Show total discounts if we have it but no breakdown */}
                           {totalDiscounts > 0 && compValue === 0 && promoDiscount === 0 && classicDiscount === 0 && (
-                            <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100">
-                              <span className="text-xs text-slate-500">− Discounts<span className="text-slate-400"> · {((totalDiscounts / grossSales) * 100).toFixed(1)}% of gross</span></span>
-                              <span className="text-xs font-semibold text-orange-700">−{formatCurrency(totalDiscounts)}</span>
+                            <div className="flex items-center justify-between py-1.5 pl-4 border-b border-slate-100">
+                              <span className="text-sm text-slate-500">− Discounts<span className="text-slate-400 text-xs"> · {((totalDiscounts / grossSales) * 100).toFixed(1)}% of gross</span></span>
+                              <span className="text-sm font-semibold text-orange-700">−{formatCurrency(totalDiscounts)}</span>
                             </div>
                           )}
 
                           {/* Refunded payments */}
                           {refunds > 0 && (
-                            <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100">
-                              <span className="text-xs text-slate-500">− Refunded payments<span className="text-slate-400"> · {((refunds / grossSales) * 100).toFixed(1)}% of gross</span></span>
-                              <span className="text-xs font-semibold text-red-600">−{formatCurrency(refunds)}</span>
+                            <div className="flex items-center justify-between py-1.5 pl-4 border-b border-slate-100">
+                              <span className="text-sm text-slate-500">− Refunded payments<span className="text-slate-400 text-xs"> · {((refunds / grossSales) * 100).toFixed(1)}% of gross</span></span>
+                              <span className="text-sm font-semibold text-red-600">−{formatCurrency(refunds)}</span>
                             </div>
                           )}
 
-                          {/* Shipping reversals (positive — add back) */}
+                          {/* Shipping reversals */}
                           {shippingRev > 0 && (
-                            <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100">
-                              <span className="text-xs text-slate-500">+ Shipping reversals</span>
-                              <span className="text-xs font-semibold text-blue-600">+{formatCurrency(shippingRev)}</span>
+                            <div className="flex items-center justify-between py-1.5 pl-4 border-b border-slate-100">
+                              <span className="text-sm text-slate-500">+ Shipping reversals</span>
+                              <span className="text-sm font-semibold text-blue-600">+{formatCurrency(shippingRev)}</span>
                             </div>
                           )}
 
-                          {/* Tax reversals (positive — add back) */}
+                          {/* Tax reversals */}
                           {taxRev > 0 && (
-                            <div className="flex items-center justify-between py-1 pl-3 border-b border-slate-100">
-                              <span className="text-xs text-slate-500">+ Tax reversals</span>
-                              <span className="text-xs font-semibold text-blue-600">+{formatCurrency(taxRev)}</span>
+                            <div className="flex items-center justify-between py-1.5 pl-4 border-b border-slate-100">
+                              <span className="text-sm text-slate-500">+ Tax reversals</span>
+                              <span className="text-sm font-semibold text-blue-600">+{formatCurrency(taxRev)}</span>
                             </div>
                           )}
 
-                          {/* Calculated Net Sales */}
-                          <div className="flex items-center justify-between py-1 mt-1 bg-emerald-50 px-2 rounded border border-emerald-100">
-                            <span className="text-xs font-bold text-emerald-800">= Net Sales</span>
-                            <span className="text-sm font-bold text-emerald-700">{formatCurrency(netSales)}</span>
+                          {/* Net Sales */}
+                          <div className="flex items-center justify-between py-2 mt-1 bg-emerald-50 px-2 rounded border border-emerald-100">
+                            <span className="text-sm font-bold text-emerald-800">= Net Sales</span>
+                            <span className="text-base font-bold text-emerald-700">{formatCurrency(netSales)}</span>
                           </div>
 
                           {/* Discount summary footer */}
                           {totalOrders > 0 && (compCount + promoCount + classicCount) > 0 && (
-                            <div className="mt-2 pt-2 border-t border-slate-100 text-[10px] text-slate-400">
+                            <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-400">
                               {((compCount + promoCount + classicCount) / totalOrders * 100).toFixed(0)}% of orders discounted · total discount {(((compValue || totalDiscounts) / grossSales) * 100).toFixed(1)}% of gross sales
                             </div>
                           )}
@@ -1452,7 +1452,7 @@ export default function Dashboard() {
                         <div className="border-t border-slate-200 pt-3 mt-1">
                           <Button
                             size="sm"
-                            className="w-full bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold tracking-wide"
+                            className="w-full bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold tracking-wide"
                             disabled={revenueAnalysisLoading}
                             onClick={async () => {
                               setRevenueAnalysis(null);
