@@ -1305,13 +1305,13 @@ export default function Dashboard() {
                   return (
                     <Card className={`border-2 ${borderClass}`}>
                       <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50/50 py-3 px-4">
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <CardTitle className="text-base text-slate-700 shrink-0">Revenue Breakdown</CardTitle>
                           <Select
                             value={waterfallPoint.weekStartDate}
                             onValueChange={(val) => setWaterfallWeekStart(val)}
                           >
-                            <SelectTrigger className="h-7 text-xs w-auto min-w-[170px] border-slate-200 bg-white">
+                            <SelectTrigger className="h-7 text-xs w-auto max-w-[220px] border-slate-200 bg-white">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1335,8 +1335,8 @@ export default function Dashboard() {
                           <span className="text-2xl font-bold text-emerald-700">{formatCurrency(currentTcr)}</span>
                         </div>
 
-                        {/* Comparisons — 5-column grid */}
-                        <div className="grid grid-cols-5 gap-1 text-sm">
+                        {/* Comparisons — 2 cols on mobile, 5 on wider screens */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 text-sm">
                           {/* vs Prior week */}
                           <div className="bg-slate-50 rounded px-2 py-2">
                             <div className="text-xs text-slate-400 mb-0.5 truncate">vs Prior wk</div>
