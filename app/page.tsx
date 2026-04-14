@@ -104,6 +104,9 @@ export default function Dashboard() {
   const [chartsError, setChartsError] = useState('');
   const [channelsHistory, setChannelsHistory] = useState<Record<string, MetricsHistoryPoint[]>>({});
   const [waterfallWeekStart, setWaterfallWeekStart] = useState<string | null>(null);
+  const [revenueAnalysis, setRevenueAnalysis] = useState<string | null>(null);
+  const [revenueAnalysisLoading, setRevenueAnalysisLoading] = useState(false);
+  const [revenueAnalysisError, setRevenueAnalysisError] = useState('');
 
   const fetchWeeks = async () => {
     try {
@@ -1441,6 +1444,76 @@ export default function Dashboard() {
                           {totalOrders > 0 && (compCount + promoCount + classicCount) > 0 && (
                             <div className="mt-2 pt-2 border-t border-slate-100 text-[10px] text-slate-400">
                               {((compCount + promoCount + classicCount) / totalOrders * 100).toFixed(0)}% of orders discounted · total discount {(((compValue || totalDiscounts) / grossSales) * 100).toFixed(1)}% of gross sales
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ── Run Analysis ── */}
+                        <div className="border-t border-slate-200 pt-3 mt-1">
+                          <Button
+                            size="sm"
+                            className="w-full bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold tracking-wide"
+                            disabled={revenueAnalysisLoading}
+                            onClick={async () => {
+                              setRevenueAnalysis(null);
+                              setRevenueAnalysisError('');
+                              setRevenueAnalysisLoading(true);
+                              try {
+                                // Build recent weeks context (last 8 shopify points)
+                                const recentWeeks = shopifyAsc.slice(-8).map((p) => ({
+                                  weekStart: p.weekStartDate,
+                                  netSales: p.metrics['Revenue'] ?? 0,
+                                  grossSales: p.metrics['Gross Sales'] ?? 0,
+                                  totalDiscounts: p.metrics['Total Discount Amount'] ?? (
+                                    (p.metrics['Comp Order Value'] ?? 0) +
+                                    (p.metrics['Promo Discount Value'] ?? 0) +
+                                    (p.metrics['Classic Discount Value'] ?? 0)
+                                  ),
+                                }));
+                                const res = await fetch('/api/revenue-analysis', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    weekLabel,
+                                    netSales,
+                                    grossSales,
+                                    totalDiscounts,
+                                    compValue, compCount,
+                                    promoDiscount, promoCount,
+                                    classicDiscount, classicCount,
+                                    refunds,
+                                    shippingRev,
+                                    taxRev,
+                                    vsPriorPct,
+                                    vsPriorAbs,
+                                    vsYoyPct,
+                                    vsYoyAbs,
+                                    trend4: trend4?.label ?? null,
+                                    trend12: trend12?.label ?? null,
+                                    trend52: trend52?.label ?? null,
+                                    recentWeeks,
+                                  }),
+                                });
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.error || 'Analysis failed');
+                                setRevenueAnalysis(data.analysis);
+                              } catch (e: any) {
+                                setRevenueAnalysisError(e.message || 'Analysis failed');
+                              } finally {
+                                setRevenueAnalysisLoading(false);
+                              }
+                            }}
+                          >
+                            {revenueAnalysisLoading ? 'Analysing…' : 'RUN ANALYSIS'}
+                          </Button>
+
+                          {revenueAnalysisError && (
+                            <p className="mt-2 text-xs text-red-600">{revenueAnalysisError}</p>
+                          )}
+
+                          {revenueAnalysis && (
+                            <div className="mt-3 p-3 bg-violet-50 rounded-lg border border-violet-100 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                              {revenueAnalysis}
                             </div>
                           )}
                         </div>
