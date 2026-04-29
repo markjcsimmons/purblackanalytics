@@ -16,6 +16,7 @@ import { DataUpload } from '@/components/data-upload';
 import { ShopifyReportsUpload } from '@/components/shopify-reports-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { PromotionsUpload } from '@/components/promotions-upload';
+import { RevenueAnalysisChat } from '@/components/revenue-analysis-chat';
 import { MetricHistoryCharts, type MetricsHistoryPoint } from '@/components/metric-history-charts';
 import { ChannelHistoryCharts } from '@/components/channel-history-charts';
 import { getSession, logout } from '@/lib/auth';
@@ -106,6 +107,7 @@ export default function Dashboard() {
   const [revenueAnalysis, setRevenueAnalysis] = useState<string | null>(null);
   const [revenueAnalysisLoading, setRevenueAnalysisLoading] = useState(false);
   const [revenueAnalysisError, setRevenueAnalysisError] = useState('');
+  const [revenueAnalysisContext, setRevenueAnalysisContext] = useState<any>(null);
 
   const fetchWeeks = async () => {
     try {
@@ -1533,6 +1535,23 @@ export default function Dashboard() {
                                 const data = await res.json();
                                 if (!res.ok) throw new Error(data.error || 'Analysis failed');
                                 setRevenueAnalysis(data.analysis);
+
+                                // Store context for follow-up questions
+                                setRevenueAnalysisContext({
+                                  netSales,
+                                  grossSales,
+                                  totalDiscounts,
+                                  compValue,
+                                  promoDiscount,
+                                  classicDiscount,
+                                  refunds,
+                                  vsPriorPct,
+                                  vsYoyPct,
+                                  trend4: trend4?.label ?? null,
+                                  trend12: trend12?.label ?? null,
+                                  trend52: trend52?.label ?? null,
+                                  channels,
+                                });
                               } catch (e: any) {
                                 setRevenueAnalysisError(e.message || 'Analysis failed');
                               } finally {
@@ -1547,10 +1566,12 @@ export default function Dashboard() {
                             <p className="mt-2 text-xs text-red-600">{revenueAnalysisError}</p>
                           )}
 
-                          {revenueAnalysis && (
-                            <div className="mt-3 p-3 bg-violet-50 rounded-lg border border-violet-100 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                              {revenueAnalysis}
-                            </div>
+                          {revenueAnalysis && revenueAnalysisContext && (
+                            <RevenueAnalysisChat
+                              initialAnalysis={revenueAnalysis}
+                              weekLabel={weekLabel}
+                              analysisContext={revenueAnalysisContext}
+                            />
                           )}
                         </div>
 
