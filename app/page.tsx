@@ -16,7 +16,6 @@ import { DataUpload } from '@/components/data-upload';
 import { ShopifyReportsUpload } from '@/components/shopify-reports-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { PromotionsUpload } from '@/components/promotions-upload';
-import { InsightsDisplay } from '@/components/insights-display';
 import { MetricHistoryCharts, type MetricsHistoryPoint } from '@/components/metric-history-charts';
 import { ChannelHistoryCharts } from '@/components/channel-history-charts';
 import { getSession, logout } from '@/lib/auth';
@@ -83,7 +82,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [accessLevel, setAccessLevel] = useState<'full' | 'limited' | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'insights' | 'ai-search' | 'charts'>('deep-dive');
+  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'ai-search' | 'charts'>('deep-dive');
   const [comparisonData, setComparisonData] = useState<{
     previousWeek: any;
     sameWeekYearAgo: any;
@@ -742,18 +741,12 @@ export default function Dashboard() {
 
                 {/* Overview workspace */}
                 <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-4 rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm lg:w-[640px]">
+                  <TabsList className="grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm lg:w-[480px]">
                     <TabsTrigger
                       value="deep-dive"
                       className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
                     >
                       Deep Dive
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="insights"
-                      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
-                    >
-                      Insights
                     </TabsTrigger>
                     <TabsTrigger
                       value="ai-search"
@@ -1470,6 +1463,47 @@ export default function Dashboard() {
                                     (p.metrics['Classic Discount Value'] ?? 0)
                                   ),
                                 }));
+
+                                // Extract channel data from current week
+                                const channels: Record<string, any> = {};
+                                if (isCurrentWeek && weekData?.marketingChannels) {
+                                  weekData.marketingChannels.forEach((m: any) => {
+                                    if (!channels[m.channel_name]) {
+                                      channels[m.channel_name] = { revenue: 0, spend: 0, roas: 0 };
+                                    }
+                                    const metricLower = m.metric_name.toLowerCase();
+                                    if (metricLower.includes('revenue') || metricLower.includes('sales') || metricLower.includes('total $') || metricLower.includes('attributed')) {
+                                      channels[m.channel_name].revenue = m.metric_value;
+                                    }
+                                    if (metricLower.includes('spend') || metricLower.includes('cost')) {
+                                      channels[m.channel_name].spend = m.metric_value;
+                                    }
+                                    if (metricLower.includes('roas')) {
+                                      channels[m.channel_name].roas = m.metric_value;
+                                    }
+                                  });
+                                }
+
+                                // Extract prior week channel data for comparison
+                                let priorWeekChannels: Record<string, any> = {};
+                                if (priorPoint && comparisonData?.previousWeek?.marketingChannels) {
+                                  comparisonData.previousWeek.marketingChannels.forEach((m: any) => {
+                                    if (!priorWeekChannels[m.channel_name]) {
+                                      priorWeekChannels[m.channel_name] = { revenue: 0 };
+                                    }
+                                    const metricLower = m.metric_name.toLowerCase();
+                                    if (metricLower.includes('revenue') || metricLower.includes('sales') || metricLower.includes('total $') || metricLower.includes('attributed')) {
+                                      priorWeekChannels[m.channel_name].revenue = m.metric_value;
+                                    }
+                                  });
+                                  // Enrich channels with prior week revenue for comparison
+                                  Object.keys(channels).forEach((ch) => {
+                                    if (priorWeekChannels[ch]) {
+                                      channels[ch].prevWeekRevenue = priorWeekChannels[ch].revenue;
+                                    }
+                                  });
+                                }
+
                                 const res = await fetch('/api/revenue-analysis', {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
@@ -1492,6 +1526,8 @@ export default function Dashboard() {
                                     trend12: trend12?.label ?? null,
                                     trend52: trend52?.label ?? null,
                                     recentWeeks,
+                                    channels,
+                                    priorWeekChannels,
                                   }),
                                 });
                                 const data = await res.json();
@@ -1822,14 +1858,6 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                  </TabsContent>
-
-                  <TabsContent value="insights" className="space-y-8">
-                    <InsightsDisplay
-                      weekId={selectedWeekId || undefined}
-                      existingInsights={weekData?.insights || []}
-                      onGenerate={() => selectedWeekId && fetchWeekData(selectedWeekId)}
-                    />
                   </TabsContent>
 
                   <TabsContent value="ai-search" className="space-y-8">
