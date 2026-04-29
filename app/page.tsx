@@ -1536,6 +1536,7 @@ export default function Dashboard() {
 
                                 // Store context for follow-up questions
                                 setRevenueAnalysisContext({
+                                  weekLabel,
                                   netSales,
                                   grossSales,
                                   totalDiscounts,
@@ -2242,23 +2243,23 @@ export default function Dashboard() {
           </TabsContent>
           )}
         </Tabs>
-
-        {/* Revenue Analysis Modal */}
-        {revenueAnalysis && revenueAnalysisContext && (
-          <Modal
-            isOpen={isAnalysisModalOpen}
-            onClose={() => setIsAnalysisModalOpen(false)}
-            title="Revenue Analysis"
-            size="lg"
-          >
-            <RevenueAnalysisChat
-              initialAnalysis={revenueAnalysis}
-              weekLabel={weekLabel}
-              analysisContext={revenueAnalysisContext}
-            />
-          </Modal>
-        )}
       </div>
+
+      {/* Revenue Analysis Modal */}
+      {revenueAnalysis && revenueAnalysisContext && (
+        <Modal
+          isOpen={isAnalysisModalOpen}
+          onClose={() => setIsAnalysisModalOpen(false)}
+          title="Revenue Analysis"
+          size="lg"
+        >
+          <RevenueAnalysisChat
+            initialAnalysis={revenueAnalysis}
+            weekLabel={revenueAnalysisContext.weekLabel || 'Current Week'}
+            analysisContext={revenueAnalysisContext}
+          />
+        </Modal>
+      )}
     </div>
   );
 }
