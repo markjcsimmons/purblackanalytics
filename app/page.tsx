@@ -1861,9 +1861,8 @@ export default function Dashboard() {
                   </TabsContent>
 
                   <TabsContent value="ai-search" className="space-y-8">
-
-            <Card className="border-2 border-slate-100">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/70">
+                    <Card className="border-2 border-slate-100">
+                      <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/70">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <CardTitle className="text-xl">AI Search Results</CardTitle>
