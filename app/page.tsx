@@ -17,6 +17,7 @@ import { ShopifyReportsUpload } from '@/components/shopify-reports-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { PromotionsUpload } from '@/components/promotions-upload';
 import { RevenueAnalysisChat } from '@/components/revenue-analysis-chat';
+import { Modal } from '@/components/ui/modal';
 import { MetricHistoryCharts, type MetricsHistoryPoint } from '@/components/metric-history-charts';
 import { ChannelHistoryCharts } from '@/components/channel-history-charts';
 import { getSession, logout } from '@/lib/auth';
@@ -108,6 +109,7 @@ export default function Dashboard() {
   const [revenueAnalysisLoading, setRevenueAnalysisLoading] = useState(false);
   const [revenueAnalysisError, setRevenueAnalysisError] = useState('');
   const [revenueAnalysisContext, setRevenueAnalysisContext] = useState<any>(null);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
 
   const fetchWeeks = async () => {
     try {
@@ -1548,6 +1550,9 @@ export default function Dashboard() {
                                   trend52: trend52?.label ?? null,
                                   channels,
                                 });
+
+                                // Open the analysis modal
+                                setIsAnalysisModalOpen(true);
                               } catch (e: any) {
                                 setRevenueAnalysisError(e.message || 'Analysis failed');
                               } finally {
@@ -1560,14 +1565,6 @@ export default function Dashboard() {
 
                           {revenueAnalysisError && (
                             <p className="mt-2 text-xs text-red-600">{revenueAnalysisError}</p>
-                          )}
-
-                          {revenueAnalysis && revenueAnalysisContext && (
-                            <RevenueAnalysisChat
-                              initialAnalysis={revenueAnalysis}
-                              weekLabel={weekLabel}
-                              analysisContext={revenueAnalysisContext}
-                            />
                           )}
                         </div>
 
@@ -2245,6 +2242,22 @@ export default function Dashboard() {
           </TabsContent>
           )}
         </Tabs>
+
+        {/* Revenue Analysis Modal */}
+        {revenueAnalysis && revenueAnalysisContext && (
+          <Modal
+            isOpen={isAnalysisModalOpen}
+            onClose={() => setIsAnalysisModalOpen(false)}
+            title="Revenue Analysis"
+            size="lg"
+          >
+            <RevenueAnalysisChat
+              initialAnalysis={revenueAnalysis}
+              weekLabel={weekLabel}
+              analysisContext={revenueAnalysisContext}
+            />
+          </Modal>
+        )}
       </div>
     </div>
   );
