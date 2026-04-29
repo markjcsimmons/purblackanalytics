@@ -1229,8 +1229,9 @@ export default function Dashboard() {
                   const totalOrders     = isCurrentWeek ? getMetricValue(weekData!.overallMetrics, 'Orders') : 0;
                   const weekLabel       = `${waterfallPoint.weekStartDate} – ${waterfallPoint.weekEndDate}`;
 
-                  // Total Revenue in the weekly CSV = Net Sales (confirmed equivalent)
-                  const tcr = (p: MetricsHistoryPoint) => p.metrics['Revenue'] ?? 0;
+                  // True Commercial Revenue = Revenue (Net Sales) - Refunds
+                  // Removes both comp-driven zeroing and genuine post-sale refunds, leaving only cash kept
+                  const tcr = (p: MetricsHistoryPoint) => (p.metrics['Revenue'] ?? 0) - (p.metrics['Refunds'] ?? 0);
                   const netSales = tcr(waterfallPoint);
                   const currentTcr = netSales;
                   const pct = (v: number, base: number) => base > 0 ? ` (${((v / base) * 100).toFixed(1)}%)` : '';
@@ -1321,63 +1322,58 @@ export default function Dashboard() {
                       </CardHeader>
                       <CardContent className="px-4 pt-3 pb-4 space-y-3">
 
-                        {/* ── Hero: Net Sales ── */}
+                        {/* ── Hero: True Commercial Revenue ── */}
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="text-base font-semibold text-emerald-800">Net Sales</span>
-                            <p className="text-xs text-slate-400 mt-0.5">Gross Sales − discounts − refunds. Actual sales revenue, excl. tax &amp; shipping.</p>
+                            <span className="text-base font-semibold text-emerald-800">True Commercial Revenue</span>
+                            <p className="text-xs text-slate-400 mt-0.5">Revenue minus refunds. Cash the business actually kept.</p>
                           </div>
                           <span className="text-2xl font-bold text-emerald-700">{formatCurrency(currentTcr)}</span>
                         </div>
 
-                        {/* Comparisons — 2 cols on mobile, 5 on wider screens */}
-                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-1 text-sm">
+                        {/* Comparisons — 3 key rows */}
+                        <div className="space-y-1.5">
                           {/* vs Prior week */}
-                          <div className="bg-slate-50 rounded px-2 py-2">
-                            <div className="text-xs text-slate-400 mb-0.5 truncate">vs Prior wk</div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-600 flex items-center gap-1">
+                              {vsPriorPct !== null ? (
+                                vsPriorPct > 0 ? <ArrowUpRight className="h-4 w-4 text-emerald-700" /> : <ArrowDownRight className="h-4 w-4 text-red-600" />
+                              ) : null}
+                              vs Prior week
+                            </span>
                             {vsPriorPct !== null && vsPriorAbs !== null ? (
-                              <div className={`font-semibold flex items-center gap-0.5 ${vsPriorPct > 0 ? 'text-emerald-700' : vsPriorPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
-                                {vsPriorPct > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : vsPriorPct < 0 ? <ArrowDownRight className="h-3.5 w-3.5" /> : null}
-                                {vsPriorPct > 0 ? '+' : ''}{vsPriorPct.toFixed(1)}%
-                              </div>
-                            ) : <div className="text-slate-300">—</div>}
-                            {vsPriorAbs !== null && <div className="text-xs text-slate-400">{vsPriorAbs > 0 ? '+' : ''}{formatCurrency(vsPriorAbs)}</div>}
+                              <span className={`font-semibold ${vsPriorPct > 0 ? 'text-emerald-700' : vsPriorPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                {vsPriorAbs > 0 ? '+' : ''}{formatCurrency(vsPriorAbs)}  {vsPriorPct > 0 ? '+' : ''}{vsPriorPct.toFixed(1)}%
+                              </span>
+                            ) : <span className="text-slate-300">—</span>}
                           </div>
 
                           {/* vs Year ago */}
-                          <div className="bg-slate-50 rounded px-2 py-2">
-                            <div className="text-xs text-slate-400 mb-0.5 truncate">vs Year ago</div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-600 flex items-center gap-1">
+                              {vsYoyPct !== null ? (
+                                vsYoyPct > 0 ? <ArrowUpRight className="h-4 w-4 text-emerald-700" /> : <ArrowDownRight className="h-4 w-4 text-red-600" />
+                              ) : null}
+                              vs Year ago
+                            </span>
                             {vsYoyPct !== null && vsYoyAbs !== null ? (
-                              <div className={`font-semibold flex items-center gap-0.5 ${vsYoyPct > 0 ? 'text-emerald-700' : vsYoyPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
-                                {vsYoyPct > 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : vsYoyPct < 0 ? <ArrowDownRight className="h-3.5 w-3.5" /> : null}
-                                {vsYoyPct > 0 ? '+' : ''}{vsYoyPct.toFixed(1)}%
-                              </div>
-                            ) : <div className="text-slate-300">—</div>}
-                            {vsYoyAbs !== null && <div className="text-xs text-slate-400">{vsYoyAbs > 0 ? '+' : ''}{formatCurrency(vsYoyAbs)}</div>}
+                              <span className={`font-semibold ${vsYoyPct > 0 ? 'text-emerald-700' : vsYoyPct < 0 ? 'text-red-600' : 'text-slate-500'}`}>
+                                {vsYoyAbs > 0 ? '+' : ''}{formatCurrency(vsYoyAbs)}  {vsYoyPct > 0 ? '+' : ''}{vsYoyPct.toFixed(1)}%
+                              </span>
+                            ) : <span className="text-slate-300">—</span>}
                           </div>
 
                           {/* 4-week trend */}
-                          <div className="bg-slate-50 rounded px-2 py-2">
-                            <div className="text-xs text-slate-400 mb-0.5 truncate">4-wk trend</div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-600 flex items-center gap-1">
+                              {trend4 && (
+                                trend4.pctPerWk > 0.5 ? <ArrowUpRight className="h-4 w-4 text-emerald-700" /> : trend4.pctPerWk < -0.5 ? <ArrowDownRight className="h-4 w-4 text-red-600" /> : null
+                              )}
+                              Trend (4-wk)
+                            </span>
                             {trend4 ? (
-                              <div className={`font-semibold ${trend4.color}`}>{trend4.label}</div>
-                            ) : <div className="text-slate-300">—</div>}
-                          </div>
-
-                          {/* 12-week trend */}
-                          <div className="bg-slate-50 rounded px-2 py-2">
-                            <div className="text-xs text-slate-400 mb-0.5 truncate">12-wk trend</div>
-                            {trend12 ? (
-                              <div className={`font-semibold ${trend12.color}`}>{trend12.label}</div>
-                            ) : <div className="text-slate-300">—</div>}
-                          </div>
-
-                          {/* 52-week trend */}
-                          <div className="bg-slate-50 rounded px-2 py-2">
-                            <div className="text-xs text-slate-400 mb-0.5 truncate">52-wk trend</div>
-                            {trend52 ? (
-                              <div className={`font-semibold ${trend52.color}`}>{trend52.label}</div>
-                            ) : <div className="text-slate-300">—</div>}
+                              <span className={`font-semibold ${trend4.color}`}>{trend4.label}</span>
+                            ) : <span className="text-slate-300">—</span>}
                           </div>
                         </div>
 
