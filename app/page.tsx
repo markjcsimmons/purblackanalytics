@@ -82,7 +82,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [accessLevel, setAccessLevel] = useState<'full' | 'limited' | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'ai-search' | 'charts'>('deep-dive');
+  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'charts'>('deep-dive');
   const [comparisonData, setComparisonData] = useState<{
     previousWeek: any;
     sameWeekYearAgo: any;
@@ -446,7 +446,7 @@ export default function Dashboard() {
           }}
           className="space-y-6"
         >
-          <TabsList className={`grid w-full ${accessLevel === 'limited' ? 'grid-cols-1' : 'grid-cols-3'} lg:w-[400px]`}>
+          <TabsList className={`grid w-full ${accessLevel === 'limited' ? 'grid-cols-1' : 'grid-cols-2'} lg:w-[400px]`}>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             {accessLevel === 'full' && (
               <>
@@ -741,7 +741,7 @@ export default function Dashboard() {
 
                 {/* Overview workspace */}
                 <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-3 rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm lg:w-[480px]">
+                  <TabsList className="grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm lg:w-[320px]">
                     <TabsTrigger
                       value="deep-dive"
                       className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
@@ -1329,7 +1329,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* Comparisons — 2 cols on mobile, 5 on wider screens */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 text-sm">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-1 text-sm">
                           {/* vs Prior week */}
                           <div className="bg-slate-50 rounded px-2 py-2">
                             <div className="text-xs text-slate-400 mb-0.5 truncate">vs Prior wk</div>
@@ -1574,7 +1574,7 @@ export default function Dashboard() {
                   </CardHeader>
                   <CardContent className="pt-6">
                     {/* Channel Summary Cards with Enhanced Affiliates */}
-                    <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5 mb-6">
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
                       {weekData && weekData.marketingChannels && Array.isArray(weekData.marketingChannels) && 
                         Object.entries(
                           weekData.marketingChannels.reduce((acc: any, item: any) => {
@@ -1860,493 +1860,6 @@ export default function Dashboard() {
 
                   </TabsContent>
 
-                  <TabsContent value="ai-search" className="space-y-8">
-                    <Card className="border-2 border-slate-100">
-                      <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100/70">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <CardTitle className="text-xl">AI Search Results</CardTitle>
-                    <CardDescription>Top 10 results from each AI search engine</CardDescription>
-                  </div>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Enter search query"
-                      className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm"
-                    />
-                    <Button
-                      onClick={loadSearchResults}
-                      disabled={isLoadingSearch}
-                      variant="outline"
-                    >
-                      {isLoadingSearch ? 'Refreshing...' : 'Search'}
-                    </Button>
-                    <Button
-                      onClick={generateAISearchWhy}
-                      disabled={isGeneratingAISearchWhy || isLoadingSearch || searchResults.length === 0}
-                      variant="outline"
-                    >
-                      {isGeneratingAISearchWhy ? 'Analyzing...' : 'Why these results?'}
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {isLoadingSearch ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Loading search results...
-                  </div>
-                ) : searchResults.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No search results available. Click refresh to load results.
-                  </div>
-                ) : (
-                  <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2">
-                    {searchResults.map((result, index) => (
-                      <div key={index} className="border border-slate-200 rounded-lg p-3 bg-white">
-                        <div className="mb-2 border-b border-slate-200 pb-2">
-                          <div className="flex items-center justify-between">
-                            <div className="font-semibold text-slate-900">{result.searchEngine}</div>
-                            <div className="text-xs text-slate-500">
-                              {new Date(result.timestamp).toLocaleString()}
-                            </div>
-                          </div>
-                          {result.brandsFound.length > 0 && (
-                            <div className="text-xs text-slate-500 mt-1">
-                              Brands: {result.brandsFound.join(', ')}
-                            </div>
-                          )}
-                        </div>
-                        {result.topResults.length > 0 ? (
-                          <div className="space-y-2">
-                            {result.topResults.map((link, linkIndex) => (
-                              <div key={linkIndex} className="text-sm">
-                                <div className="flex items-start gap-2">
-                                  <span className="text-xs bg-slate-900 text-white rounded-full w-5 h-5 flex items-center justify-center">
-                                    {link.position}
-                                  </span>
-                                  <a
-                                    href={link.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-medium text-slate-900 hover:underline"
-                                  >
-                                    {link.title?.toLowerCase().startsWith('source ')
-                                      ? new URL(link.url).hostname
-                                      : link.title}
-                                  </a>
-                                </div>
-                                {link.snippet && (
-                                  <div className="text-xs text-slate-500 ml-7 mt-1">
-                                    {link.snippet.length > 150 ? `${link.snippet.substring(0, 150)}...` : link.snippet}
-                                  </div>
-                                )}
-                                <div className="text-xs text-slate-400 ml-7 mt-1">
-                                  {new URL(link.url).hostname}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : result.rawResponse ? (
-                          <div className="text-xs text-slate-600 py-2">
-                            {result.rawResponse.length > 500 ? (
-                              <>
-                                <div className="whitespace-pre-wrap">
-                                  {expandedResults.has(index)
-                                    ? result.rawResponse
-                                    : `${result.rawResponse.substring(0, 500)}...`}
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    const newExpanded = new Set(expandedResults);
-                                    if (newExpanded.has(index)) {
-                                      newExpanded.delete(index);
-                                    } else {
-                                      newExpanded.add(index);
-                                    }
-                                    setExpandedResults(newExpanded);
-                                  }}
-                                  className="text-xs text-blue-600 hover:text-blue-800 mt-2 font-medium"
-                                >
-                                  {expandedResults.has(index) ? 'Show less' : 'Show more'}
-                                </button>
-                              </>
-                            ) : (
-                              <div className="whitespace-pre-wrap">{result.rawResponse}</div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-center text-xs text-slate-400 py-4">
-                            No source links found
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50">
-              <CardHeader className="bg-gradient-to-r from-emerald-100 to-teal-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl text-emerald-900">Sources used (websites)</CardTitle>
-                    <CardDescription className="text-emerald-800">
-                      Exact domains/URLs cited by each AI engine. (Gemini uses grounding citations; ChatGPT shows the URLs it provided.)
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {searchResults.length === 0 ? (
-                  <div className="text-sm text-emerald-900">Run a search to see the websites each engine cited.</div>
-                ) : (
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    {searchResults.map((r, idx) => {
-                      const links = Array.isArray(r.topResults) ? r.topResults : [];
-
-                      const uniqueByUrl = new Map<
-                        string,
-                        { url: string; title?: string; position: number; host: string; isHomepage: boolean }
-                      >();
-                      for (const l of links) {
-                        const url = l.url;
-                        if (!url) continue;
-                        if (!uniqueByUrl.has(url)) {
-                          uniqueByUrl.set(url, {
-                            url,
-                            title: l.title,
-                            position: typeof l.position === 'number' ? l.position : 999,
-                            host: getHostname(url),
-                            isHomepage: isHomepageUrl(url),
-                          });
-                        }
-                      }
-
-                      const allPages = Array.from(uniqueByUrl.values()).sort((a, b) => a.position - b.position);
-                      const deepLinks = allPages.filter((p) => !p.isHomepage);
-                      const homepageLinks = allPages.filter((p) => p.isHomepage);
-
-                      // Host summary (kept, but deep-links are the main value)
-                      const byHost = new Map<string, number>();
-                      for (const p of allPages) byHost.set(p.host, (byHost.get(p.host) || 0) + 1);
-                      const hosts = Array.from(byHost.entries())
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([host, count]) => ({ host, count }));
-
-                      const engineKey = r.searchEngine || `engine-${idx}`;
-                      const isExpanded = expandedSourceEngines.has(engineKey);
-                      const primaryPages = (deepLinks.length > 0 ? deepLinks : allPages).slice(0, isExpanded ? 25 : 8);
-
-                      return (
-                        <div key={idx} className="rounded-lg border border-emerald-200 bg-white/70 p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="font-semibold text-slate-900">{r.searchEngine}</div>
-                            <button
-                              className="text-xs font-semibold text-emerald-700 hover:text-emerald-900"
-                              onClick={() => {
-                                const next = new Set(expandedSourceEngines);
-                                if (next.has(engineKey)) next.delete(engineKey);
-                                else next.add(engineKey);
-                                setExpandedSourceEngines(next);
-                              }}
-                            >
-                              {isExpanded ? 'Show less' : 'Show all'}
-                            </button>
-                          </div>
-                          <div className="mt-2 text-xs text-slate-600">
-                            {deepLinks.length} deep link{deepLinks.length === 1 ? '' : 's'} · {homepageLinks.length} homepage link
-                            {homepageLinks.length === 1 ? '' : 's'} · {hosts.length} website{hosts.length === 1 ? '' : 's'}
-                          </div>
-
-                          {deepLinks.length === 0 ? (
-                            <div className="mt-3 text-sm text-emerald-900">
-                              This engine mostly returned <strong>homepages</strong>. If you want sub-pages here, we’ll need
-                              the engine to return grounded/cited URLs beyond the root domain.
-                            </div>
-                          ) : null}
-
-                          <div className="mt-3 space-y-2">
-                            <div className="text-xs font-semibold text-slate-700">Cited pages</div>
-                            {primaryPages.length === 0 ? (
-                              <div className="text-xs text-slate-500">No cited URLs returned.</div>
-                            ) : (
-                              <div className="space-y-2">
-                                {primaryPages.map((p) => (
-                                  <div key={p.url} className="rounded-md border border-emerald-100 bg-white/70 p-2">
-                                    <div className="flex items-start gap-2">
-                                      <span className="text-[11px] font-semibold bg-slate-900 text-white rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">
-                                        {p.position}
-                                      </span>
-                                      <div className="min-w-0">
-                                        <a
-                                          className="text-xs font-semibold text-slate-900 underline hover:text-slate-950"
-                                          href={p.url}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          title={p.url}
-                                        >
-                                          {getUrlLabel(p.url)}
-                                        </a>
-                                        {p.title ? (
-                                          <div className="mt-1 text-[11px] text-slate-600 line-clamp-2">{p.title}</div>
-                                        ) : null}
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mt-3">
-                            <div className="text-xs font-semibold text-slate-700">Websites (domain summary)</div>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {(isExpanded ? hosts : hosts.slice(0, 10)).map((h) => (
-                                <span
-                                  key={h.host}
-                                  className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs text-emerald-900"
-                                >
-                                  <span className="font-semibold">{h.host}</span>
-                                  <span className="text-emerald-700">({h.count})</span>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50">
-              <CardHeader className="bg-gradient-to-r from-amber-100 to-yellow-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl text-amber-900">Why these results?</CardTitle>
-                    <CardDescription className="text-amber-800">
-                      Explanation of why sources rank and why Pürblack appears (or not)
-                    </CardDescription>
-                  </div>
-                  <Button
-                    onClick={generateAISearchWhy}
-                    disabled={isGeneratingAISearchWhy || isLoadingSearch || searchResults.length === 0}
-                    variant="outline"
-                  >
-                    {isGeneratingAISearchWhy ? 'Analyzing...' : 'Run Why analysis'}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {aiSearchWhyError && <div className="mb-4 text-sm text-red-600">{aiSearchWhyError}</div>}
-                {!aiSearchWhyAnalysis ? (
-                  <div className="text-sm text-amber-900">
-                    Click <strong>Why these results?</strong> to get a breakdown of:
-                    <ul className="list-disc pl-5 mt-2 text-amber-900/90">
-                      <li>Which source types are driving visibility (Reddit, listicles, reviews, affiliates, etc.)</li>
-                      <li>Whether Pürblack is cited, where, and what seems to drive inclusion</li>
-                      <li>Concrete actions to improve citations and rankings</li>
-                    </ul>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {!aiSearchWhyAnalysis.parsed && aiSearchWhyAnalysis.analysisText && (
-                      <div className="rounded-lg border border-amber-200 bg-white/60 p-4 text-sm text-slate-900">
-                        <div className="font-semibold text-amber-900 mb-1">Analysis (fallback)</div>
-                        <div className="whitespace-pre-wrap">{aiSearchWhyAnalysis.analysisText}</div>
-                      </div>
-                    )}
-                    {aiSearchWhyAnalysis.summary && (
-                      <div className="rounded-lg border border-amber-200 bg-white/60 p-4 text-sm text-slate-900">
-                        <div className="font-semibold text-amber-900 mb-1">Summary</div>
-                        <div className="whitespace-pre-wrap">{aiSearchWhyAnalysis.summary}</div>
-                      </div>
-                    )}
-
-                    {Array.isArray(aiSearchWhyAnalysis.engines) && aiSearchWhyAnalysis.engines.length > 0 && (
-                      <div className="grid gap-4 lg:grid-cols-2">
-                        {aiSearchWhyAnalysis.engines.map((engine: any, idx: number) => (
-                          <div key={idx} className="rounded-lg border border-amber-200 bg-white/70 p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="font-semibold text-slate-900">{engine.searchEngine || `Engine ${idx + 1}`}</div>
-                              <div
-                                className={`text-xs font-semibold px-2 py-1 rounded ${
-                                  engine?.purblack?.appears ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-700'
-                                }`}
-                              >
-                                {engine?.purblack?.appears ? 'Pürblack cited' : 'Not cited'}
-                              </div>
-                            </div>
-
-                            {Array.isArray(engine?.purblack?.appearances) && engine.purblack.appearances.length > 0 && (
-                              <div className="mt-3 text-sm">
-                                <div className="text-xs font-semibold text-slate-600 mb-1">Where it appears</div>
-                                <div className="space-y-1">
-                                  {engine.purblack.appearances.slice(0, 3).map((a: any, i: number) => (
-                                    <div key={i} className="text-xs text-slate-700">
-                                      <span className="font-semibold">#{a.position}</span>{' '}
-                                      <a className="underline" href={a.url} target="_blank" rel="noopener noreferrer">
-                                        {a.title || new URL(a.url).hostname}
-                                      </a>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {Array.isArray(engine?.resultPatterns) && engine.resultPatterns.length > 0 && (
-                              <div className="mt-3">
-                                <div className="text-xs font-semibold text-slate-600 mb-1">Patterns driving results</div>
-                                <div className="space-y-2">
-                                  {engine.resultPatterns.slice(0, 3).map((p: any, i: number) => (
-                                    <div key={i} className="text-xs text-slate-700">
-                                      <div className="font-semibold">{p.pattern}</div>
-                                      {Array.isArray(p.evidence) && p.evidence.length > 0 && (
-                                        <div className="mt-1 text-[11px] text-slate-600 space-y-1">
-                                          {p.evidence.slice(0, 2).map((e: any, j: number) => (
-                                            <div key={j}>
-                                              #{e.position}{' '}
-                                              <a className="underline" href={e.url} target="_blank" rel="noopener noreferrer">
-                                                {e.title || new URL(e.url).hostname}
-                                              </a>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {Array.isArray(engine?.recommendations) && engine.recommendations.length > 0 && (
-                              <div className="mt-3">
-                                <div className="text-xs font-semibold text-slate-600 mb-1">What to do next</div>
-                                <ul className="list-disc pl-5 text-xs text-slate-800 space-y-1">
-                                  {engine.recommendations.slice(0, 4).map((r: any, i: number) => (
-                                    <li key={i}>
-                                      <span className="font-semibold">{r.action}</span>
-                                      {r.why ? <span className="text-slate-600"> — {r.why}</span> : null}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {Array.isArray(engine?.competitors) && engine.competitors.length > 0 && (
-                              <div className="mt-4">
-                                <div className="text-xs font-semibold text-slate-600 mb-1">Competitors (why they did well)</div>
-                                <div className="space-y-3">
-                                  {engine.competitors.slice(0, 3).map((c: any, i: number) => (
-                                    <div key={i} className="rounded-md border border-amber-100 bg-white/70 p-2">
-                                      <div className="flex items-center justify-between">
-                                        <div className="text-xs font-semibold text-slate-900">{c.name}</div>
-                                        <div className="text-[11px] text-slate-500">
-                                          {Array.isArray(c.appearances) ? `${c.appearances.length} link${c.appearances.length === 1 ? '' : 's'}` : ''}
-                                        </div>
-                                      </div>
-                                      {Array.isArray(c.evidenceSignals) && c.evidenceSignals.length > 0 ? (
-                                        <ul className="list-disc pl-5 mt-1 text-[11px] text-slate-800 space-y-1">
-                                          {c.evidenceSignals.slice(0, 3).map((s: any, j: number) => (
-                                            <li key={j}>
-                                              <span className="font-semibold">{s.signal}</span>
-                                              {Array.isArray(s.evidence) && s.evidence[0]?.url ? (
-                                                <>
-                                                  {' '}(
-                                                  <a
-                                                    className="underline"
-                                                    href={s.evidence[0].url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                  >
-                                                    #{s.evidence[0].position}
-                                                  </a>
-                                                  )
-                                                </>
-                                              ) : null}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      ) : Array.isArray(c.whyTheyDidWell) && c.whyTheyDidWell.length > 0 ? (
-                                        <ul className="list-disc pl-5 mt-1 text-[11px] text-slate-800 space-y-1">
-                                          {c.whyTheyDidWell.slice(0, 3).map((x: string, j: number) => (
-                                            <li key={j}>{x}</li>
-                                          ))}
-                                        </ul>
-                                      ) : (
-                                        <div className="mt-1 text-[11px] text-slate-500">No competitor signals returned.</div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {Array.isArray(aiSearchWhyAnalysis.nextDataToCollect) && aiSearchWhyAnalysis.nextDataToCollect.length > 0 && (
-                      <div className="rounded-lg border border-amber-200 bg-white/60 p-4 text-sm">
-                        <div className="font-semibold text-amber-900 mb-2">To improve accuracy, collect next</div>
-                        <ul className="list-disc pl-5 text-sm text-slate-800 space-y-1">
-                          {aiSearchWhyAnalysis.nextDataToCollect.slice(0, 6).map((x: string, i: number) => (
-                            <li key={i}>{x}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 border-purple-100">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl">AI Search Insights</CardTitle>
-                    <CardDescription>Recommendations based on AI search analysis</CardDescription>
-                  </div>
-                  <Button
-                    onClick={generateAISearchInsights}
-                    disabled={isGeneratingAISearchInsights}
-                    variant="outline"
-                  >
-                    {isGeneratingAISearchInsights ? 'Generating...' : 'Generate Insights'}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                {aiSearchInsightsError && (
-                  <div className="mb-4 text-sm text-red-600">{aiSearchInsightsError}</div>
-                )}
-                {aiSearchInsights.length === 0 ? (
-                  <div className="text-center py-6 text-muted-foreground">
-                    No AI search insights yet. Run a search, then generate insights.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {aiSearchInsights.map((insight, index) => (
-                      <div
-                        key={index}
-                        className="border border-purple-200 bg-purple-50 rounded-lg p-3 text-sm"
-                      >
-                        <div className="font-semibold text-purple-900">
-                          {insight.type.toUpperCase()} · {insight.priority.toUpperCase()}
-                        </div>
-                        <div className="text-purple-900 mt-1">{insight.text}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-                  </TabsContent>
 
                   <TabsContent value="charts" className="space-y-8">
                     <Card className="border-2 border-slate-100">
@@ -2429,7 +1942,7 @@ export default function Dashboard() {
                         <CardDescription>Performance metrics with comparisons</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-4 md:grid-cols-3">
+                      <div className="grid gap-4 md:grid-cols-2">
                           {metrics
                             .filter((metric: any) => {
                               // Show spend/cost for Google Ads and Facebook Ads only
@@ -2613,7 +2126,7 @@ export default function Dashboard() {
                           {sections.map((section) => (
                             <div key={section.contentType} className="border-l-4 border-pink-300 pl-4">
                               <h3 className="font-semibold text-lg mb-4">{section.title}</h3>
-                              <div className={`grid gap-4 ${section.metrics.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+                              <div className={`grid gap-4 ${section.metrics.length === 3 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
                                 {section.metrics.map((metric) => {
                                   const current = getSocialMetric(weekData, 'Instagram', section.contentType, metric.key);
                                   const prev = comparisonData?.previousWeek
