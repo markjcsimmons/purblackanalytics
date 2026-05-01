@@ -2240,6 +2240,40 @@ export default function Dashboard() {
               <ShopifyReportsUpload onUploadSuccess={handleUploadSuccess} />
               <PromotionsUpload />
             <DataEntryForm onSuccess={handleUploadSuccess} />
+
+            {/* ── Export CSV ── */}
+            <Card className="border-2 border-slate-200">
+              <CardHeader className="py-3 px-4 bg-slate-50">
+                <CardTitle className="text-base text-slate-700 flex items-center gap-2">
+                  <span>⬇</span> Export Data as CSV
+                </CardTitle>
+                <p className="text-xs text-slate-500 mt-0.5">Download all historical data to date. Each file opens directly in Excel or Google Sheets.</p>
+              </CardHeader>
+              <CardContent className="px-4 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { type: 'overview',    label: 'Weekly Overview',      desc: 'Revenue, AOV, sessions, discounts, refunds — one row per week',       icon: '📊' },
+                    { type: 'channels',    label: 'Marketing Channels',   desc: 'Spend, revenue & ROAS per channel per week',                          icon: '📢' },
+                    { type: 'promotions',  label: 'Promotions',           desc: 'All promo records with dates, offer type & sales figures',             icon: '🎟️' },
+                    { type: 'funnel',      label: 'Funnel Metrics',       desc: 'Stage-by-stage funnel data per week',                                 icon: '🔽' },
+                  ].map(({ type, label, desc, icon }) => (
+                    <a
+                      key={type}
+                      href={`/api/export?type=${type}`}
+                      download
+                      className="flex flex-col gap-1.5 rounded-lg border border-slate-200 bg-white px-4 py-3 hover:border-violet-300 hover:bg-violet-50 transition-colors group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{icon}</span>
+                        <span className="text-sm font-semibold text-slate-700 group-hover:text-violet-700">{label}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 leading-snug">{desc}</p>
+                      <span className="mt-1 text-xs font-medium text-violet-600 group-hover:underline">Download CSV →</span>
+                    </a>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
           )}
         </Tabs>
