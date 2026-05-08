@@ -287,6 +287,25 @@ export default function Dashboard() {
   };
 
 
+  // Returns the year-ago metric value from metricsHistory (±3-day tolerance, 364-day offset).
+  // Used by overview cards so YoY uses the same data source as the charts.
+  const getYearAgoFromHistory = (weekStartDate: string, metricKey: string): number | null => {
+    if (!weekStartDate || !metricsHistory.length) return null;
+    const target = new Date(weekStartDate + 'T00:00:00');
+    target.setDate(target.getDate() - 364);
+    const TOLERANCE = 3 * 24 * 60 * 60 * 1000;
+    const match = metricsHistory
+      .filter((p) => Object.prototype.hasOwnProperty.call(p.metrics, metricKey))
+      .reduce<MetricsHistoryPoint | null>((best, p) => {
+        const diff = Math.abs(new Date(p.weekStartDate + 'T00:00:00').getTime() - target.getTime());
+        if (diff > TOLERANCE) return best;
+        if (!best) return p;
+        const bestDiff = Math.abs(new Date(best.weekStartDate + 'T00:00:00').getTime() - target.getTime());
+        return diff < bestDiff ? p : best;
+      }, null);
+    return match ? (match.metrics[metricKey] ?? null) : null;
+  };
+
   // Returns the 4-week slope for a metric from metricsHistory as a % per week.
   // Used to show trend direction on each overview stat card.
   const get4wkTrend = (metricKey: string): { pctPerWk: number; label: string; color: string } | null => {
@@ -495,17 +514,15 @@ export default function Dashboard() {
                       })()}
                       {comparisonData && (() => {
                         const currentValue = getMetricValue(weekData.overallMetrics, 'Revenue');
-                        const prevWeekValue = comparisonData.previousWeek 
+                        const prevWeekValue = comparisonData.previousWeek
                           ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Revenue')
                           : null;
-                        const yearAgoValue = comparisonData.sameWeekYearAgo 
-                          ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Revenue')
+                        const yearAgoValue = getYearAgoFromHistory(weekData.week?.week_start_date ?? '', 'Revenue');
+                        const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0
+                          ? ((currentValue - prevWeekValue) / prevWeekValue) * 100
                           : null;
-                        const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
-                          ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
-                          : null;
-                        const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0 
-                          ? ((currentValue - yearAgoValue) / yearAgoValue) * 100 
+                        const yearAgoChange = yearAgoValue !== null && yearAgoValue !== 0
+                          ? ((currentValue - yearAgoValue) / yearAgoValue) * 100
                           : null;
                         const revTrend = get4wkTrend('Revenue');
                         return (
@@ -561,12 +578,10 @@ export default function Dashboard() {
                       </p>
                       {comparisonData && (() => {
                         const currentValue = getMetricValue(weekData.overallMetrics, 'Conversion Rate') || 0;
-                        const prevWeekValue = comparisonData.previousWeek 
+                        const prevWeekValue = comparisonData.previousWeek
                           ? (getMetricValue(comparisonData.previousWeek.overallMetrics, 'Conversion Rate') || 0)
                           : null;
-                        const yearAgoValue = comparisonData.sameWeekYearAgo 
-                          ? (getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Conversion Rate') || 0)
-                          : null;
+                        const yearAgoValue = getYearAgoFromHistory(weekData.week?.week_start_date ?? '', 'Conversion Rate');
                         const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
                           ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
                           : null;
@@ -627,12 +642,10 @@ export default function Dashboard() {
                       </p>
                       {comparisonData && (() => {
                         const currentValue = getMetricValue(weekData.overallMetrics, 'AOV');
-                        const prevWeekValue = comparisonData.previousWeek 
+                        const prevWeekValue = comparisonData.previousWeek
                           ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'AOV')
                           : null;
-                        const yearAgoValue = comparisonData.sameWeekYearAgo 
-                          ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'AOV')
-                          : null;
+                        const yearAgoValue = getYearAgoFromHistory(weekData.week?.week_start_date ?? '', 'AOV');
                         const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
                           ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
                           : null;
@@ -693,12 +706,10 @@ export default function Dashboard() {
                       </p>
                       {comparisonData && (() => {
                         const currentValue = getMetricValue(weekData.overallMetrics, 'Total Sessions');
-                        const prevWeekValue = comparisonData.previousWeek 
+                        const prevWeekValue = comparisonData.previousWeek
                           ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Total Sessions')
                           : null;
-                        const yearAgoValue = comparisonData.sameWeekYearAgo 
-                          ? getMetricValue(comparisonData.sameWeekYearAgo.overallMetrics, 'Total Sessions')
-                          : null;
+                        const yearAgoValue = getYearAgoFromHistory(weekData.week?.week_start_date ?? '', 'Total Sessions');
                         const prevWeekChange = prevWeekValue !== null && prevWeekValue !== 0 
                           ? ((currentValue - prevWeekValue) / prevWeekValue) * 100 
                           : null;
@@ -745,22 +756,22 @@ export default function Dashboard() {
 
                 {/* Overview workspace */}
                 <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-2 rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm lg:w-[320px]">
+                  <TabsList className="grid w-full grid-cols-3 rounded-xl bg-slate-800 p-1 shadow-md">
                     <TabsTrigger
                       value="deep-dive"
-                      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
+                      className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
                     >
                       Deep Dive
                     </TabsTrigger>
                     <TabsTrigger
                       value="ai-search"
-                      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
+                      className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
                     >
                       AI / Search
                     </TabsTrigger>
                     <TabsTrigger
                       value="charts"
-                      className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-white/70 hover:text-slate-900 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow"
+                      className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
                     >
                       Charts
                     </TabsTrigger>
