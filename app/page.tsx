@@ -84,7 +84,10 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [accessLevel, setAccessLevel] = useState<'full' | 'limited' | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'charts'>('deep-dive');
+  const [overviewSubTab, setOverviewSubTab] = useState<'deep-dive' | 'charts' | 'insights'>('deep-dive');
+  const [weekInsights, setWeekInsights] = useState<string | null>(null);
+  const [weekInsightsLoading, setWeekInsightsLoading] = useState(false);
+  const [weekInsightsError, setWeekInsightsError] = useState('');
   const [comparisonData, setComparisonData] = useState<{
     previousWeek: any;
     sameWeekYearAgo: any;
@@ -771,7 +774,7 @@ export default function Dashboard() {
 
                 {/* Overview workspace */}
                 <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
-                  <TabsList className="grid w-full h-auto grid-cols-2 rounded-xl bg-slate-800 p-1 shadow-md">
+                  <TabsList className="grid w-full h-auto grid-cols-3 rounded-xl bg-slate-800 p-1 shadow-md">
                     <TabsTrigger
                       value="deep-dive"
                       className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
@@ -783,6 +786,12 @@ export default function Dashboard() {
                       className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
                     >
                       Charts
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="insights"
+                      className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
+                    >
+                      ✨ Insights
                     </TabsTrigger>
                   </TabsList>
 
@@ -1915,6 +1924,135 @@ export default function Dashboard() {
                           <div className="text-sm text-muted-foreground">Loading chart data…</div>
                         ) : (
                           <MetricHistoryCharts history={metricsHistory} />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* ✨ INSIGHTS TAB */}
+                  <TabsContent value="insights" className="space-y-4">
+                    <Card className="border-2 border-violet-100">
+                      <CardHeader className="bg-gradient-to-r from-violet-50 to-purple-50/50 py-4 px-5">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-lg text-slate-800 flex items-center gap-2">
+                              <Sparkles className="h-5 w-5 text-violet-600" />
+                              Weekly Insights &amp; Recommendations
+                            </CardTitle>
+                            <p className="text-sm text-slate-500 mt-0.5">
+                              AI-powered analysis of all metrics for {weekData?.week?.week_start_date ? `${weekData.week.week_start_date} – ${weekData.week.week_end_date}` : 'the selected week'}
+                            </p>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="bg-violet-600 hover:bg-violet-700 text-white font-semibold"
+                            disabled={weekInsightsLoading}
+                            onClick={async () => {
+                              if (!weekData) return;
+                              setWeekInsights(null);
+                              setWeekInsightsError('');
+                              setWeekInsightsLoading(true);
+                              try {
+                                // Gather all metric values
+                                const revenue = getMetricValue(weekData.overallMetrics, 'Revenue');
+                                const grossSales = getMetricValue(weekData.overallMetrics, 'Gross Sales');
+                                const refunds = getMetricValue(weekData.overallMetrics, 'Refunds');
+                                const totalDiscounts = getMetricValue(weekData.overallMetrics, 'Total Discounts');
+                                const compValue = getMetricValue(weekData.overallMetrics, 'Comp Discounts');
+                                const compCount = getMetricValue(weekData.overallMetrics, 'Comp Order Count');
+                                const promoDiscount = getMetricValue(weekData.overallMetrics, 'Promo Discounts');
+                                const promoCount = getMetricValue(weekData.overallMetrics, 'Promo Order Count');
+                                const classicDiscount = getMetricValue(weekData.overallMetrics, 'Classic Discount Value');
+                                const classicCount = getMetricValue(weekData.overallMetrics, 'Classic Discount Count');
+                                const sessions = getMetricValue(weekData.overallMetrics, 'Total Sessions');
+                                const conversionRate = getMetricValue(weekData.overallMetrics, 'Conversion Rate');
+                                const aov = getMetricValue(weekData.overallMetrics, 'AOV');
+                                const orders = getMetricValue(weekData.overallMetrics, 'Orders');
+                                const checkoutAbandonmentRate = getMetricValue(weekData.overallMetrics, 'Checkout Abandonment Rate');
+
+                                // Compute WoW comparisons using comparisonData
+                                const prevRev = comparisonData?.previousWeek ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Revenue') : null;
+                                const prevCr = comparisonData?.previousWeek ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Conversion Rate') : null;
+                                const prevAov = comparisonData?.previousWeek ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'AOV') : null;
+                                const prevSess = comparisonData?.previousWeek ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Total Sessions') : null;
+                                const pct = (cur: number, prev: number | null) => prev && prev !== 0 ? ((cur - prev) / Math.abs(prev)) * 100 : null;
+
+                                // YoY revenue from metricsHistory
+                                const yoyRev = getYearAgoFromHistory(weekData.week?.week_start_date ?? '', 'Revenue');
+                                const vsYoyRevPct = yoyRev && yoyRev !== 0 ? ((revenue - yoyRev) / Math.abs(yoyRev)) * 100 : null;
+
+                                // Channel data
+                                const channels: Record<string, any> = {};
+                                if (weekData.marketingChannels) {
+                                  weekData.marketingChannels.forEach((m: any) => {
+                                    if (!channels[m.channel_name]) channels[m.channel_name] = { revenue: 0, spend: 0, roas: 0 };
+                                    const ml = m.metric_name.toLowerCase();
+                                    if (ml.includes('revenue') || ml.includes('sales') || ml.includes('total $') || ml.includes('attributed')) channels[m.channel_name].revenue = m.metric_value;
+                                    if (ml.includes('spend') || ml.includes('cost')) channels[m.channel_name].spend = m.metric_value;
+                                    if (ml.includes('roas')) channels[m.channel_name].roas = m.metric_value;
+                                  });
+                                }
+
+                                const res = await fetch('/api/week-insights', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    weekLabel: `${weekData.week?.week_start_date} – ${weekData.week?.week_end_date}`,
+                                    revenue, grossSales, refunds, totalDiscounts,
+                                    compValue, compCount, promoDiscount, promoCount, classicDiscount, classicCount,
+                                    sessions, conversionRate, aov, orders, checkoutAbandonmentRate,
+                                    vsPriorRevPct: pct(revenue, prevRev),
+                                    vsPriorCrPct: pct(conversionRate, prevCr),
+                                    vsPriorAovPct: pct(aov, prevAov),
+                                    vsPriorSessionsPct: pct(sessions, prevSess),
+                                    vsYoyRevPct,
+                                    trend4Rev: get4wkTrend('Revenue')?.label ?? null,
+                                    trend4Cr: get4wkTrend('Conversion Rate')?.label ?? null,
+                                    trend4Aov: get4wkTrend('AOV')?.label ?? null,
+                                    trend4Sessions: get4wkTrend('Total Sessions')?.label ?? null,
+                                    channels,
+                                    weekNotes: (weekData.week as any)?.notes ?? '',
+                                  }),
+                                });
+                                const data = await res.json();
+                                if (!res.ok) throw new Error(data.error || 'Failed to generate insights');
+                                setWeekInsights(data.insights);
+                              } catch (e: any) {
+                                setWeekInsightsError(e.message || 'Failed to generate insights');
+                              } finally {
+                                setWeekInsightsLoading(false);
+                              }
+                            }}
+                          >
+                            {weekInsightsLoading ? (
+                              <span className="flex items-center gap-2"><Sparkles className="h-4 w-4 animate-pulse" /> Generating…</span>
+                            ) : (
+                              <span className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> Get Insights</span>
+                            )}
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="px-5 py-4">
+                        {weekInsightsError && (
+                          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{weekInsightsError}</div>
+                        )}
+                        {!weekInsights && !weekInsightsLoading && !weekInsightsError && (
+                          <div className="text-center py-12 text-slate-400">
+                            <Sparkles className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                            <p className="text-sm">Click <strong>Get Insights</strong> to generate AI-powered analysis and recommendations for this week.</p>
+                          </div>
+                        )}
+                        {weekInsights && (
+                          <div
+                            className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
+                            dangerouslySetInnerHTML={{ __html: weekInsights
+                              .replace(/^## (.+)$/gm, '<h3 class="text-base font-bold text-slate-800 mt-4 mb-1.5 first:mt-0">$1</h3>')
+                              .replace(/^- (.+)$/gm, '<li class="ml-4 mb-1">$1</li>')
+                              .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 mb-1"><strong>$1.</strong> $2</li>')
+                              .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                              .replace(/\n\n/g, '<br/>')
+                            }}
+                          />
                         )}
                       </CardContent>
                     </Card>
