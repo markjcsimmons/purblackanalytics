@@ -469,12 +469,27 @@ export default function Dashboard() {
           }}
           className="space-y-6"
         >
-          <TabsList className={`grid w-full ${accessLevel === 'limited' ? 'grid-cols-1' : 'grid-cols-2'} lg:w-[400px]`}>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsList className={`grid w-full ${accessLevel === 'limited' ? 'grid-cols-1' : 'grid-cols-3'} rounded-xl bg-slate-800 p-1 shadow-md`}>
+            <TabsTrigger
+              value="overview"
+              className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
+            >
+              Overview
+            </TabsTrigger>
             {accessLevel === 'full' && (
               <>
-            <TabsTrigger value="channels">Channels</TabsTrigger>
-            <TabsTrigger value="add-data">Add Data</TabsTrigger>
+                <TabsTrigger
+                  value="channels"
+                  className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
+                >
+                  Channels
+                </TabsTrigger>
+                <TabsTrigger
+                  value="add-data"
+                  className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
+                >
+                  Add Data
+                </TabsTrigger>
               </>
             )}
           </TabsList>
@@ -756,18 +771,12 @@ export default function Dashboard() {
 
                 {/* Overview workspace */}
                 <Tabs value={overviewSubTab} onValueChange={(v) => setOverviewSubTab(v as any)} className="space-y-6">
-                  <TabsList className="grid w-full grid-cols-3 rounded-xl bg-slate-800 p-1 shadow-md">
+                  <TabsList className="grid w-full grid-cols-2 rounded-xl bg-slate-800 p-1 shadow-md">
                     <TabsTrigger
                       value="deep-dive"
                       className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
                     >
                       Deep Dive
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="ai-search"
-                      className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
-                    >
-                      AI / Search
                     </TabsTrigger>
                     <TabsTrigger
                       value="charts"
