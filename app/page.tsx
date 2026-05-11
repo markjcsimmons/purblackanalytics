@@ -88,6 +88,7 @@ export default function Dashboard() {
   const [weekInsights, setWeekInsights] = useState<string | null>(null);
   const [weekInsightsLoading, setWeekInsightsLoading] = useState(false);
   const [weekInsightsError, setWeekInsightsError] = useState('');
+  const [weekInsightsContext, setWeekInsightsContext] = useState<any>(null);
   const [comparisonData, setComparisonData] = useState<{
     previousWeek: any;
     sameWeekYearAgo: any;
@@ -2017,6 +2018,38 @@ export default function Dashboard() {
                                 const data = await res.json();
                                 if (!res.ok) throw new Error(data.error || 'Failed to generate insights');
                                 setWeekInsights(data.insights);
+                                // Store context so the chat can reference all metrics in follow-ups
+                                const yoyRev2 = getYearAgoFromHistory(weekData.week?.week_start_date ?? '', 'Revenue');
+                                const vsYoyRevPct2 = yoyRev2 && yoyRev2 !== 0 ? ((getMetricValue(weekData.overallMetrics, 'Revenue') - yoyRev2) / Math.abs(yoyRev2)) * 100 : null;
+                                const prevRev2 = comparisonData?.previousWeek ? getMetricValue(comparisonData.previousWeek.overallMetrics, 'Revenue') : null;
+                                const curRev2 = getMetricValue(weekData.overallMetrics, 'Revenue');
+                                const vsPriorPct2 = prevRev2 && prevRev2 !== 0 ? ((curRev2 - prevRev2) / Math.abs(prevRev2)) * 100 : null;
+                                const channelsCtx: Record<string, any> = {};
+                                if (weekData.marketingChannels) {
+                                  weekData.marketingChannels.forEach((m: any) => {
+                                    if (!channelsCtx[m.channel_name]) channelsCtx[m.channel_name] = { revenue: 0, spend: 0, roas: 0 };
+                                    const ml = m.metric_name.toLowerCase();
+                                    if (ml.includes('revenue') || ml.includes('sales') || ml.includes('total $') || ml.includes('attributed')) channelsCtx[m.channel_name].revenue = m.metric_value;
+                                    if (ml.includes('spend') || ml.includes('cost')) channelsCtx[m.channel_name].spend = m.metric_value;
+                                    if (ml.includes('roas')) channelsCtx[m.channel_name].roas = m.metric_value;
+                                  });
+                                }
+                                setWeekInsightsContext({
+                                  weekLabel: `${weekData.week?.week_start_date} – ${weekData.week?.week_end_date}`,
+                                  netSales: getMetricValue(weekData.overallMetrics, 'Revenue'),
+                                  grossSales: getMetricValue(weekData.overallMetrics, 'Gross Sales'),
+                                  totalDiscounts: getMetricValue(weekData.overallMetrics, 'Total Discounts'),
+                                  compValue: getMetricValue(weekData.overallMetrics, 'Comp Discounts'),
+                                  promoDiscount: getMetricValue(weekData.overallMetrics, 'Promo Discounts'),
+                                  classicDiscount: getMetricValue(weekData.overallMetrics, 'Classic Discount Value'),
+                                  refunds: getMetricValue(weekData.overallMetrics, 'Refunds'),
+                                  vsPriorPct: vsPriorPct2,
+                                  vsYoyPct: vsYoyRevPct2,
+                                  trend4: get4wkTrend('Revenue')?.label ?? null,
+                                  trend12: null,
+                                  trend52: null,
+                                  channels: channelsCtx,
+                                });
                               } catch (e: any) {
                                 setWeekInsightsError(e.message || 'Failed to generate insights');
                               } finally {
@@ -2042,16 +2075,11 @@ export default function Dashboard() {
                             <p className="text-sm">Click <strong>Get Insights</strong> to generate AI-powered analysis and recommendations for this week.</p>
                           </div>
                         )}
-                        {weekInsights && (
-                          <div
-                            className="prose prose-sm max-w-none text-slate-700 leading-relaxed"
-                            dangerouslySetInnerHTML={{ __html: weekInsights
-                              .replace(/^## (.+)$/gm, '<h3 class="text-base font-bold text-slate-800 mt-4 mb-1.5 first:mt-0">$1</h3>')
-                              .replace(/^- (.+)$/gm, '<li class="ml-4 mb-1">$1</li>')
-                              .replace(/^(\d+)\. (.+)$/gm, '<li class="ml-4 mb-1"><strong>$1.</strong> $2</li>')
-                              .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                              .replace(/\n\n/g, '<br/>')
-                            }}
+                        {weekInsights && weekInsightsContext && (
+                          <RevenueAnalysisChat
+                            initialAnalysis={weekInsights}
+                            weekLabel={weekInsightsContext.weekLabel}
+                            analysisContext={weekInsightsContext}
                           />
                         )}
                       </CardContent>
