@@ -420,7 +420,7 @@ export default function Dashboard() {
                       <SelectContent>
                         {weeks.map((week) => (
                           <SelectItem key={week.id} value={week.id.toString()}>
-                            {format(new Date(week.week_start_date), 'MMM d')} - {format(new Date(week.week_end_date), 'MMM d, yyyy')}
+                            {format(new Date(week.week_start_date + 'T00:00:00'), 'MMM d')} - {format(new Date(week.week_end_date + 'T00:00:00'), 'MMM d, yyyy')}
                           </SelectItem>
                         ))}
                       </SelectContent>

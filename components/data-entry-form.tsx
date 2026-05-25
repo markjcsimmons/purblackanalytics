@@ -732,7 +732,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 <SelectItem value="new">➕ Create New Week</SelectItem>
                 {weeks.map((week) => (
                   <SelectItem key={week.id} value={week.id.toString()}>
-                    {format(new Date(week.week_start_date), 'MMM d')} - {format(new Date(week.week_end_date), 'MMM d, yyyy')}
+                    {format(new Date(week.week_start_date + 'T00:00:00'), 'MMM d')} - {format(new Date(week.week_end_date + 'T00:00:00'), 'MMM d, yyyy')}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -768,10 +768,21 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 id="weekStartDate"
                 type="date"
                 value={formData.weekStartDate}
-                onChange={(e) => handleChange('weekStartDate', e.target.value)}
+                onChange={(e) => {
+                  const start = e.target.value;
+                  handleChange('weekStartDate', start);
+                  if (start) {
+                    const end = new Date(start + 'T00:00:00');
+                    end.setDate(end.getDate() + 6);
+                    const yyyy = end.getFullYear();
+                    const mm = String(end.getMonth() + 1).padStart(2, '0');
+                    const dd = String(end.getDate()).padStart(2, '0');
+                    handleChange('weekEndDate', `${yyyy}-${mm}-${dd}`);
+                  }
+                }}
                 required
               />
-              <p className="text-xs text-muted-foreground">Select the start date for this week (can be in the past)</p>
+              <p className="text-xs text-muted-foreground">Select the start date — end date auto-fills (7 days)</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="weekEndDate">Week End Date *</Label>
@@ -782,7 +793,7 @@ export function DataEntryForm({ onSuccess }: { onSuccess?: () => void }) {
                 onChange={(e) => handleChange('weekEndDate', e.target.value)}
                 required
               />
-              <p className="text-xs text-muted-foreground">Select the end date for this week (can be in the past)</p>
+              <p className="text-xs text-muted-foreground">Auto-filled; adjust only if needed</p>
             </div>
           </div>
           <div className="space-y-2 mt-4">

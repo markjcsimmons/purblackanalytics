@@ -44,7 +44,15 @@ export function DataUpload({ onUploadSuccess }: { onUploadSuccess?: () => void }
 
     // Extract week information
     const weekStartDate = row.week_start?.trim() || '';
-    const weekEndDate = row.week_end?.trim() || '';
+    let weekEndDate = row.week_end?.trim() || '';
+    if (weekStartDate && !weekEndDate) {
+      const end = new Date(weekStartDate + 'T00:00:00');
+      end.setDate(end.getDate() + 6);
+      const yyyy = end.getFullYear();
+      const mm = String(end.getMonth() + 1).padStart(2, '0');
+      const dd = String(end.getDate()).padStart(2, '0');
+      weekEndDate = `${yyyy}-${mm}-${dd}`;
+    }
     const notes = row.week_note?.trim() || '';
     // Try multiple possible column name variations
     const romansRecommendations = (row.roman_recommendations || row.romans_recommendations || row.romanRecommendations || row.romansRecommendations)?.trim() || '';
