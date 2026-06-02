@@ -17,6 +17,7 @@ import { ShopifyReportsUpload } from '@/components/shopify-reports-upload';
 import { GoogleDocsImport } from '@/components/google-docs-import';
 import { PromotionsUpload } from '@/components/promotions-upload';
 import { RevenueAnalysisChat } from '@/components/revenue-analysis-chat';
+import { GlobalAnalyticsChat } from '@/components/global-analytics-chat';
 import { Modal } from '@/components/ui/modal';
 import { MetricHistoryCharts, type MetricsHistoryPoint } from '@/components/metric-history-charts';
 import { ChannelHistoryCharts } from '@/components/channel-history-charts';
@@ -473,7 +474,7 @@ export default function Dashboard() {
           }}
           className="space-y-6"
         >
-          <TabsList className={`grid w-full h-auto ${accessLevel === 'limited' ? 'grid-cols-1' : 'grid-cols-3'} rounded-xl bg-slate-800 p-1 shadow-md`}>
+          <TabsList className={`grid w-full h-auto ${accessLevel === 'limited' ? 'grid-cols-1' : 'grid-cols-4'} rounded-xl bg-slate-800 p-1 shadow-md`}>
             <TabsTrigger
               value="overview"
               className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
@@ -493,6 +494,12 @@ export default function Dashboard() {
                   className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
                 >
                   Add Data
+                </TabsTrigger>
+                <TabsTrigger
+                  value="ask-claude"
+                  className="rounded-lg px-4 py-2.5 text-sm font-bold text-slate-300 transition-colors hover:text-white data-[state=active]:bg-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
+                >
+                  Ask Claude
                 </TabsTrigger>
               </>
             )}
@@ -2416,8 +2423,9 @@ export default function Dashboard() {
           </TabsContent>
           )}
 
-          {/* Add Data Tab - Full Access Only */}
+          {/* Add Data + Ask Claude Tabs - Full Access Only */}
           {accessLevel === 'full' && (
+          <>
           <TabsContent value="add-data" className="space-y-6">
               <div className="grid gap-6 md:grid-cols-2">
                 <DataUpload onUploadSuccess={handleUploadSuccess} />
@@ -2461,6 +2469,13 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="ask-claude" className="space-y-6">
+            <div className="max-w-3xl mx-auto">
+              <GlobalAnalyticsChat />
+            </div>
+          </TabsContent>
+          </>
           )}
         </Tabs>
       </div>

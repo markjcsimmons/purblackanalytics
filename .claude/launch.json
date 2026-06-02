@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "next",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "name": "next-dev",
+      "runtimeExecutable": "/Users/mark/Desktop/CURSOR:CLAUDE/PurblackAnalytics/node_modules/.bin/next",
+      "runtimeArgs": ["dev", "--cwd", "/Users/mark/Desktop/CURSOR:CLAUDE/PurblackAnalytics"],
       "port": 3000
     }
   ]
