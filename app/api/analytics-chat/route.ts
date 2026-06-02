@@ -7,10 +7,11 @@ export const runtime = 'nodejs';
 function formatAllDataAsContext(allData: ReturnType<typeof getAllData>): string {
   if (!allData.length) return 'No data has been uploaded yet.';
 
-  const fmt = (v: number) =>
-    v == null
-      ? '—'
-      : v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const fmtNum = (v: number) => {
+    if (v == null) return '—';
+    // If looks like a currency value (>= 1 and a whole-ish number), format as currency
+    return v.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  };
 
   const lines: string[] = [
     `PURBLACK ANALYTICS DATA — ${allData.length} weeks loaded`,
@@ -28,59 +29,35 @@ function formatAllDataAsContext(allData: ReturnType<typeof getAllData>): string 
     const { week, overallMetrics, marketingChannels } = entry as any;
     lines.push(`WEEK: ${week.week_start_date} → ${week.week_end_date}`);
 
-    // Overall metrics
+    // Overall metrics — emit every stored metric, stripping the "* " prefix
     if (overallMetrics.length) {
-      const om: Record<string, number> = {};
+      lines.push('  Overall metrics:');
       for (const r of overallMetrics) {
-        om[r.metric_name.replace(/^\*\s*/, '')] = r.metric_value;
-      }
-
-      const kpis = [
-        ['Revenue (Net Sales)', om['Revenue'] ?? om['Shopify Net Sales']],
-        ['Gross Sales', om['Gross Sales']],
-        ['Conversion Rate', om['Conversion Rate']],
-        ['AOV', om['AOV']],
-        ['Total Sessions', om['Total Sessions']],
-        ['Total Discounts', om['Total Discounts']],
-        ['Refunds', om['Refunds']],
-      ].filter(([, v]) => v != null);
-
-      if (kpis.length) {
-        lines.push('  Overall:');
-        for (const [label, val] of kpis) {
-          if (typeof val === 'number') {
-            const display =
-              label === 'Conversion Rate'
-                ? `${val.toFixed(2)}%`
-                : label === 'Total Sessions'
-                ? val.toLocaleString()
-                : fmt(val);
-            lines.push(`    ${label}: ${display}`);
-          }
-        }
+        const name = r.metric_name.replace(/^\*\s*/, '');
+        // Skip product-level rows (noisy)
+        if (name.startsWith('/products/')) continue;
+        lines.push(`    ${name}: ${fmtNum(r.metric_value)}`);
       }
     }
 
-    // Marketing channels
+    // Marketing channels — emit EVERY metric for EVERY channel, no filtering
     if (marketingChannels.length) {
       // Group by channel
-      const byChannel: Record<string, Record<string, number>> = {};
+      const byChannel: Record<string, Array<{ name: string; value: number }>> = {};
       for (const r of marketingChannels) {
-        if (!byChannel[r.channel_name]) byChannel[r.channel_name] = {};
-        byChannel[r.channel_name][r.metric_name.replace(/^\*\s*/, '')] = r.metric_value;
+        if (!byChannel[r.channel_name]) byChannel[r.channel_name] = [];
+        byChannel[r.channel_name].push({
+          name: r.metric_name.replace(/^\*\s*/, ''),
+          value: r.metric_value,
+        });
       }
 
-      lines.push('  Channels:');
+      lines.push('  Channel metrics:');
       for (const [ch, metrics] of Object.entries(byChannel)) {
-        const revenue = metrics['Revenue'] ?? metrics['revenue'];
-        const spend = metrics['Spend'] ?? metrics['spend'];
-        const roas =
-          metrics['ROAS'] ?? metrics['roas'] ?? (spend > 0 ? revenue / spend : null);
-        const parts: string[] = [];
-        if (revenue != null) parts.push(`Revenue ${fmt(revenue)}`);
-        if (spend != null) parts.push(`Spend ${fmt(spend)}`);
-        if (roas != null) parts.push(`ROAS ${typeof roas === 'number' ? roas.toFixed(2) : roas}x`);
-        if (parts.length) lines.push(`    ${ch}: ${parts.join(', ')}`);
+        lines.push(`    [${ch}]`);
+        for (const { name, value } of metrics) {
+          lines.push(`      ${name}: ${fmtNum(value)}`);
+        }
       }
     }
 
@@ -123,7 +100,7 @@ ${dataContext}`;
 
     const response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 800,
+      max_tokens: 1200,
       system: systemPrompt,
       messages,
     });
